@@ -1,0 +1,48 @@
+{
+  "name": "asignacion-clases",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run tests/assignment-validation.test.ts",
+    "test:integration": "vitest run tests/integration",
+    "test:rls": "vitest run tests/integration/supabase-rls.test.ts",
+    "test:audit": "vitest run tests/integration/audit-triggers.test.ts",
+    "backup:db": "tsx scripts/backup-db.ts",
+    "import:datos": "tsx scripts/import-datos.ts",
+    "seed": "npm run import:datos",
+    "supabase:types": "supabase gen types typescript --local > types/supabase.ts"
+  },
+  "dependencies": {
+    "@supabase/ssr": "latest",
+    "@supabase/supabase-js": "latest",
+    "clsx": "latest",
+    "dotenv": "latest",
+    "lucide-react": "latest",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "read-excel-file": "^9.0.10",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "autoprefixer": "latest",
+    "eslint": "latest",
+    "eslint-config-next": "latest",
+    "postcss": "^8.5.10",
+    "tailwindcss": "^3.4.17",
+    "tsx": "latest",
+    "typescript": "latest",
+    "vitest": "latest"
+  },
+  "overrides": {
+    "postcss": "^8.5.10"
+  }
+}

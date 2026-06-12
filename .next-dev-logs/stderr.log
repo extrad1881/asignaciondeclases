@@ -1,0 +1,82 @@
+Error [AuthApiError]: Invalid Refresh Token: Refresh Token Not Found
+    at ignore-listed frames {
+  __isAuthError: true,
+  status: 400,
+  code: 'refresh_token_not_found'
+}
+Error [AuthApiError]: Invalid Refresh Token: Refresh Token Not Found
+    at ignore-listed frames {
+  __isAuthError: true,
+  status: 400,
+  code: 'refresh_token_not_found'
+}
+⨯ Error: El docente ya tiene una clase asignada en este horario.
+    at createAssignmentAction (app\(dashboard)\actions.ts:222:20)
+  220 |   });
+  221 |
+> 222 |   if (error) throw new Error(error.message);
+      |                    ^
+  223 |
+  224 |   const { error: loadError } = await supabase
+  225 |     .from("group_subjects") {
+  digest: '474222780'
+}
+[browser] Uncaught Error: El docente ya tiene una clase asignada en este horario.
+    at createAssignmentAction (app\(dashboard)\actions.ts:222:20)
+    at form (<anonymous>)
+    at AssignmentForm (components/forms/assignment-form.tsx:109:5)
+    at GroupDetailPage (app\(dashboard)\grupos\[id]\page.tsx:147:13)
+  220 |   });
+  221 |
+> 222 |   if (error) throw new Error(error.message);
+      |                    ^
+  223 |
+  224 |   const { error: loadError } = await supabase
+  225 |     .from("group_subjects")
+⨯ Error: El docente ya tiene una clase asignada en este horario.
+    at createAssignmentAction (app\(dashboard)\actions.ts:222:20)
+  220 |   });
+  221 |
+> 222 |   if (error) throw new Error(error.message);
+      |                    ^
+  223 |
+  224 |   const { error: loadError } = await supabase
+  225 |     .from("group_subjects") {
+  digest: '474222780'
+}
+[browser] Uncaught Error: El docente ya tiene una clase asignada en este horario.
+    at createAssignmentAction (app\(dashboard)\actions.ts:222:20)
+    at form (<anonymous>)
+    at AssignmentForm (components/forms/assignment-form.tsx:109:5)
+    at GroupDetailPage (app\(dashboard)\grupos\[id]\page.tsx:147:13)
+  220 |   });
+  221 |
+> 222 |   if (error) throw new Error(error.message);
+      |                    ^
+  223 |
+  224 |   const { error: loadError } = await supabase
+  225 |     .from("group_subjects")
+Error [AuthApiError]: Invalid Refresh Token: Refresh Token Not Found
+    at ignore-listed frames {
+  __isAuthError: true,
+  status: 400,
+  code: 'refresh_token_not_found'
+}
+Error [AuthApiError]: Invalid Refresh Token: Refresh Token Not Found
+    at ignore-listed frames {
+  __isAuthError: true,
+  status: 400,
+  code: 'refresh_token_not_found'
+}
+Error [AuthApiError]: Invalid Refresh Token: Refresh Token Not Found
+    at ignore-listed frames {
+  __isAuthError: true,
+  status: 400,
+  code: 'refresh_token_not_found'
+}
+Error [AuthApiError]: Invalid Refresh Token: Refresh Token Not Found
+    at ignore-listed frames {
+  __isAuthError: true,
+  status: 400,
+  code: 'refresh_token_not_found'
+}

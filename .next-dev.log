@@ -1,0 +1,168 @@
+
+> asignacion-clases@0.1.0 dev
+> next dev -p 3000
+
+▲ Next.js 16.2.7 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.56.1:3000
+✓ Ready in 830ms
+- Experiments (use with caution):
+  · serverActions
+
+ GET / 404 in 227ms (next.js: -38585µs, proxy.ts: 210ms, application-code: 56ms)
+ GET / 404 in 985ms (next.js: -91139µs, proxy.ts: 939ms, application-code: 138ms)
+ GET / 404 in 218ms (next.js: -41075µs, proxy.ts: 215ms, application-code: 45ms)
+  Reload env: .env.local
+✓ Compiled in 0ms
+ GET / 307 in 397ms (next.js: 40ms, proxy.ts: 122ms, application-code: 235ms)
+ GET / 307 in 1597ms (next.js: 479ms, proxy.ts: 266ms, application-code: 853ms)
+ GET /login 200 in 448ms (next.js: 119ms, proxy.ts: 35ms, application-code: 294ms)
+ GET /dashboard 200 in 4.2s (next.js: 23ms, proxy.ts: 566ms, application-code: 3.6s)
+ GET /dashboard 200 in 5.5s (next.js: 332ms, proxy.ts: 327ms, application-code: 4.8s)
+ GET / 307 in 463ms (next.js: 16ms, proxy.ts: 19ms, application-code: 428ms)
+ GET / 307 in 787ms (next.js: 81ms, proxy.ts: 451ms, application-code: 255ms)
+ GET /login 200 in 266ms (next.js: 14ms, proxy.ts: 39ms, application-code: 214ms)
+ GET /dashboard 200 in 1757ms (next.js: 26ms, proxy.ts: 273ms, application-code: 1458ms)
+ GET / 307 in 80ms (next.js: 5ms, proxy.ts: 10ms, application-code: 65ms)
+ GET /login 200 in 63ms (next.js: 5ms, proxy.ts: 7ms, application-code: 51ms)
+ GET /dashboard 200 in 1873ms (next.js: 12ms, proxy.ts: 220ms, application-code: 1641ms)
+ GET /dashboard 200 in 1967ms (next.js: 23ms, proxy.ts: 514ms, application-code: 1429ms)
+ GET /grupos/1f94d35e-31c2-4511-a63a-a07aa95d4461 200 in 2.7s (next.js: 2.0s, proxy.ts: 135ms, application-code: 586ms)
+ GET /grupos 200 in 718ms (next.js: 133ms, proxy.ts: 176ms, application-code: 409ms)
+ POST /grupos/1f94d35e-31c2-4511-a63a-a07aa95d4461 303 in 1175ms (next.js: 20ms, proxy.ts: 129ms, application-code: 1026ms)
+  └─ ƒ deleteGroupAction({}) in 234ms app/(dashboard)/actions.ts
+ GET /materias 200 in 1901ms (next.js: 113ms, proxy.ts: 145ms, application-code: 1643ms)
+ GET /materias 200 in 1174ms (next.js: 10ms, proxy.ts: 110ms, application-code: 1054ms)
+✓ Compiled in 1369ms
+✓ Compiled in 167ms
+✓ Compiled in 116ms
+ GET /carreras 200 in 2.3s (next.js: 239ms, proxy.ts: 792ms, application-code: 1316ms)
+ GET /carreras/0e7c16d2-b5f0-4beb-8e4c-cc8789ad4eb6/materias 200 in 4.9s (next.js: 2.6s, proxy.ts: 103ms, application-code: 2.2s)
+ GET / 307 in 665ms (next.js: 112ms, proxy.ts: 359ms, application-code: 194ms)
+ GET /dashboard 200 in 1073ms (next.js: 59ms, proxy.ts: 219ms, application-code: 795ms)
+ GET /dashboard 200 in 1019ms (next.js: 7ms, proxy.ts: 168ms, application-code: 845ms)
+ GET /docentes 200 in 2.4s (next.js: 119ms, proxy.ts: 100ms, application-code: 2.2s)
+ GET /materias 200 in 1853ms (next.js: 191ms, proxy.ts: 109ms, application-code: 1552ms)
+ GET /carreras 200 in 407ms (next.js: 10ms, proxy.ts: 87ms, application-code: 310ms)
+ GET /carreras/0e7c16d2-b5f0-4beb-8e4c-cc8789ad4eb6/materias 200 in 1211ms (next.js: 31ms, proxy.ts: 106ms, application-code: 1075ms)
+ POST /carreras/0e7c16d2-b5f0-4beb-8e4c-cc8789ad4eb6/materias 200 in 1616ms (next.js: 17ms, proxy.ts: 97ms, application-code: 1502ms)
+  └─ ƒ updateSubjectAction({}) in 298ms app/(dashboard)/actions.ts
+ GET /carreras 200 in 521ms (next.js: 10ms, proxy.ts: 128ms, application-code: 384ms)
+ GET /dashboard 200 in 494ms (next.js: 6ms, proxy.ts: 84ms, application-code: 405ms)
+ GET /coordinadores 200 in 271ms (next.js: 70ms, proxy.ts: 88ms, application-code: 113ms)
+ GET /carreras 200 in 784ms (next.js: 8ms, proxy.ts: 100ms, application-code: 676ms)
+ GET /carreras/0e7c16d2-b5f0-4beb-8e4c-cc8789ad4eb6/materias 200 in 1194ms (next.js: 21ms, proxy.ts: 86ms, application-code: 1087ms)
+ POST /carreras/0e7c16d2-b5f0-4beb-8e4c-cc8789ad4eb6/materias 200 in 1673ms (next.js: 18ms, proxy.ts: 92ms, application-code: 1563ms)
+  └─ ƒ updateSubjectAction({}) in 154ms app/(dashboard)/actions.ts
+ POST /carreras/0e7c16d2-b5f0-4beb-8e4c-cc8789ad4eb6/materias 200 in 1970ms (next.js: 81ms, proxy.ts: 175ms, application-code: 1715ms)
+  └─ ƒ updateSubjectAction({}) in 829ms app/(dashboard)/actions.ts
+ GET /carreras/0e7c16d2-b5f0-4beb-8e4c-cc8789ad4eb6/materias 200 in 1528ms (next.js: 19ms, proxy.ts: 93ms, application-code: 1416ms)
+ GET /dashboard 200 in 577ms (next.js: 9ms, proxy.ts: 86ms, application-code: 483ms)
+ GET /grupos/nuevo 200 in 681ms (next.js: 95ms, proxy.ts: 92ms, application-code: 494ms)
+ GET /grupos/a3cf5fca-83d3-4c12-8f42-9a27148c807c 200 in 985ms (next.js: 253ms, proxy.ts: 88ms, application-code: 644ms)
+ POST /grupos/nuevo 303 in 1271ms (next.js: 9ms, proxy.ts: 96ms, application-code: 1166ms)
+  └─ ƒ createGroupAction({}) in 94ms app/(dashboard)/actions.ts
+ GET /grupos 200 in 884ms (next.js: 317ms, proxy.ts: 103ms, application-code: 464ms)
+ POST /grupos/a3cf5fca-83d3-4c12-8f42-9a27148c807c 303 in 1196ms (next.js: 19ms, proxy.ts: 89ms, application-code: 1089ms)
+  └─ ƒ deleteGroupAction({}) in 176ms app/(dashboard)/actions.ts
+ GET /dashboard 200 in 466ms (next.js: 7ms, proxy.ts: 97ms, application-code: 362ms)
+ GET /materias 200 in 1735ms (next.js: 12ms, proxy.ts: 89ms, application-code: 1634ms)
+ GET /docentes 200 in 2.4s (next.js: 9ms, proxy.ts: 101ms, application-code: 2.3s)
+ GET /dashboard 200 in 128ms (next.js: 8ms, proxy.ts: 103ms, application-code: 16ms)
+ GET /dashboard 200 in 1047ms (next.js: 10ms, proxy.ts: 242ms, application-code: 795ms)
+ GET /dashboard 200 in 143ms (next.js: 9ms, proxy.ts: 118ms, application-code: 16ms)
+ GET /dashboard 200 in 120ms (next.js: 8ms, proxy.ts: 102ms, application-code: 11ms)
+ GET /dashboard 200 in 791ms (next.js: 11ms, proxy.ts: 128ms, application-code: 652ms)
+ GET /dashboard 200 in 541ms (next.js: 9ms, proxy.ts: 100ms, application-code: 431ms)
+ GET /grupos/nuevo 200 in 422ms (next.js: 6ms, proxy.ts: 90ms, application-code: 327ms)
+ GET /grupos/a30d4a93-7130-4320-b4ae-8a8dad69aa1c 200 in 466ms (next.js: 20ms, proxy.ts: 81ms, application-code: 365ms)
+ POST /grupos/nuevo 303 in 619ms (next.js: 6ms, proxy.ts: 82ms, application-code: 531ms)
+  └─ ƒ createGroupAction({}) in 44ms app/(dashboard)/actions.ts
+ GET /grupos 200 in 468ms (next.js: 16ms, proxy.ts: 142ms, application-code: 311ms)
+ POST /grupos/a30d4a93-7130-4320-b4ae-8a8dad69aa1c 303 in 865ms (next.js: 31ms, proxy.ts: 168ms, application-code: 666ms)
+  └─ ƒ deleteGroupAction({}) in 169ms app/(dashboard)/actions.ts
+ GET /docentes 200 in 1590ms (next.js: 6ms, proxy.ts: 80ms, application-code: 1504ms)
+ GET /carreras 200 in 485ms (next.js: 10ms, proxy.ts: 90ms, application-code: 386ms)
+ GET /materias 200 in 1408ms (next.js: 10ms, proxy.ts: 80ms, application-code: 1318ms)
+ GET /carreras 200 in 471ms (next.js: 6ms, proxy.ts: 101ms, application-code: 364ms)
+ GET /carreras/ed634969-569f-4a5b-aafe-129cccf97c5a/materias 200 in 1082ms (next.js: 22ms, proxy.ts: 95ms, application-code: 966ms)
+ GET /docentes 200 in 228ms (next.js: 12ms, proxy.ts: 193ms, application-code: 23ms)
+ GET /docentes 200 in 3.8s (next.js: 10ms, proxy.ts: 92ms, application-code: 3.7s)
+ GET /docentes 200 in 2.2s (next.js: 16ms, proxy.ts: 153ms, application-code: 2.0s)
+✓ Compiled in 798ms
+✓ Compiled in 401ms
+✓ Compiled in 415ms
+✓ Compiled in 156ms
+✓ Compiled in 112ms
+✓ Compiled in 91ms
+✓ Compiled in 582ms
+ GET /carreras 200 in 1741ms (next.js: 243ms, proxy.ts: 602ms, application-code: 896ms)
+ GET /carreras/0e7c16d2-b5f0-4beb-8e4c-cc8789ad4eb6/materias 200 in 3.7s (next.js: 334ms, proxy.ts: 119ms, application-code: 3.3s)
+ GET /grupos 200 in 716ms (next.js: 208ms, proxy.ts: 97ms, application-code: 410ms)
+ GET / 307 in 382ms (next.js: 73ms, proxy.ts: 218ms, application-code: 92ms)
+ GET /dashboard 200 in 989ms (next.js: 45ms, proxy.ts: 107ms, application-code: 838ms)
+ GET /docentes 200 in 3.4s (next.js: 356ms, proxy.ts: 93ms, application-code: 2.9s)
+ GET /docentes 200 in 2.8s (next.js: 11ms, proxy.ts: 117ms, application-code: 2.7s)
+ GET /materias 200 in 2.3s (next.js: 318ms, proxy.ts: 132ms, application-code: 1829ms)
+ GET /carreras/6db6ae18-9f2e-4057-88e8-f3803e8af3ea/materias 200 in 1363ms (next.js: 41ms, proxy.ts: 85ms, application-code: 1237ms)
+ GET /carreras 200 in 512ms (next.js: 11ms, proxy.ts: 87ms, application-code: 415ms)
+ GET /coordinadores 200 in 251ms (next.js: 56ms, proxy.ts: 86ms, application-code: 108ms)
+ GET /grupos 200 in 252ms (next.js: 10ms, proxy.ts: 79ms, application-code: 162ms)
+ GET /horarios 200 in 344ms (next.js: 143ms, proxy.ts: 99ms, application-code: 103ms)
+ GET /horarios 200 in 289ms (next.js: 10ms, proxy.ts: 158ms, application-code: 121ms)
+ GET /admin 200 in 756ms (next.js: 79ms, proxy.ts: 75ms, application-code: 602ms)
+ GET /dashboard 200 in 480ms (next.js: 10ms, proxy.ts: 85ms, application-code: 385ms)
+ GET /grupos 200 in 290ms (next.js: 7ms, proxy.ts: 99ms, application-code: 184ms)
+ GET /docentes 200 in 2.2s (next.js: 6ms, proxy.ts: 86ms, application-code: 2.1s)
+ GET /coordinadores 200 in 243ms (next.js: 8ms, proxy.ts: 105ms, application-code: 130ms)
+ GET /horarios 200 in 252ms (next.js: 15ms, proxy.ts: 108ms, application-code: 130ms)
+ GET /admin 200 in 1003ms (next.js: 9ms, proxy.ts: 93ms, application-code: 901ms)
+ GET /admin 200 in 751ms (next.js: 27ms, proxy.ts: 191ms, application-code: 534ms)
+ GET /materias 200 in 1463ms (next.js: 11ms, proxy.ts: 100ms, application-code: 1352ms)
+ GET /docentes 200 in 2.2s (next.js: 7ms, proxy.ts: 78ms, application-code: 2.1s)
+ GET /docentes 200 in 116ms (next.js: 7ms, proxy.ts: 91ms, application-code: 19ms)
+ GET /docentes 200 in 2.4s (next.js: 7ms, proxy.ts: 100ms, application-code: 2.3s)
+✓ Compiled in 1051ms
+ GET /grupos 200 in 6.4s (next.js: 940ms, proxy.ts: 434ms, application-code: 5.1s)
+ GET /grupos 200 in 6.8s (next.js: 1790ms, proxy.ts: 4.6s, application-code: 445ms)
+ GET /docentes 200 in 13.8s (next.js: 11ms, proxy.ts: 4.4s, application-code: 9.3s)
+ GET /docentes 200 in 9.1s (next.js: 77ms, proxy.ts: 2.3s, application-code: 6.7s)
+ GET /docentes 200 in 9.1s (next.js: 20ms, proxy.ts: 2.3s, application-code: 6.8s)
+ GET /docentes 200 in 9.1s (next.js: 2.5s, proxy.ts: 2.7s, application-code: 3.9s)
+ GET /docentes 200 in 9.1s (next.js: 2.5s, proxy.ts: 2.7s, application-code: 4.0s)
+ GET /docentes 200 in 15.9s (next.js: 435ms, proxy.ts: 432ms, application-code: 15.0s)
+ GET /grupos 200 in 7.1s (next.js: 2.6s, proxy.ts: 603ms, application-code: 4.0s)
+ GET /grupos 200 in 3.7s (next.js: 14ms, proxy.ts: 3.4s, application-code: 282ms)
+ GET /grupos 200 in 261ms (next.js: 11ms, proxy.ts: 143ms, application-code: 106ms)
+ GET /grupos 200 in 259ms (next.js: 9ms, proxy.ts: 146ms, application-code: 104ms)
+ GET /grupos 200 in 444ms (next.js: 11ms, proxy.ts: 150ms, application-code: 283ms)
+ GET /grupos 200 in 240ms (next.js: 7ms, proxy.ts: 138ms, application-code: 95ms)
+ GET /grupos 200 in 182ms (next.js: 5ms, proxy.ts: 93ms, application-code: 84ms)
+ GET /grupos 200 in 197ms (next.js: 5ms, proxy.ts: 98ms, application-code: 94ms)
+ GET /grupos 200 in 178ms (next.js: 5ms, proxy.ts: 102ms, application-code: 70ms)
+ GET /grupos 200 in 172ms (next.js: 6ms, proxy.ts: 86ms, application-code: 80ms)
+ GET /grupos 200 in 173ms (next.js: 6ms, proxy.ts: 85ms, application-code: 82ms)
+ GET /grupos 200 in 197ms (next.js: 6ms, proxy.ts: 101ms, application-code: 90ms)
+ GET /grupos 200 in 188ms (next.js: 5ms, proxy.ts: 97ms, application-code: 86ms)
+ GET /grupos 200 in 155ms (next.js: 9ms, proxy.ts: 82ms, application-code: 64ms)
+✓ Compiled in 296ms
+ GET /grupos 200 in 780ms (next.js: 220ms, proxy.ts: 253ms, application-code: 307ms)
+ GET /grupos 200 in 308ms (next.js: 12ms, proxy.ts: 162ms, application-code: 134ms)
+✓ Compiled in 172ms
+ GET /grupos 200 in 762ms (next.js: 197ms, proxy.ts: 273ms, application-code: 292ms)
+ GET /grupos 200 in 360ms (next.js: 8ms, proxy.ts: 153ms, application-code: 199ms)
+ GET /grupos 200 in 251ms (next.js: 10ms, proxy.ts: 126ms, application-code: 115ms)
+ GET /login 200 in 387ms (next.js: 59ms, proxy.ts: 13ms, application-code: 315ms)
+ GET /admin 200 in 1899ms (next.js: 319ms, proxy.ts: 172ms, application-code: 1407ms)
+ GET /docentes 200 in 7.9s (next.js: 255ms, proxy.ts: 203ms, application-code: 7.5s)
+ GET /admin 200 in 749ms (next.js: 10ms, proxy.ts: 115ms, application-code: 624ms)
+ GET /docentes 200 in 5.9s (next.js: 7ms, proxy.ts: 91ms, application-code: 5.8s)
+ GET / 307 in 792ms (next.js: 78ms, proxy.ts: 608ms, application-code: 106ms)
+ GET /dashboard 200 in 1123ms (next.js: 120ms, proxy.ts: 130ms, application-code: 873ms)
+ GET /docentes 200 in 3.3s (next.js: 17ms, proxy.ts: 115ms, application-code: 3.2s)
+ POST /docentes 200 in 2.5s (next.js: 8ms, proxy.ts: 98ms, application-code: 2.4s)
+  └─ ƒ assignCoordinatorTeacherAction({}) in 255ms app/(dashboard)/actions.ts
+ POST /docentes 200 in 2.2s (next.js: 8ms, proxy.ts: 88ms, application-code: 2.1s)
+  └─ ƒ assignCoordinatorTeacherAction({}) in 142ms app/(dashboard)/actions.ts
+ POST /docentes 200 in 2.3s (next.js: 9ms, proxy.ts: 103ms, application-code: 2.1s)
+  └─ ƒ assignCoordinatorTeacherAction({}) in 125ms app/(dashboard)/actions.ts

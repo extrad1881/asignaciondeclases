@@ -1,0 +1,69 @@
+Error [AuthApiError]: Invalid Refresh Token: Refresh Token Not Found
+    at ignore-listed frames {
+  __isAuthError: true,
+  status: 400,
+  code: 'refresh_token_not_found'
+}
+Error [AuthApiError]: Invalid Refresh Token: Refresh Token Not Found
+    at ignore-listed frames {
+  __isAuthError: true,
+  status: 400,
+  code: 'refresh_token_not_found'
+}
+⚠ Blocked cross-origin request to Next.js dev resource /_next/webpack-hmr from "127.0.0.1".
+Cross-origin access to Next.js dev resources is blocked by default for safety.
+
+To allow this host in development, add it to "allowedDevOrigins" in next.config.js and restart the dev server:
+
+// next.config.js
+module.exports = {
+  allowedDevOrigins: ['127.0.0.1'],
+}
+
+Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+⨯ Error: El docente ya tiene una clase asignada en este horario.
+    at createAssignmentAction (app\(dashboard)\actions.ts:264:20)
+  262 |   });
+  263 |
+> 264 |   if (error) throw new Error(error.message);
+      |                    ^
+  265 |
+  266 |   const { error: loadError } = await supabase
+  267 |     .from("group_subjects") {
+  digest: '579204701'
+}
+[browser] Uncaught Error: El docente ya tiene una clase asignada en este horario.
+    at createAssignmentAction (app\(dashboard)\actions.ts:264:20)
+    at form (<anonymous>)
+    at AssignmentForm (components/forms/assignment-form.tsx:109:5)
+    at GroupDetailPage (app\(dashboard)\grupos\[id]\page.tsx:152:13)
+  262 |   });
+  263 |
+> 264 |   if (error) throw new Error(error.message);
+      |                    ^
+  265 |
+  266 |   const { error: loadError } = await supabase
+  267 |     .from("group_subjects")
+⨯ Error: El docente ya tiene una clase asignada en este horario.
+    at createAssignmentAction (app\(dashboard)\actions.ts:264:20)
+  262 |   });
+  263 |
+> 264 |   if (error) throw new Error(error.message);
+      |                    ^
+  265 |
+  266 |   const { error: loadError } = await supabase
+  267 |     .from("group_subjects") {
+  digest: '579204701'
+}
+[browser] Uncaught Error: El docente ya tiene una clase asignada en este horario.
+    at createAssignmentAction (app\(dashboard)\actions.ts:264:20)
+    at form (<anonymous>)
+    at AssignmentForm (components/forms/assignment-form.tsx:109:5)
+    at GroupDetailPage (app\(dashboard)\grupos\[id]\page.tsx:152:13)
+  262 |   });
+  263 |
+> 264 |   if (error) throw new Error(error.message);
+      |                    ^
+  265 |
+  266 |   const { error: loadError } = await supabase
+  267 |     .from("group_subjects")

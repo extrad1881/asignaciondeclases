@@ -1,0 +1,193 @@
+import {
+  deleteCoordinatorRecordAction,
+  updateCoordinatorCareersAction,
+  updateCoordinatorRecordAction,
+  updateCoordinatorUserAction
+} from "@/app/(dashboard)/actions";
+import { SectionHeader } from "@/components/section-header";
+import { Badge } from "@/components/ui/badge";
+import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
+import { DataTable } from "@/components/ui/data-table";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { isAdmin } from "@/lib/permissions";
+import { getCurrentProfile } from "@/lib/supabase/queries";
+import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
+
+export default async function CoordinatorsPage() {
+  const supabase = await createClient();
+  const [profile, { data: coordinators = [] }, { data: careers = [] }] = await Promise.all([
+    getCurrentProfile(),
+    supabase
+      .from("coordinators")
+      .select(
+        "id, profile_id, name, active, users_profile(id, email, display_name, role_code, active), coordinator_careers(career_id, careers(id, code, name, active)), coordinator_teachers(teacher_id)"
+      )
+      .order("name"),
+    supabase.from("careers").select("id, code, name, active").order("code")
+  ]);
+  const canManageUsers = isAdmin(profile?.role_code);
+  const coordinatorRows = coordinators ?? [];
+  const careerRows = careers ?? [];
+
+  return (
+    <>
+      <SectionHeader eyebrow="Usuarios" title="Coordinadores" />
+      <DataTable
+        headers={
+          canManageUsers
+            ? [
+                "Coordinador",
+                "Usuario",
+                "Carreras",
+                "Modificar carreras",
+                "Docentes",
+                "Estado",
+                "Modificar coordinador",
+                "Modificar usuario"
+              ]
+            : ["Coordinador", "Usuario", "Carreras", "Docentes", "Estado"]
+        }
+        rows={coordinatorRows.map((coordinator: any) => {
+          const assignedCareerIds = new Set(
+            (coordinator.coordinator_careers ?? [])
+              .map((item: any) => item.career_id ?? item.careers?.id)
+              .filter(Boolean)
+          );
+
+          return [
+            <span className="font-medium text-ink" key="name">
+              {coordinator.name}
+            </span>,
+            coordinator.users_profile?.email ?? <span className="text-slate-400">Sin usuario vinculado</span>,
+            <div className="flex flex-wrap gap-1" key="careers">
+              {(coordinator.coordinator_careers ?? []).length === 0 ? (
+                <span className="text-slate-400">Sin asignar</span>
+              ) : (
+                (coordinator.coordinator_careers ?? []).map((item: any, index: number) => (
+                  <Badge key={index}>{item.careers?.code}</Badge>
+                ))
+              )}
+            </div>,
+            ...(canManageUsers
+              ? [
+                  <form action={updateCoordinatorCareersAction} className="grid min-w-[560px] gap-2" key="edit-careers">
+                    <input name="coordinator_id" type="hidden" value={coordinator.id} />
+                    <div className="grid max-h-56 gap-2 overflow-y-auto rounded-md border border-line bg-white p-2 md:grid-cols-2">
+                      {careerRows.map((career: any) => (
+                        <label
+                          className="flex items-start gap-2 rounded-md border border-line bg-slate-50 px-2 py-2 text-xs font-medium text-ink"
+                          key={career.id}
+                        >
+                          <input
+                            className="mt-0.5 h-4 w-4 accent-brand"
+                            defaultChecked={assignedCareerIds.has(career.id)}
+                            name="career_ids"
+                            type="checkbox"
+                            value={career.id}
+                          />
+                          <span className="grid gap-0.5">
+                            <span>{career.code}</span>
+                            <span className="font-normal text-slate-500">
+                              {career.name}
+                              {career.active ? "" : " (Inactiva)"}
+                            </span>
+                          </span>
+                        </label>
+                      ))}
+                      {careerRows.length === 0 ? <span className="text-sm text-slate-400">Sin carreras</span> : null}
+                    </div>
+                    <ConfirmActionButton
+                      affectedName={coordinator.name}
+                      className="h-9 px-3"
+                      confirmLabel="Guardar carreras"
+                      description="Se reemplazara la lista de carreras asignadas al coordinador por la seleccion actual."
+                      title="Modificar carreras del coordinador"
+                      variant="secondary"
+                    >
+                      Guardar carreras
+                    </ConfirmActionButton>
+                  </form>
+                ]
+              : []),
+            coordinator.coordinator_teachers?.length ?? 0,
+            <Badge key="state" tone={coordinator.active ? "success" : "warning"}>
+              {coordinator.active ? "Activo" : "Inactivo"}
+            </Badge>,
+            ...(canManageUsers
+              ? [
+                  <div className="grid min-w-[460px] gap-2" key="edit-coordinator">
+                    <form action={updateCoordinatorRecordAction} className="grid gap-2 md:grid-cols-[1fr_130px_auto]">
+                      <input name="coordinator_id" type="hidden" value={coordinator.id} />
+                      <Input defaultValue={coordinator.name} name="name" required />
+                      <Select defaultValue={coordinator.active ? "true" : "false"} name="active" required>
+                        <option value="true">Activo</option>
+                        <option value="false">Inactivo</option>
+                      </Select>
+                      <ConfirmActionButton
+                        affectedName={coordinator.name}
+                        className="h-10 px-3"
+                        confirmLabel="Guardar coordinador"
+                        description="Se actualizaran el nombre y estado operativo del coordinador."
+                        title="Modificar coordinador"
+                        variant="secondary"
+                      >
+                        Guardar
+                      </ConfirmActionButton>
+                    </form>
+                    {coordinator.profile_id ? (
+                      <span className="text-xs text-slate-400">Con usuario vinculado</span>
+                    ) : (
+                      <form action={deleteCoordinatorRecordAction}>
+                        <input name="coordinator_id" type="hidden" value={coordinator.id} />
+                        <ConfirmActionButton
+                          affectedName={coordinator.name}
+                          className="h-9 px-3"
+                          confirmLabel="Eliminar coordinador"
+                          danger
+                          description="El registro del coordinador se eliminara. Esta opcion solo aplica cuando no tiene usuario vinculado."
+                          title="Eliminar coordinador"
+                        >
+                          Eliminar coordinador
+                        </ConfirmActionButton>
+                      </form>
+                    )}
+                  </div>,
+                  coordinator.users_profile?.id ? (
+                    <form action={updateCoordinatorUserAction} className="grid min-w-[560px] gap-2" key="edit-user">
+                      <input name="coordinator_id" type="hidden" value={coordinator.id} />
+                      <input name="user_id" type="hidden" value={coordinator.users_profile.id} />
+                      <div className="grid gap-2 md:grid-cols-[1fr_140px_1fr_auto]">
+                        <Input defaultValue={coordinator.users_profile.email ?? ""} name="email" required type="email" />
+                        <Select defaultValue={(coordinator.users_profile.active ?? coordinator.active) ? "true" : "false"} name="active" required>
+                          <option value="true">Activo</option>
+                          <option value="false">Inactivo</option>
+                        </Select>
+                        <Input name="password" placeholder="Nueva contraseña" type="password" />
+                        <ConfirmActionButton
+                          affectedName={coordinator.name}
+                          className="h-10 px-3"
+                          confirmLabel="Guardar usuario"
+                          description="Se actualizara el correo, estado y, si escribiste una nueva, la contrasena del usuario vinculado."
+                          title="Modificar usuario del coordinador"
+                          variant="secondary"
+                        >
+                          Guardar
+                        </ConfirmActionButton>
+                      </div>
+                    </form>
+                  ) : (
+                    <span className="text-sm text-slate-400" key="no-user">
+                      Sin usuario para editar
+                    </span>
+                  )
+                ]
+              : [])
+          ];
+        })}
+      />
+    </>
+  );
+}
