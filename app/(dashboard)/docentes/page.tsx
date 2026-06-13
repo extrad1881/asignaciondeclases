@@ -2,6 +2,7 @@ import { Save, Trash2, UserPlus } from "lucide-react";
 import { SectionHeader } from "@/components/section-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ActionStateForm } from "@/components/ui/action-state-form";
 import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
 import { DataTable } from "@/components/ui/data-table";
 import { ProfileCheckboxGroup } from "@/components/forms/profile-checkbox-group";
@@ -9,9 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import {
   assignCoordinatorTeacherAction,
-  createTeacherAction,
+  assignCoordinatorTeacherFeedbackAction,
+  createTeacherStateAction,
   setTeacherActiveAction,
-  updateTeacherProfilesAction
+  setTeacherActiveFeedbackAction,
+  updateTeacherProfilesAction,
+  updateTeacherProfilesFeedbackAction
 } from "@/app/(dashboard)/actions";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/supabase/queries";
@@ -44,7 +48,7 @@ export default async function TeachersPage() {
       {canManageTeachers ? (
         <section className="mb-6 rounded-md border border-line bg-white p-4 shadow-subtle">
           <h2 className="mb-3 text-lg font-semibold text-ink">Agregar docente</h2>
-          <form action={createTeacherAction} className="grid gap-3 md:grid-cols-[1fr_1fr_140px_220px_auto]">
+          <ActionStateForm action={createTeacherStateAction} className="grid gap-3 md:grid-cols-[1fr_1fr_140px_220px_auto]" alertClassName="md:col-span-full">
             <label className="text-sm font-medium text-slate-700">
               Nombre
               <Input className="mt-1" name="name" placeholder="Nombre del docente" required />
@@ -69,7 +73,7 @@ export default async function TeachersPage() {
                 Agregar
               </Button>
             </div>
-          </form>
+          </ActionStateForm>
         </section>
       ) : null}
       <DataTable
@@ -109,6 +113,7 @@ export default async function TeachersPage() {
                       .filter(isValidProfileCode)}
                   />
                   <ConfirmActionButton
+                    action={updateTeacherProfilesFeedbackAction}
                     affectedName={teacher.name}
                     className="h-8 px-3"
                     confirmLabel="Guardar perfiles"
@@ -130,6 +135,7 @@ export default async function TeachersPage() {
                     ))}
                   </Select>
                   <ConfirmActionButton
+                    action={assignCoordinatorTeacherFeedbackAction}
                     affectedName={teacher.name}
                     className="h-8 px-3"
                     confirmLabel="Asignar coordinador"
@@ -145,6 +151,7 @@ export default async function TeachersPage() {
                   <input name="teacher_id" type="hidden" value={teacher.id} />
                   <input name="active" type="hidden" value={teacher.active ? "false" : "true"} />
                   <ConfirmActionButton
+                    action={setTeacherActiveFeedbackAction}
                     affectedName={teacher.name}
                     className="h-8 px-3"
                     confirmLabel={teacher.active ? "Desactivar docente" : "Reactivar docente"}

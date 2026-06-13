@@ -16,21 +16,37 @@ describe("Supabase audit triggers and assignment validations", () => {
   let subjectId = "";
   let secondSubjectId = "";
   let teacherId = "";
+  let alternateTeacherId = "";
   let incompatibleTeacherId = "";
   let lowHoursTeacherId = "";
   let coordinatorId = "";
   let userId = "";
   let groupId = "";
+  let otherGroupId = "";
   let groupSubjectId = "";
   let secondGroupSubjectId = "";
+  let otherGroupSubjectId = "";
   let assignmentId = "";
   let blockA = "";
   let blockB = "";
 
   const recordIds = () =>
-    [userId, coordinatorId, subjectId, secondSubjectId, teacherId, incompatibleTeacherId, lowHoursTeacherId, groupId, groupSubjectId, assignmentId].filter(
-      Boolean
-    );
+    [
+      userId,
+      coordinatorId,
+      subjectId,
+      secondSubjectId,
+      teacherId,
+      alternateTeacherId,
+      incompatibleTeacherId,
+      lowHoursTeacherId,
+      groupId,
+      otherGroupId,
+      groupSubjectId,
+      secondGroupSubjectId,
+      otherGroupSubjectId,
+      assignmentId
+    ].filter(Boolean);
 
   beforeAll(async () => {
     adminClient = await createAuthenticatedTestClient("admin@local.test", "Admin123!");
@@ -129,17 +145,20 @@ describe("Supabase audit triggers and assignment validations", () => {
       .from("teachers")
       .insert([
         { name: `${prefix} Docente`, normalized_name: `${prefix} DOCENTE`, max_hours: 20, active: true },
+        { name: `${prefix} Alterno`, normalized_name: `${prefix} ALTERNO`, max_hours: 20, active: true },
         { name: `${prefix} Incompatible`, normalized_name: `${prefix} INCOMPATIBLE`, max_hours: 20, active: true },
         { name: `${prefix} Pocas Horas`, normalized_name: `${prefix} POCAS HORAS`, max_hours: 1, active: true }
       ])
       .select("id, name");
     if (teachersError) throw new Error(teachersError.message);
     teacherId = teachers?.find((teacher) => teacher.name.endsWith("Docente"))?.id ?? "";
+    alternateTeacherId = teachers?.find((teacher) => teacher.name.endsWith("Alterno"))?.id ?? "";
     incompatibleTeacherId = teachers?.find((teacher) => teacher.name.endsWith("Incompatible"))?.id ?? "";
     lowHoursTeacherId = teachers?.find((teacher) => teacher.name.endsWith("Pocas Horas"))?.id ?? "";
 
     await service.from("teacher_available_profiles").insert([
       { teacher_id: teacherId, profile_code: "ADEM" },
+      { teacher_id: alternateTeacherId, profile_code: "ADEM" },
       { teacher_id: incompatibleTeacherId, profile_code: "SISCOM" },
       { teacher_id: lowHoursTeacherId, profile_code: "ADEM" }
     ]);
@@ -167,9 +186,26 @@ describe("Supabase audit triggers and assignment validations", () => {
     if (groupError || !group) throw new Error(groupError?.message ?? "No se pudo crear grupo.");
     groupId = group.id;
 
+    const { data: otherGroup, error: otherGroupError } = await adminClient
+      .from("groups")
+      .insert({
+        academic_cycle_id: cycleId,
+        career_id: careerId,
+        quarter: 1,
+        modality: "escolarizado",
+        shift: "matutino",
+        name: `${prefix} Grupo Aula`,
+        classroom_id: classroomId,
+        status: "active"
+      })
+      .select("id")
+      .single();
+    if (otherGroupError || !otherGroup) throw new Error(otherGroupError?.message ?? "No se pudo crear grupo alterno.");
+    otherGroupId = otherGroup.id;
+
     const { data: groupSubject, error: groupSubjectError } = await service
       .from("group_subjects")
-      .insert({ group_id: groupId, subject_id: subjectId, hours_per_week: 1.5, required_profile_code: "ADEM" })
+      .insert({ group_id: groupId, subject_id: subjectId, hours_per_week: 5, required_profile_code: "ADEM" })
       .select("id")
       .single();
     if (groupSubjectError || !groupSubject) throw new Error(groupSubjectError?.message ?? "No se pudo crear materia de grupo.");
@@ -177,13 +213,23 @@ describe("Supabase audit triggers and assignment validations", () => {
 
     const { data: secondGroupSubject, error: secondGroupSubjectError } = await service
       .from("group_subjects")
-      .insert({ group_id: groupId, subject_id: secondSubjectId, hours_per_week: 1.5, required_profile_code: "ADEM" })
+      .insert({ group_id: groupId, subject_id: secondSubjectId, hours_per_week: 5, required_profile_code: "ADEM" })
       .select("id")
       .single();
     if (secondGroupSubjectError || !secondGroupSubject) {
       throw new Error(secondGroupSubjectError?.message ?? "No se pudo crear segunda materia de grupo.");
     }
     secondGroupSubjectId = secondGroupSubject.id;
+
+    const { data: otherGroupSubject, error: otherGroupSubjectError } = await service
+      .from("group_subjects")
+      .insert({ group_id: otherGroupId, subject_id: subjectId, hours_per_week: 5, required_profile_code: "ADEM" })
+      .select("id")
+      .single();
+    if (otherGroupSubjectError || !otherGroupSubject) {
+      throw new Error(otherGroupSubjectError?.message ?? "No se pudo crear materia de grupo alterno.");
+    }
+    otherGroupSubjectId = otherGroupSubject.id;
 
     const { data: assignment, error: assignmentError } = await adminClient
       .from("assignments")
@@ -206,11 +252,11 @@ describe("Supabase audit triggers and assignment validations", () => {
   afterAll(async () => {
     await service.from("audit_logs").delete().in("record_id", recordIds());
     await deleteByIds(service, "assignments", [assignmentId]);
-    await deleteByIds(service, "group_subjects", [groupSubjectId, secondGroupSubjectId]);
-    await deleteByIds(service, "groups", [groupId]);
-    await service.from("teacher_available_profiles").delete().in("teacher_id", [teacherId, incompatibleTeacherId, lowHoursTeacherId]);
+    await deleteByIds(service, "group_subjects", [groupSubjectId, secondGroupSubjectId, otherGroupSubjectId]);
+    await deleteByIds(service, "groups", [groupId, otherGroupId]);
+    await service.from("teacher_available_profiles").delete().in("teacher_id", [teacherId, alternateTeacherId, incompatibleTeacherId, lowHoursTeacherId]);
     await service.from("class_requirements").delete().in("subject_id", [subjectId, secondSubjectId]);
-    await deleteByIds(service, "teachers", [teacherId, incompatibleTeacherId, lowHoursTeacherId]);
+    await deleteByIds(service, "teachers", [teacherId, alternateTeacherId, incompatibleTeacherId, lowHoursTeacherId]);
     await deleteByIds(service, "subjects", [subjectId, secondSubjectId]);
     await deleteByIds(service, "coordinators", [coordinatorId]);
     await deleteByIds(service, "careers", [careerId]);
@@ -261,7 +307,7 @@ describe("Supabase audit triggers and assignment validations", () => {
   it("no permite asignacion con choque de horario del docente", async () => {
     const { data: activeAssignment, error: activeAssignmentError } = await adminClient
       .from("assignments")
-      .insert({ group_subject_id: groupSubjectId, teacher_id: teacherId, schedule_block_id: blockA, classroom_id: classroomId })
+      .insert({ group_subject_id: groupSubjectId, teacher_id: teacherId, schedule_block_id: blockA, classroom_id: classroomId, duration_hours: 1.5 })
       .select("id")
       .single();
     expect(activeAssignmentError).toBeNull();
@@ -272,6 +318,89 @@ describe("Supabase audit triggers and assignment validations", () => {
     expect(error?.message).toContain("El docente ya tiene una clase asignada en este horario.");
 
     if (activeAssignment?.id) await service.from("assignments").delete().eq("id", activeAssignment.id);
+  });
+
+  it("no permite que un grupo tenga dos clases simultaneas", async () => {
+    const { data: activeAssignment, error: activeAssignmentError } = await adminClient
+      .from("assignments")
+      .insert({ group_subject_id: groupSubjectId, teacher_id: teacherId, schedule_block_id: blockA, classroom_id: classroomId, duration_hours: 1.5 })
+      .select("id")
+      .single();
+    expect(activeAssignmentError).toBeNull();
+
+    const { error } = await adminClient
+      .from("assignments")
+      .insert({ group_subject_id: secondGroupSubjectId, teacher_id: alternateTeacherId, schedule_block_id: blockA, classroom_id: classroomId, duration_hours: 1.5 });
+    expect(error?.message).toContain("El grupo ya tiene una clase asignada en este horario.");
+
+    if (activeAssignment?.id) await service.from("assignments").delete().eq("id", activeAssignment.id);
+  });
+
+  it("no permite que un aula tenga dos clases simultaneas", async () => {
+    const { data: activeAssignment, error: activeAssignmentError } = await adminClient
+      .from("assignments")
+      .insert({ group_subject_id: groupSubjectId, teacher_id: teacherId, schedule_block_id: blockA, classroom_id: classroomId, duration_hours: 1.5 })
+      .select("id")
+      .single();
+    expect(activeAssignmentError).toBeNull();
+
+    const { error } = await adminClient
+      .from("assignments")
+      .insert({ group_subject_id: otherGroupSubjectId, teacher_id: alternateTeacherId, schedule_block_id: blockA, classroom_id: classroomId, duration_hours: 1.5 });
+    expect(error?.message).toContain("El aula ya tiene una clase asignada en este horario.");
+
+    if (activeAssignment?.id) await service.from("assignments").delete().eq("id", activeAssignment.id);
+  });
+
+  it("no cambia la carga planeada de la materia al crear asignaciones", async () => {
+    const before = await requireSingle<{ hours_per_week: number }>(
+      service.from("group_subjects").select("hours_per_week").eq("id", groupSubjectId).single()
+    );
+
+    const { data: activeAssignment, error } = await adminClient
+      .from("assignments")
+      .insert({ group_subject_id: groupSubjectId, teacher_id: teacherId, schedule_block_id: blockA, classroom_id: classroomId, duration_hours: 1.5 })
+      .select("id")
+      .single();
+    expect(error).toBeNull();
+
+    const after = await requireSingle<{ hours_per_week: number }>(
+      service.from("group_subjects").select("hours_per_week").eq("id", groupSubjectId).single()
+    );
+    expect(Number(after.hours_per_week)).toBe(Number(before.hours_per_week));
+
+    if (activeAssignment?.id) await service.from("assignments").delete().eq("id", activeAssignment.id);
+  });
+
+  it("crea grupos de forma transaccional sin dejar registros parciales si falla una materia", async () => {
+    const rollbackGroupName = `${prefix} Grupo Rollback`;
+    const rollbackSubjectName = `${prefix} Externa Fallida`;
+
+    const { error } = await (adminClient as any).rpc("create_group_with_subjects", {
+      p_academic_cycle_id: cycleId,
+      p_career_id: careerId,
+      p_quarter: 1,
+      p_modality: "escolarizado",
+      p_shift: "matutino",
+      p_name: rollbackGroupName,
+      p_classroom_id: classroomId,
+      p_subjects: [
+        { subject_id: subjectId, hours_per_week: 5 },
+        {
+          name: rollbackSubjectName,
+          quarter: 1,
+          hours_per_week: 5,
+          required_profile_code: "PERFIL_INEXISTENTE"
+        }
+      ]
+    });
+
+    expect(error?.message).toContain("El perfil requerido no existe.");
+
+    const { data: partialGroup } = await service.from("groups").select("id").eq("name", rollbackGroupName).maybeSingle();
+    const { data: partialSubject } = await service.from("subjects").select("id").eq("name", rollbackSubjectName).maybeSingle();
+    expect(partialGroup).toBeNull();
+    expect(partialSubject).toBeNull();
   });
 
   it("no permite asignacion si el docente no cumple el perfil", async () => {

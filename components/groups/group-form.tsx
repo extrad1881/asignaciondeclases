@@ -1,12 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { MODALITIES, SHIFTS } from "@/lib/constants";
+import { initialActionState } from "@/lib/actions/action-state";
+import { useActionFeedback } from "@/components/ui/action-feedback";
+import { ActionAlert } from "@/components/ui/action-alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { createGroupAction } from "@/app/(dashboard)/actions";
+import { createGroupStateAction } from "@/app/(dashboard)/actions";
 
 type Option = {
   id: string;
@@ -37,10 +41,19 @@ export function GroupForm({
   profiles: ProfileOption[];
   canCreateExternalSubjects?: boolean;
 }) {
+  const router = useRouter();
+  const [state, formAction, pending] = useActionState(createGroupStateAction, initialActionState);
   const [careerId, setCareerId] = useState(careers[0]?.id ?? "");
   const [quarter, setQuarter] = useState(1);
   const [includeOtherQuarters, setIncludeOtherQuarters] = useState(false);
   const [externalSubjectKeys, setExternalSubjectKeys] = useState<string[]>([]);
+  useActionFeedback(state);
+
+  useEffect(() => {
+    if (state.success && state.redirectTo) {
+      router.push(state.redirectTo);
+    }
+  }, [router, state.redirectTo, state.success]);
 
   const visibleSubjects = useMemo(() => {
     return subjects.filter((subject) => {
@@ -59,7 +72,7 @@ export function GroupForm({
   }
 
   return (
-    <form action={createGroupAction} className="grid gap-5">
+    <form action={formAction} className="grid gap-5">
       <section className="grid gap-4 rounded-md border border-line bg-white p-4 shadow-subtle md:grid-cols-2 xl:grid-cols-4">
         <label className="text-sm font-medium text-slate-700">
           Ciclo escolar
@@ -259,15 +272,16 @@ export function GroupForm({
       ) : null}
 
       <div className="flex justify-end gap-2">
+        <ActionAlert className="mr-auto" state={state} />
         {canCreateExternalSubjects ? (
-          <Button onClick={addExternalSubject} type="button" variant="secondary">
+          <Button disabled={pending} onClick={addExternalSubject} type="button" variant="secondary">
             <Plus className="h-4 w-4" />
             Materia externa
           </Button>
         ) : null}
-        <Button type="submit">
+        <Button disabled={pending} type="submit">
           <Save className="h-4 w-4" />
-          Guardar grupo
+          {pending ? "Guardando..." : "Guardar grupo"}
         </Button>
       </div>
     </form>

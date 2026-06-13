@@ -1,13 +1,17 @@
 import { notFound } from "next/navigation";
 import { CalendarPlus, Save, Trash2 } from "lucide-react";
 import {
-  createCustomScheduleBlockAction,
+  createCustomScheduleBlockStateAction,
   deleteAssignmentAction,
+  deleteAssignmentFeedbackAction,
   deleteGroupAction,
-  updateAssignmentAction
+  deleteGroupFeedbackAction,
+  updateAssignmentAction,
+  updateAssignmentFeedbackAction
 } from "@/app/(dashboard)/actions";
 import { SectionHeader } from "@/components/section-header";
 import { Badge } from "@/components/ui/badge";
+import { ActionStateForm } from "@/components/ui/action-state-form";
 import { Button } from "@/components/ui/button";
 import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
 import { DataTable } from "@/components/ui/data-table";
@@ -109,6 +113,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
           <form action={deleteGroupAction}>
             <input name="group_id" type="hidden" value={(group as any).id} />
             <ConfirmActionButton
+              action={deleteGroupFeedbackAction}
               affectedName={(group as any).name}
               confirmLabel="Borrar grupo"
               danger
@@ -137,7 +142,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
               Selecciona la materia, el docente apto y el bloque visual del cuadro correspondiente.
             </p>
           </div>
-          <form action={createCustomScheduleBlockAction} className="grid gap-2 rounded-md border border-line bg-white p-3 shadow-subtle md:min-w-[520px] md:grid-cols-[150px_120px_120px_auto]">
+          <ActionStateForm action={createCustomScheduleBlockStateAction} className="grid gap-2 rounded-md border border-line bg-white p-3 shadow-subtle md:min-w-[520px] md:grid-cols-[150px_120px_120px_auto]" alertClassName="md:col-span-full">
             <input name="group_id" type="hidden" value={(group as any).id} />
             <label className="text-xs font-semibold uppercase text-slate-600">
               Dia
@@ -163,7 +168,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
                 Bloque
               </Button>
             </div>
-          </form>
+          </ActionStateForm>
         </div>
 
         <div>
@@ -234,6 +239,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
                   ))}
                 </Select>
                 <ConfirmActionButton
+                  action={updateAssignmentFeedbackAction}
                   affectedName={`${assignment.group_subjects?.subjects?.name ?? "Asignacion"} - ${assignment.teachers?.name ?? "Docente"}`}
                   className="h-10 px-3"
                   confirmLabel="Guardar cambio"
@@ -249,6 +255,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
                 <input name="assignment_id" type="hidden" value={assignment.id} />
                 <input name="group_id" type="hidden" value={(group as any).id} />
                 <ConfirmActionButton
+                  action={deleteAssignmentFeedbackAction}
                   affectedName={`${assignment.group_subjects?.subjects?.name ?? "Asignacion"} - ${assignment.teachers?.name ?? "Docente"}`}
                   className="h-10 px-3"
                   confirmLabel="Eliminar asignacion"

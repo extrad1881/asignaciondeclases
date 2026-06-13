@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { Trash2 } from "lucide-react";
-import { deleteGroupAction } from "@/app/(dashboard)/actions";
+import { deleteGroupAction, deleteGroupFeedbackAction } from "@/app/(dashboard)/actions";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
 
 type SavedGroup = {
   id: string;
@@ -61,15 +61,19 @@ export function SavedGroups({ groups, canDelete = false }: { groups: SavedGroup[
                 {canDelete ? (
                   <form action={deleteGroupAction}>
                     <input name="group_id" type="hidden" value={group.id} />
-                    <Button
+                    <ConfirmActionButton
+                      action={deleteGroupFeedbackAction}
                       aria-label={`Borrar ${group.name}`}
+                      affectedName={group.name}
                       className="h-10 w-10 px-0"
+                      confirmLabel="Borrar grupo"
+                      danger
+                      description="Se eliminara el grupo junto con sus materias y asignaciones asociadas si la base lo permite."
                       title={`Borrar ${group.name}`}
-                      type="submit"
                       variant="danger"
                     >
                       <Trash2 className="h-4 w-4" />
-                    </Button>
+                    </ConfirmActionButton>
                   </form>
                 ) : null}
               </div>

@@ -9,6 +9,8 @@ const validDraft = {
   teacherMaxHours: 20,
   blockHours: 2,
   hasTeacherCollision: false,
+  hasGroupCollision: false,
+  hasClassroomCollision: false,
   hasSubjectBlockTeacher: false,
   teacherAllowed: true,
   blockAllowed: true
@@ -38,5 +40,21 @@ describe("validateAssignmentDraft", () => {
         requiredProfiles: ["ADEM"]
       })
     ).toContain("El docente no cumple con el perfil requerido para esta materia.");
+  });
+
+  it("rejects group and classroom collisions", () => {
+    expect(
+      validateAssignmentDraft({
+        ...validDraft,
+        hasGroupCollision: true
+      })
+    ).toContain("El grupo ya tiene una clase asignada en este horario.");
+
+    expect(
+      validateAssignmentDraft({
+        ...validDraft,
+        hasClassroomCollision: true
+      })
+    ).toContain("El aula ya tiene una clase asignada en este horario.");
   });
 });

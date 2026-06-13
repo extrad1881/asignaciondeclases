@@ -2,11 +2,15 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CalendarPlus, Clock, LayoutGrid, Save, Trash2, UserCog, Users } from "lucide-react";
 import {
-  createCustomScheduleBlockAction,
+  createCustomScheduleBlockStateAction,
   deleteAssignmentAction,
+  deleteAssignmentFeedbackAction,
   updateAssignmentAction,
+  updateAssignmentFeedbackAction,
   updateTeacherMaxHoursAction,
-  updateTeacherProfilesAction
+  updateTeacherMaxHoursFeedbackAction,
+  updateTeacherProfilesAction,
+  updateTeacherProfilesFeedbackAction
 } from "@/app/(dashboard)/actions";
 import { AssignmentForm } from "@/components/forms/assignment-form";
 import { ProfileCheckboxGroup } from "@/components/forms/profile-checkbox-group";
@@ -14,6 +18,7 @@ import { GroupForm } from "@/components/groups/group-form";
 import { SectionHeader } from "@/components/section-header";
 import { GroupScheduleBoard } from "@/components/schedule/group-schedule-board";
 import { Badge } from "@/components/ui/badge";
+import { ActionStateForm } from "@/components/ui/action-state-form";
 import { Button } from "@/components/ui/button";
 import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
 import { DataTable } from "@/components/ui/data-table";
@@ -194,6 +199,7 @@ export default async function CoordinatorPage() {
                   .filter(isValidProfileCode)}
               />
               <ConfirmActionButton
+                action={updateTeacherProfilesFeedbackAction}
                 affectedName={teacher.name}
                 className="h-8 px-3"
                 confirmLabel="Guardar perfiles"
@@ -209,6 +215,7 @@ export default async function CoordinatorPage() {
               <input name="teacher_id" type="hidden" value={teacher.id} />
               <Input defaultValue={teacher.max_hours ?? 20} min={teacher.assigned_hours ?? 0} name="max_hours" step={0.5} type="number" />
               <ConfirmActionButton
+                action={updateTeacherMaxHoursFeedbackAction}
                 affectedName={teacher.name}
                 className="h-8 px-3"
                 confirmLabel="Guardar horas"
@@ -341,6 +348,7 @@ export default async function CoordinatorPage() {
                               ))}
                             </Select>
                             <ConfirmActionButton
+                              action={updateAssignmentFeedbackAction}
                               affectedName={`${assignment.group_subjects?.subjects?.name ?? "Asignacion"} - ${assignment.teachers?.name ?? "Docente"}`}
                               className="h-10 px-3"
                               confirmLabel="Guardar cambio"
@@ -356,6 +364,7 @@ export default async function CoordinatorPage() {
                             <input name="assignment_id" type="hidden" value={assignment.id} />
                             <input name="group_id" type="hidden" value={group.id} />
                             <ConfirmActionButton
+                              action={deleteAssignmentFeedbackAction}
                               affectedName={`${assignment.group_subjects?.subjects?.name ?? "Asignacion"} - ${assignment.teachers?.name ?? "Docente"}`}
                               className="h-10 px-3"
                               confirmLabel="Eliminar asignacion"
@@ -374,7 +383,7 @@ export default async function CoordinatorPage() {
 
                   <div>
                     <h3 className="mb-2 text-base font-semibold text-ink">Bloque personalizado</h3>
-                    <form action={createCustomScheduleBlockAction} className="grid gap-3 rounded-md border border-line bg-white p-4 shadow-subtle">
+                    <ActionStateForm action={createCustomScheduleBlockStateAction} className="grid gap-3 rounded-md border border-line bg-white p-4 shadow-subtle">
                       <input name="group_id" type="hidden" value={group.id} />
                       <label className="text-sm font-medium text-slate-700">
                         Dia
@@ -398,7 +407,7 @@ export default async function CoordinatorPage() {
                         <CalendarPlus className="h-4 w-4" />
                         Agregar bloque
                       </Button>
-                    </form>
+                    </ActionStateForm>
                   </div>
                 </div>
               </section>

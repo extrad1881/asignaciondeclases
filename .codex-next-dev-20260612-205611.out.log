@@ -1,0 +1,45 @@
+
+> asignacion-clases@0.1.0 dev
+> next dev --hostname 127.0.0.1 --port 3000
+
+▲ Next.js 16.2.7 (Turbopack)
+- Local:         http://127.0.0.1:3000
+- Network:       http://127.0.0.1:3000
+- Environments: .env.local
+✓ Ready in 1437ms
+- Experiments (use with caution):
+  · serverActions
+
+ GET / 307 in 1404ms (next.js: 330ms, proxy.ts: 590ms, application-code: 483ms)
+ GET /login 200 in 340ms (next.js: 84ms, proxy.ts: 13ms, application-code: 243ms)
+ GET / 307 in 1203ms (next.js: 20ms, proxy.ts: 1068ms, application-code: 115ms)
+ GET /dashboard 200 in 2.0s (next.js: 310ms, proxy.ts: 125ms, application-code: 1611ms)
+ GET /grupos/a8475286-b1de-43cc-b0f9-358fd2df6e8e 200 in 2.8s (next.js: 1659ms, proxy.ts: 119ms, application-code: 1012ms)
+ GET /grupos/786ce7bd-76f0-43fa-a41e-d47c9d163f8f 200 in 1271ms (next.js: 31ms, proxy.ts: 139ms, application-code: 1101ms)
+ GET /grupos/a8475286-b1de-43cc-b0f9-358fd2df6e8e 200 in 1073ms (next.js: 22ms, proxy.ts: 104ms, application-code: 947ms)
+ POST /grupos/a8475286-b1de-43cc-b0f9-358fd2df6e8e 500 in 1543ms (next.js: 45ms, proxy.ts: 317ms, application-code: 1182ms)
+  └─ ƒ createAssignmentAction({}) in 106ms app/(dashboard)/actions.ts
+ GET /dashboard? 200 in 769ms (next.js: 7ms, proxy.ts: 107ms, application-code: 655ms)
+ GET /dashboard 200 in 448ms (next.js: 22ms, proxy.ts: 385ms, application-code: 41ms)
+ GET /dashboard 200 in 2.3s (next.js: 23ms, proxy.ts: 227ms, application-code: 2.0s)
+✓ Compiled in 4.3s
+✓ Compiled in 1448ms
+✓ Compiled in 681ms
+✓ Compiled in 255ms
+ GET /login 200 in 1449ms (next.js: 330ms, proxy.ts: 664ms, application-code: 456ms)
+ GET /dashboard 200 in 1958ms (next.js: 294ms, proxy.ts: 139ms, application-code: 1525ms)
+ GET /grupos/a8475286-b1de-43cc-b0f9-358fd2df6e8e 200 in 2.1s (next.js: 477ms, proxy.ts: 176ms, application-code: 1460ms)
+ POST /grupos/a8475286-b1de-43cc-b0f9-358fd2df6e8e 200 in 433ms (next.js: 32ms, proxy.ts: 211ms, application-code: 191ms)
+  └─ ƒ createAssignmentStateAction({"message":"","success":false,"timestamp":0}, {}) in 128ms app/(dashboard)/actions.ts
+ GET /grupos/786ce7bd-76f0-43fa-a41e-d47c9d163f8f 200 in 876ms (next.js: 56ms, proxy.ts: 362ms, application-code: 458ms)
+ GET /grupos/786ce7bd-76f0-43fa-a41e-d47c9d163f8f 200 in 4.4s (next.js: 46ms, proxy.ts: 206ms, application-code: 4.2s)
+ GET /grupos/786ce7bd-76f0-43fa-a41e-d47c9d163f8f 200 in 3.5s (next.js: 129ms, proxy.ts: 417ms, application-code: 3.0s)
+ GET /grupos/nuevo 200 in 1608ms (next.js: 134ms, proxy.ts: 161ms, application-code: 1313ms)
+ POST /grupos/nuevo 200 in 1052ms (next.js: 8ms, proxy.ts: 149ms, application-code: 894ms)
+  └─ ƒ createGroupStateAction({"message":"","success":false,"timestamp":0}, {}) in 85ms app/(dashboard)/actions.ts
+ GET /grupos/0118ee3d-55a7-4202-ae74-a54cb182889f 200 in 1052ms (next.js: 29ms, proxy.ts: 121ms, application-code: 902ms)
+ POST /grupos/0118ee3d-55a7-4202-ae74-a54cb182889f 200 in 218ms (next.js: 18ms, proxy.ts: 125ms, application-code: 75ms)
+  └─ ƒ createAssignmentStateAction({"message":"","success":false,"timestamp":0}, {}) in 53ms app/(dashboard)/actions.ts
+ GET /dashboard 200 in 897ms (next.js: 11ms, proxy.ts: 135ms, application-code: 751ms)
+ GET /dashboard 200 in 125ms (next.js: 8ms, proxy.ts: 103ms, application-code: 13ms)
+ GET /dashboard 200 in 779ms (next.js: 7ms, proxy.ts: 114ms, application-code: 658ms)

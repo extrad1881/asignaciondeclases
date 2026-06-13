@@ -2,10 +2,14 @@ import { redirect } from "next/navigation";
 import { SectionHeader } from "@/components/section-header";
 import {
   assignCoordinatorCareerAction,
+  assignCoordinatorCareerFeedbackAction,
   assignCoordinatorTeacherAction,
-  createUserAction,
-  updateUserAction
+  assignCoordinatorTeacherFeedbackAction,
+  createUserStateAction,
+  updateUserAction,
+  updateUserFeedbackAction
 } from "@/app/(dashboard)/actions";
+import { ActionStateForm } from "@/components/ui/action-state-form";
 import { Button } from "@/components/ui/button";
 import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
 import { DataTable } from "@/components/ui/data-table";
@@ -38,7 +42,7 @@ export default async function AdminPage() {
     <>
       <SectionHeader eyebrow="Administración" title="Panel de administración" />
       <section className="mb-6 grid gap-4 xl:grid-cols-3">
-        <form action={createUserAction} className="grid gap-3 rounded-md border border-line bg-white p-4 shadow-subtle">
+        <ActionStateForm action={createUserStateAction} className="grid gap-3 rounded-md border border-line bg-white p-4 shadow-subtle">
           <h2 className="text-lg font-semibold text-ink">Crear usuario</h2>
           <Input name="display_name" placeholder="Nombre" required />
           <Input name="email" placeholder="correo@institucion.edu" required type="email" />
@@ -48,7 +52,7 @@ export default async function AdminPage() {
             <option value="admin">Administrador</option>
           </Select>
           <Button type="submit">Crear</Button>
-        </form>
+        </ActionStateForm>
 
         <form action={assignCoordinatorCareerAction} className="grid gap-3 rounded-md border border-line bg-white p-4 shadow-subtle">
           <h2 className="text-lg font-semibold text-ink">Asignar carrera</h2>
@@ -63,6 +67,7 @@ export default async function AdminPage() {
             ))}
           </Select>
           <ConfirmActionButton
+            action={assignCoordinatorCareerFeedbackAction}
             confirmLabel="Asignar carrera"
             description="Se vinculara la carrera seleccionada al coordinador elegido."
             title="Asignar carrera a coordinador"
@@ -84,6 +89,7 @@ export default async function AdminPage() {
             ))}
           </Select>
           <ConfirmActionButton
+            action={assignCoordinatorTeacherFeedbackAction}
             confirmLabel="Asignar docente"
             description="Se vinculara el docente seleccionado al coordinador elegido."
             title="Asignar docente a coordinador"
@@ -119,6 +125,7 @@ export default async function AdminPage() {
                 <Input name="password" placeholder="Nueva contraseña" type="password" />
               </div>
               <ConfirmActionButton
+                action={updateUserFeedbackAction}
                 affectedName={profile.email}
                 className="h-8 px-3"
                 confirmLabel="Guardar cambios"

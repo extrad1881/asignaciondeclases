@@ -6,6 +6,8 @@ export type AssignmentDraft = {
   teacherMaxHours: number;
   blockHours: number;
   hasTeacherCollision: boolean;
+  hasGroupCollision: boolean;
+  hasClassroomCollision: boolean;
   hasSubjectBlockTeacher: boolean;
   teacherAllowed: boolean;
   blockAllowed: boolean;
@@ -18,6 +20,8 @@ export function validateAssignmentDraft(draft: AssignmentDraft): string[] {
   if (!draft.teacherAllowed) errors.push("No tienes permiso para asignar este docente.");
   if (!draft.blockAllowed) errors.push("El horario elegido no existe en el cuadro correspondiente.");
   if (draft.hasTeacherCollision) errors.push("El docente ya tiene una clase asignada en este horario.");
+  if (draft.hasGroupCollision) errors.push("El grupo ya tiene una clase asignada en este horario.");
+  if (draft.hasClassroomCollision) errors.push("El aula ya tiene una clase asignada en este horario.");
   if (draft.hasSubjectBlockTeacher) errors.push("La materia ya tiene otro docente asignado en este bloque.");
 
   const required = new Set(draft.requiredProfiles.map((profile) => profile.toUpperCase()));

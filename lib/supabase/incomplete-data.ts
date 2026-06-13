@@ -53,6 +53,27 @@ function requiredProfilesFromAssignment(assignment: any) {
     .filter(isValidProfileCode);
 }
 
+function timeToMinutes(value?: string | null) {
+  if (!value) return null;
+  const [hours, minutes] = value.slice(0, 5).split(":").map(Number);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+  return hours * 60 + minutes;
+}
+
+function schedulesOverlap(left: any, right: any) {
+  const leftBlock = left.schedule_blocks;
+  const rightBlock = right.schedule_blocks;
+  if (!leftBlock || !rightBlock || leftBlock.day_of_week !== rightBlock.day_of_week) return false;
+
+  const leftStart = timeToMinutes(leftBlock.starts_at);
+  const leftEnd = timeToMinutes(leftBlock.ends_at);
+  const rightStart = timeToMinutes(rightBlock.starts_at);
+  const rightEnd = timeToMinutes(rightBlock.ends_at);
+  if (leftStart == null || leftEnd == null || rightStart == null || rightEnd == null) return false;
+
+  return leftStart < rightEnd && rightStart < leftEnd;
+}
+
 export async function getIncompleteData(): Promise<IncompleteDataResult> {
   const supabase = await createClient();
   const [
@@ -84,7 +105,7 @@ export async function getIncompleteData(): Promise<IncompleteDataResult> {
     supabase
       .from("assignments")
       .select(
-        "id, status, teacher_id, schedule_block_id, classroom_id, duration_hours, teachers(id, name, max_hours, assigned_hours, teacher_available_profiles(profile_code)), schedule_blocks(id, label), group_subjects(id, required_profile_code, groups(id, name, quarter, careers(id, code, name)), subjects(id, name, class_requirements(profile_code)))"
+        "id, status, teacher_id, schedule_block_id, classroom_id, duration_hours, teachers(id, name, max_hours, assigned_hours, teacher_available_profiles(profile_code)), schedule_blocks(id, label, day_of_week, starts_at, ends_at), group_subjects(id, required_profile_code, groups(id, name, quarter, classroom_id, careers(id, code, name)), subjects(id, name, class_requirements(profile_code)))"
       )
       .eq("status", "active")
       .limit(2000),
@@ -413,6 +434,66 @@ export async function getIncompleteData(): Promise<IncompleteDataResult> {
       });
     });
   });
+
+  const assignmentRows = (assignments ?? []) as any[];
+  for (let index = 0; index < assignmentRows.length; index += 1) {
+    for (let nextIndex = index + 1; nextIndex < assignmentRows.length; nextIndex += 1) {
+      const left = assignmentRows[index];
+      const right = assignmentRows[nextIndex];
+      if (!schedulesOverlap(left, right)) continue;
+
+      const leftGroup = left.group_subjects?.groups;
+      const rightGroup = right.group_subjects?.groups;
+      const sameGroup = leftGroup?.id && leftGroup.id === rightGroup?.id;
+      const leftClassroom = left.classroom_id ?? leftGroup?.classroom_id;
+      const rightClassroom = right.classroom_id ?? rightGroup?.classroom_id;
+      const sameClassroom = leftClassroom && leftClassroom === rightClassroom;
+
+      if (sameGroup) {
+        [
+          [left, right],
+          [right, left]
+        ].forEach(([assignment, otherAssignment]) => {
+          const group = assignment.group_subjects?.groups;
+          addIssue(issues, {
+            id: `assignment-${assignment.id}-group-collision-${otherAssignment.id}`,
+            category: "asignaciones",
+            type: "asignacion_choque_grupo",
+            severity: "critico",
+            title: "Choque de horario del grupo",
+            detail: "El grupo tiene mas de una asignacion activa en horario simultaneo.",
+            entityName: group?.name ?? "Grupo",
+            href: group?.id ? `/grupos/${group.id}` : "/grupos",
+            groupId: group?.id,
+            groupLabel: group?.name,
+            quarter: group?.quarter ?? undefined
+          });
+        });
+      }
+
+      if (sameClassroom) {
+        [
+          [left, right],
+          [right, left]
+        ].forEach(([assignment, otherAssignment]) => {
+          const group = assignment.group_subjects?.groups;
+          addIssue(issues, {
+            id: `assignment-${assignment.id}-classroom-collision-${otherAssignment.id}`,
+            category: "asignaciones",
+            type: "asignacion_choque_aula",
+            severity: "critico",
+            title: "Choque de horario del aula",
+            detail: "El aula aparece en mas de una asignacion activa en horario simultaneo.",
+            entityName: group?.name ?? "Aula",
+            href: group?.id ? `/grupos/${group.id}` : "/grupos",
+            groupId: group?.id,
+            groupLabel: group?.name,
+            quarter: group?.quarter ?? undefined
+          });
+        });
+      }
+    }
+  }
 
   const summary = {
     docentes: issues.filter((issue) => issue.category === "docentes").length,

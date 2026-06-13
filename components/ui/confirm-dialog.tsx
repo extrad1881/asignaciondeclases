@@ -12,6 +12,7 @@ export function ConfirmDialog({
   cancelLabel = "Cancelar",
   variant = "secondary",
   pending = false,
+  error,
   onCancel,
   onConfirm
 }: {
@@ -23,6 +24,7 @@ export function ConfirmDialog({
   cancelLabel?: string;
   variant?: "secondary" | "danger";
   pending?: boolean;
+  error?: string;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -40,6 +42,11 @@ export function ConfirmDialog({
         {affectedName ? (
           <div className="mt-4 rounded-md border border-line bg-slate-50 px-3 py-2 text-sm font-medium text-ink">
             {affectedName}
+          </div>
+        ) : null}
+        {error ? (
+          <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
+            {error}
           </div>
         ) : null}
         <div className="mt-5 flex justify-end gap-2">

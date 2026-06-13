@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { actionFailure, actionSuccess, type ActionState } from "@/lib/actions/action-state";
 import { groupSchema } from "@/lib/validations/groups";
 import { isValidProfileCode, normalizeProfileCode, uniqueValidProfileCodes } from "@/lib/profiles";
 import { WEEKDAYS } from "@/lib/constants";
@@ -107,7 +108,7 @@ async function getExternalSubjectCatalogClient(
   throw new Error("No tienes permiso para agregar materias extra.");
 }
 
-export async function createGroupAction(formData: FormData) {
+async function createGroupFromFormData(formData: FormData) {
   const supabase = await createClient();
   const parsed = groupSchema.safeParse({
     academic_cycle_id: formData.get("academic_cycle_id"),
@@ -125,112 +126,58 @@ export async function createGroupAction(formData: FormData) {
 
   const subjectIds = getStringList(formData, "subject_ids");
   const externalSubjects = getExternalSubjects(formData, parsed.data.quarter);
-  const catalogAuthorization = externalSubjects.length > 0
-    ? await getExternalSubjectCatalogClient(supabase, parsed.data.career_id)
-    : { client: supabase, canSaveCatalogRequirements: false };
-  const catalogClient = catalogAuthorization.client;
 
   if (subjectIds.length === 0 && externalSubjects.length === 0) {
     throw new Error("Selecciona al menos una materia para el grupo.");
   }
 
-  const { data: group, error } = await supabase
-    .from("groups")
-    .insert({
-      ...parsed.data,
-      classroom_id: parsed.data.classroom_id || null,
-      status: "active"
-    })
-    .select("id")
-    .single();
-
-  if (error) throw new Error(error.message);
-
-  const subjectRowsById = new Map<
-    string,
-    {
-      group_id: string;
-      subject_id: string;
-      hours_per_week: number;
-      required_profile_code?: string | null;
-    }
-  >();
-
-  for (const subjectId of subjectIds) {
-    subjectRowsById.set(subjectId, {
-      group_id: group.id,
+  const groupSubjects = [
+    ...subjectIds.map((subjectId) => ({
       subject_id: subjectId,
       hours_per_week: Number(formData.get(`hours_${subjectId}`) ?? 5)
-    });
-  }
+    })),
+    ...externalSubjects.map((subject) => ({
+      name: subject.name,
+      quarter: subject.quarter,
+      hours_per_week: subject.hours_per_week,
+      required_profile_code: subject.required_profile_code
+    }))
+  ];
 
-  if (externalSubjects.length > 0) {
-    const { data: subjects, error: subjectsError } = await catalogClient
-      .from("subjects")
-      .upsert(
-        externalSubjects.map((subject) => ({
-          career_id: parsed.data.career_id,
-          quarter: subject.quarter,
-          name: subject.name,
-          normalized_name: subject.normalized_name,
-          default_hours: subject.hours_per_week,
-          active: true
-        })),
-        { onConflict: "career_id,quarter,normalized_name" }
-      )
-      .select("id, career_id, quarter, normalized_name");
+  const { data: groupId, error } = await (supabase as any).rpc("create_group_with_subjects", {
+    p_academic_cycle_id: parsed.data.academic_cycle_id,
+    p_career_id: parsed.data.career_id,
+    p_quarter: parsed.data.quarter,
+    p_modality: parsed.data.modality,
+    p_shift: parsed.data.shift,
+    p_name: parsed.data.name,
+    p_classroom_id: parsed.data.classroom_id || null,
+    p_subjects: groupSubjects
+  });
 
-    if (subjectsError) throw new Error(subjectsError.message);
-
-    const subjectsByKey = new Map(
-      (subjects ?? []).map((subject: any) => [
-        `${subject.career_id}|${subject.quarter}|${subject.normalized_name}`,
-        subject
-      ])
-    );
-
-    const requirementRows: Array<{ subject_id: string; profile_code: string }> = [];
-
-    for (const externalSubject of externalSubjects) {
-      const subject = subjectsByKey.get(
-        `${parsed.data.career_id}|${externalSubject.quarter}|${externalSubject.normalized_name}`
-      );
-      if (!subject) throw new Error(`No se pudo crear la materia externa ${externalSubject.name}.`);
-
-      subjectRowsById.set(subject.id, {
-        group_id: group.id,
-        subject_id: subject.id,
-        hours_per_week: externalSubject.hours_per_week,
-        required_profile_code: externalSubject.required_profile_code
-      });
-
-      if (externalSubject.required_profile_code) {
-        requirementRows.push({
-          subject_id: subject.id,
-          profile_code: externalSubject.required_profile_code
-        });
-      }
-    }
-
-    if (requirementRows.length > 0 && catalogAuthorization.canSaveCatalogRequirements) {
-      const { error: requirementError } = await catalogClient
-        .from("class_requirements")
-        .upsert(requirementRows, { onConflict: "subject_id,profile_code" });
-      if (requirementError) throw new Error(requirementError.message);
-    }
-  }
-
-  const rows = Array.from(subjectRowsById.values());
-
-  const { error: subjectError } = await supabase.from("group_subjects").insert(rows);
-  if (subjectError) throw new Error(subjectError.message);
+  if (error) throw new Error(error.message);
 
   revalidatePath("/grupos");
   revalidatePath("/materias");
   revalidatePath("/carreras");
   revalidatePath("/coordinador");
   revalidatePath(`/carreras/${parsed.data.career_id}/materias`);
-  redirect(`/grupos/${group.id}`);
+
+  return String(groupId);
+}
+
+export async function createGroupAction(formData: FormData) {
+  const groupId = await createGroupFromFormData(formData);
+  redirect(`/grupos/${groupId}`);
+}
+
+export async function createGroupStateAction(_previousState: ActionState, formData: FormData) {
+  try {
+    const groupId = await createGroupFromFormData(formData);
+    return actionSuccess("Grupo creado correctamente.", `/grupos/${groupId}`);
+  } catch (error) {
+    return actionFailure(error, "No se pudo crear el grupo.");
+  }
 }
 
 const assignmentSchema = z.object({
@@ -262,13 +209,6 @@ export async function createAssignmentAction(formData: FormData) {
   });
 
   if (error) throw new Error(error.message);
-
-  const { error: loadError } = await supabase
-    .from("group_subjects")
-    .update({ hours_per_week: parsed.data.duration_hours })
-    .eq("id", parsed.data.group_subject_id);
-
-  if (loadError) throw new Error(loadError.message);
 
   revalidatePath("/grupos");
   revalidatePath("/horarios");
@@ -318,13 +258,6 @@ export async function updateAssignmentAction(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
-  const { error: loadError } = await supabase
-    .from("group_subjects")
-    .update({ hours_per_week: parsed.data.duration_hours })
-    .eq("id", currentAssignment.group_subject_id);
-
-  if (loadError) throw new Error(loadError.message);
-
   revalidatePath("/grupos");
   if (parsed.data.group_id) revalidatePath(`/grupos/${parsed.data.group_id}`);
   revalidatePath("/horarios");
@@ -360,7 +293,7 @@ const groupIdSchema = z.object({
   group_id: z.string().uuid()
 });
 
-export async function deleteGroupAction(formData: FormData) {
+async function deleteGroupFromFormData(formData: FormData) {
   const supabase = await requireAdmin();
   const parsed = groupIdSchema.safeParse({
     group_id: formData.get("group_id")
@@ -375,7 +308,20 @@ export async function deleteGroupAction(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/grupos");
+}
+
+export async function deleteGroupAction(formData: FormData) {
+  await deleteGroupFromFormData(formData);
   redirect("/grupos");
+}
+
+export async function deleteGroupFeedbackAction(formData: FormData) {
+  try {
+    await deleteGroupFromFormData(formData);
+    return actionSuccess("Grupo eliminado correctamente.", "/grupos");
+  } catch (error) {
+    return actionFailure(error, "No se pudo eliminar el grupo.");
+  }
 }
 
 async function requireAuthenticatedProfile() {

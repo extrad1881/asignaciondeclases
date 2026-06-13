@@ -1,8 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { Save } from "lucide-react";
-import { createAssignmentAction } from "@/app/(dashboard)/actions";
+import { createAssignmentStateAction } from "@/app/(dashboard)/actions";
+import { initialActionState } from "@/lib/actions/action-state";
+import { useActionFeedback } from "@/components/ui/action-feedback";
+import { ActionAlert } from "@/components/ui/action-alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,8 +94,10 @@ export function AssignmentForm({
   classrooms: Option[];
   assignments?: AssignmentPreview[];
 }) {
+  const [state, formAction, pending] = useActionState(createAssignmentStateAction, initialActionState);
   const [selectedSubjectId, setSelectedSubjectId] = useState(groupSubjects[0]?.id ?? "");
   const [selectedBlockId, setSelectedBlockId] = useState(blocks[0]?.id ?? "");
+  useActionFeedback(state);
   const selectedSubject = groupSubjects.find((subject) => subject.id === selectedSubjectId) ?? groupSubjects[0];
   const requiredProfiles = useMemo(() => selectedSubject?.requiredProfiles ?? [], [selectedSubject]);
 
@@ -106,7 +111,7 @@ export function AssignmentForm({
   const timeRows = buildTimeRows(blocks);
 
   return (
-    <form action={createAssignmentAction} className="grid gap-3 rounded-md border border-line bg-white p-4 shadow-subtle">
+    <form action={formAction} className="grid gap-3 rounded-md border border-line bg-white p-4 shadow-subtle">
       <div className="grid gap-3 md:grid-cols-4">
         <label className="text-sm font-medium text-slate-700">
           Materia
@@ -254,9 +259,10 @@ export function AssignmentForm({
       </div>
 
       <div>
-        <Button disabled={eligibleTeachers.length === 0 || blocks.length === 0 || groupSubjects.length === 0} type="submit">
+        <ActionAlert className="mb-3" state={state} />
+        <Button disabled={pending || eligibleTeachers.length === 0 || blocks.length === 0 || groupSubjects.length === 0} type="submit">
           <Save className="h-4 w-4" />
-          Guardar asignacion
+          {pending ? "Guardando..." : "Guardar asignacion"}
         </Button>
       </div>
     </form>

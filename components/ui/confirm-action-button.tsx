@@ -1,8 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button, type ButtonProps } from "@/components/ui/button";
+import type { ActionState } from "@/lib/actions/action-state";
 
 export type ConfirmActionButtonProps = Omit<ButtonProps, "type"> & {
   title: string;
@@ -11,6 +14,8 @@ export type ConfirmActionButtonProps = Omit<ButtonProps, "type"> & {
   confirmLabel?: string;
   cancelLabel?: string;
   danger?: boolean;
+  action?: (formData: FormData) => Promise<ActionState>;
+  successMessage?: string;
 };
 
 export function ConfirmActionButton({
@@ -20,14 +25,63 @@ export function ConfirmActionButton({
   confirmLabel = "Confirmar",
   cancelLabel,
   danger = false,
+  action,
+  successMessage,
   children,
   variant,
   onClick,
   ...buttonProps
 }: ConfirmActionButtonProps) {
   const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
+  const [fallbackPending, setFallbackPending] = useState(false);
+  const [error, setError] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const submitRef = useRef<HTMLButtonElement>(null);
+  const pending = fallbackPending || isPending;
+
+  function handleConfirm() {
+    setError("");
+
+    if (!action) {
+      setFallbackPending(true);
+      submitRef.current?.form?.requestSubmit(submitRef.current);
+      return;
+    }
+
+    const form = submitRef.current?.form;
+    if (!form) {
+      setError("No se encontro el formulario para ejecutar la accion.");
+      return;
+    }
+
+    const formData = new FormData(form);
+    startTransition(async () => {
+      let result: ActionState;
+
+      try {
+        result = await action(formData);
+      } catch (error) {
+        const message = error instanceof Error && error.message ? error.message : "No se pudo completar la accion.";
+        setError(message);
+        toast.error(message);
+        return;
+      }
+
+      if (!result.success) {
+        setError(result.message);
+        toast.error(result.message);
+        return;
+      }
+
+      toast.success(successMessage ?? result.message);
+      setOpen(false);
+
+      if (result.redirectTo) {
+        router.push(result.redirectTo);
+      }
+    });
+  }
 
   return (
     <>
@@ -35,7 +89,10 @@ export function ConfirmActionButton({
         {...buttonProps}
         onClick={(event) => {
           onClick?.(event);
-          if (!event.defaultPrevented) setOpen(true);
+          if (!event.defaultPrevented) {
+            setError("");
+            setOpen(true);
+          }
         }}
         type="button"
         variant={variant ?? (danger ? "danger" : "secondary")}
@@ -49,12 +106,10 @@ export function ConfirmActionButton({
         confirmLabel={confirmLabel}
         description={description}
         onCancel={() => setOpen(false)}
-        onConfirm={() => {
-          setPending(true);
-          submitRef.current?.form?.requestSubmit(submitRef.current);
-        }}
+        onConfirm={handleConfirm}
         open={open}
         pending={pending}
+        error={error}
         title={title}
         variant={danger ? "danger" : "secondary"}
       />

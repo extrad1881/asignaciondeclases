@@ -2,12 +2,15 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { RotateCcw, Save, Trash2 } from "lucide-react";
 import {
-  createSubjectAction,
+  createSubjectStateAction,
   setSubjectActiveAction,
-  updateSubjectAction
+  setSubjectActiveFeedbackAction,
+  updateSubjectAction,
+  updateSubjectFeedbackAction
 } from "@/app/(dashboard)/actions";
 import { SectionHeader } from "@/components/section-header";
 import { Badge } from "@/components/ui/badge";
+import { ActionStateForm } from "@/components/ui/action-state-form";
 import { Button } from "@/components/ui/button";
 import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
 import { DataTable } from "@/components/ui/data-table";
@@ -63,7 +66,7 @@ export default async function CareerSubjectsPage({ params }: { params: Promise<{
           <h2 className="text-lg font-semibold text-ink">Agregar materia</h2>
           <p className="text-sm text-slate-600">{career.name}</p>
         </div>
-        <form action={createSubjectAction} className="grid gap-3 md:grid-cols-[1fr_130px_130px_minmax(260px,1fr)_auto]">
+        <ActionStateForm action={createSubjectStateAction} className="grid gap-3 md:grid-cols-[1fr_130px_130px_minmax(260px,1fr)_auto]" alertClassName="md:col-span-full">
           <input name="career_id" type="hidden" value={career.id} />
           <label className="text-sm font-medium text-slate-700">
             Materia
@@ -95,7 +98,7 @@ export default async function CareerSubjectsPage({ params }: { params: Promise<{
               Agregar
             </Button>
           </div>
-        </form>
+        </ActionStateForm>
       </section>
 
       <DataTable
@@ -143,6 +146,7 @@ export default async function CareerSubjectsPage({ params }: { params: Promise<{
                 .filter(isValidProfileCode)}
             />
             <ConfirmActionButton
+              action={updateSubjectFeedbackAction}
               affectedName={subject.name}
               className="h-8 px-3"
               confirmLabel="Guardar materia"
@@ -159,6 +163,7 @@ export default async function CareerSubjectsPage({ params }: { params: Promise<{
             <input name="subject_id" type="hidden" value={subject.id} />
             <input name="active" type="hidden" value={subject.active ? "false" : "true"} />
             <ConfirmActionButton
+              action={setSubjectActiveFeedbackAction}
               affectedName={subject.name}
               className="h-8 px-3"
               confirmLabel={subject.active ? "Desactivar materia" : "Reactivar materia"}

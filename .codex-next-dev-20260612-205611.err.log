@@ -1,0 +1,23 @@
+⨯ Error: El docente ya tiene una clase asignada en este horario.
+    at createAssignmentAction (app\(dashboard)\actions\legacy.ts:195:20)
+  193 |   });
+  194 |
+> 195 |   if (error) throw new Error(error.message);
+      |                    ^
+  196 |
+  197 |   revalidatePath("/grupos");
+  198 |   revalidatePath("/horarios"); {
+  digest: '3978863121'
+}
+[browser] Uncaught Error: El docente ya tiene una clase asignada en este horario.
+    at createAssignmentAction (app\(dashboard)\actions\legacy.ts:195:20)
+    at form (<anonymous>)
+    at AssignmentForm (components/forms/assignment-form.tsx:109:5)
+    at GroupDetailPage (app\(dashboard)\grupos\[id]\page.tsx:170:13)
+  193 |   });
+  194 |
+> 195 |   if (error) throw new Error(error.message);
+      |                    ^
+  196 |
+  197 |   revalidatePath("/grupos");
+  198 |   revalidatePath("/horarios");

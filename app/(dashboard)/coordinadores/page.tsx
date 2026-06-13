@@ -1,8 +1,12 @@
 import {
   deleteCoordinatorRecordAction,
+  deleteCoordinatorRecordFeedbackAction,
   updateCoordinatorCareersAction,
+  updateCoordinatorCareersFeedbackAction,
   updateCoordinatorRecordAction,
-  updateCoordinatorUserAction
+  updateCoordinatorRecordFeedbackAction,
+  updateCoordinatorUserAction,
+  updateCoordinatorUserFeedbackAction
 } from "@/app/(dashboard)/actions";
 import { SectionHeader } from "@/components/section-header";
 import { Badge } from "@/components/ui/badge";
@@ -100,6 +104,7 @@ export default async function CoordinatorsPage() {
                       {careerRows.length === 0 ? <span className="text-sm text-slate-400">Sin carreras</span> : null}
                     </div>
                     <ConfirmActionButton
+                      action={updateCoordinatorCareersFeedbackAction}
                       affectedName={coordinator.name}
                       className="h-9 px-3"
                       confirmLabel="Guardar carreras"
@@ -127,6 +132,7 @@ export default async function CoordinatorsPage() {
                         <option value="false">Inactivo</option>
                       </Select>
                       <ConfirmActionButton
+                        action={updateCoordinatorRecordFeedbackAction}
                         affectedName={coordinator.name}
                         className="h-10 px-3"
                         confirmLabel="Guardar coordinador"
@@ -143,6 +149,7 @@ export default async function CoordinatorsPage() {
                       <form action={deleteCoordinatorRecordAction}>
                         <input name="coordinator_id" type="hidden" value={coordinator.id} />
                         <ConfirmActionButton
+                          action={deleteCoordinatorRecordFeedbackAction}
                           affectedName={coordinator.name}
                           className="h-9 px-3"
                           confirmLabel="Eliminar coordinador"
@@ -167,6 +174,7 @@ export default async function CoordinatorsPage() {
                         </Select>
                         <Input name="password" placeholder="Nueva contraseña" type="password" />
                         <ConfirmActionButton
+                          action={updateCoordinatorUserFeedbackAction}
                           affectedName={coordinator.name}
                           className="h-10 px-3"
                           confirmLabel="Guardar usuario"
