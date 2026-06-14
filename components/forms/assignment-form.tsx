@@ -112,6 +112,9 @@ export function AssignmentForm({
 
   return (
     <form action={formAction} className="grid gap-3 rounded-md border border-line bg-white p-4 shadow-subtle">
+      <div className="rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-sm leading-6 text-blue-900">
+        Selecciona una materia, un docente apto y un bloque disponible. El sistema valida perfiles, horas máximas y choques de horario.
+      </div>
       <div className="grid gap-3 md:grid-cols-4">
         <label className="text-sm font-medium text-slate-700">
           Materia
@@ -178,7 +181,9 @@ export function AssignmentForm({
 
       <div className="overflow-x-auto rounded-md border border-line bg-slate-50">
         {blocks.length === 0 ? (
-          <p className="p-4 text-sm text-slate-500">No hay bloques disponibles para este cuadro.</p>
+          <p className="p-4 text-sm text-muted">
+            No hay bloques disponibles para este cuadro. Agrega un bloque personalizado o revisa la modalidad del grupo.
+          </p>
         ) : (
           <table className="w-full min-w-[720px] border-collapse text-sm">
             <thead>
@@ -262,7 +267,7 @@ export function AssignmentForm({
         <ActionAlert className="mb-3" state={state} />
         <Button disabled={pending || eligibleTeachers.length === 0 || blocks.length === 0 || groupSubjects.length === 0} type="submit">
           <Save className="h-4 w-4" />
-          {pending ? "Guardando..." : "Guardar asignacion"}
+          {pending ? "Guardando..." : "Asignar docente"}
         </Button>
       </div>
     </form>

@@ -1,0 +1,72 @@
+
+> asignacion-clases@0.1.0 dev
+> next dev --hostname 127.0.0.1 --port 3000
+
+▲ Next.js 16.2.7 (Turbopack)
+- Local:         http://127.0.0.1:3000
+- Network:       http://127.0.0.1:3000
+- Environments: .env.local
+✓ Ready in 1147ms
+- Experiments (use with caution):
+  · serverActions
+
+ GET /login 200 in 780ms (next.js: 186ms, proxy.ts: 283ms, application-code: 311ms)
+ GET / 307 in 661ms (next.js: 86ms, proxy.ts: 442ms, application-code: 133ms)
+ GET /dashboard 200 in 1384ms (next.js: 126ms, proxy.ts: 131ms, application-code: 1128ms)
+ GET /grupos/a8475286-b1de-43cc-b0f9-358fd2df6e8e 200 in 3.3s (next.js: 2.3s, proxy.ts: 125ms, application-code: 949ms)
+ GET /dashboard 200 in 658ms (next.js: 10ms, proxy.ts: 103ms, application-code: 545ms)
+ GET /docentes 200 in 3.7s (next.js: 301ms, proxy.ts: 257ms, application-code: 3.1s)
+ GET /datos-incompletos 200 in 3.9s (next.js: 73ms, proxy.ts: 101ms, application-code: 3.7s)
+ GET /datos-incompletos 200 in 7.5s (next.js: 58ms, proxy.ts: 746ms, application-code: 6.7s)
+ GET /dashboard 200 in 470ms (next.js: 10ms, proxy.ts: 107ms, application-code: 353ms)
+ GET /grupos/a8475286-b1de-43cc-b0f9-358fd2df6e8e 200 in 1463ms (next.js: 53ms, proxy.ts: 241ms, application-code: 1169ms)
+ POST /grupos/a8475286-b1de-43cc-b0f9-358fd2df6e8e 200 in 191ms (next.js: 18ms, proxy.ts: 91ms, application-code: 82ms)
+  └─ ƒ createAssignmentStateAction({"message":"","success":false,"timestamp":0}, {}) in 53ms app/(dashboard)/actions.ts
+✓ Compiled in 4.5s
+✓ Compiled in 4s
+✓ Compiled in 811ms
+✓ Compiled in 683ms
+✓ Compiled in 373ms
+✓ Compiled in 213ms
+✓ Compiled in 331ms
+✓ Compiled in 81ms
+✓ Compiled in 108ms
+✓ Compiled in 319ms
+✓ Compiled in 72ms
+✓ Compiled in 95ms
+✓ Compiled in 2.3s
+ GET /login 200 in 1114ms (next.js: 247ms, proxy.ts: 528ms, application-code: 339ms)
+ GET /login 200 in 228ms (next.js: 10ms, proxy.ts: 14ms, application-code: 203ms)
+ GET / 307 in 1362ms (next.js: 100ms, proxy.ts: 914ms, application-code: 349ms)
+ GET /dashboard 200 in 2.7s (next.js: 383ms, proxy.ts: 195ms, application-code: 2.1s)
+ GET /docentes 200 in 738ms (next.js: 217ms, proxy.ts: 95ms, application-code: 425ms)
+ GET /coordinador 200 in 1833ms (next.js: 289ms, proxy.ts: 131ms, application-code: 1413ms)
+ GET /dashboard 200 in 165ms (next.js: 13ms, proxy.ts: 124ms, application-code: 29ms)
+ GET /dashboard 200 in 2.6s (next.js: 7ms, proxy.ts: 81ms, application-code: 2.5s)
+ GET /dashboard 200 in 148ms (next.js: 10ms, proxy.ts: 119ms, application-code: 18ms)
+ GET /dashboard 200 in 3.5s (next.js: 92ms, proxy.ts: 242ms, application-code: 3.2s)
+ GET /dashboard 200 in 191ms (next.js: 18ms, proxy.ts: 134ms, application-code: 38ms)
+ GET /dashboard 200 in 133ms (next.js: 9ms, proxy.ts: 99ms, application-code: 25ms)
+ GET /dashboard 200 in 1520ms (next.js: 22ms, proxy.ts: 134ms, application-code: 1365ms)
+ GET /dashboard 200 in 843ms (next.js: 9ms, proxy.ts: 106ms, application-code: 728ms)
+ GET /login 200 in 137ms (next.js: 16ms, proxy.ts: 13ms, application-code: 108ms)
+ POST /dashboard 303 in 543ms (next.js: 9ms, proxy.ts: 148ms, application-code: 385ms)
+  └─ ƒ <inline action>() in 174ms components/app-shell.tsx
+ GET /dashboard 200 in 1717ms (next.js: 5ms, proxy.ts: 84ms, application-code: 1628ms)
+ GET /dashboard 200 in 1548ms (next.js: 15ms, proxy.ts: 264ms, application-code: 1269ms)
+ GET /docentes 200 in 1732ms (next.js: 6ms, proxy.ts: 79ms, application-code: 1647ms)
+ GET /materias 200 in 1168ms (next.js: 135ms, proxy.ts: 115ms, application-code: 918ms)
+ GET /coordinadores 200 in 488ms (next.js: 132ms, proxy.ts: 79ms, application-code: 277ms)
+ GET /carreras 200 in 789ms (next.js: 203ms, proxy.ts: 200ms, application-code: 386ms)
+ GET /datos-incompletos 200 in 2.0s (next.js: 135ms, proxy.ts: 75ms, application-code: 1837ms)
+ GET /admin 200 in 1478ms (next.js: 191ms, proxy.ts: 135ms, application-code: 1152ms)
+ GET /dashboard 200 in 1040ms (next.js: 11ms, proxy.ts: 124ms, application-code: 906ms)
+ GET /login 200 in 64ms (next.js: 6ms, proxy.ts: 7ms, application-code: 51ms)
+ POST /dashboard 303 in 298ms (next.js: 8ms, proxy.ts: 86ms, application-code: 204ms)
+  └─ ƒ <inline action>() in 121ms components/app-shell.tsx
+ GET /dashboard 200 in 2.1s (next.js: 6ms, proxy.ts: 86ms, application-code: 1993ms)
+ GET /dashboard 200 in 2.1s (next.js: 12ms, proxy.ts: 251ms, application-code: 1835ms)
+ GET /grupos/0118ee3d-55a7-4202-ae74-a54cb182889f 200 in 1109ms (next.js: 350ms, proxy.ts: 118ms, application-code: 641ms)
+ POST /grupos/0118ee3d-55a7-4202-ae74-a54cb182889f 200 in 203ms (next.js: 19ms, proxy.ts: 104ms, application-code: 80ms)
+  └─ ƒ createAssignmentStateAction({"message":"","success":false,"timestamp":0}, {}) in 45ms app/(dashboard)/actions.ts
+ GET /dashboard 200 in 1204ms (next.js: 16ms, proxy.ts: 123ms, application-code: 1065ms)

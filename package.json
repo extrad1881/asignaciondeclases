@@ -15,6 +15,7 @@
     "backup:db": "tsx scripts/backup-db.ts",
     "import:datos": "tsx scripts/import-datos.ts",
     "seed": "npm run import:datos",
+    "validate:migrations": "tsx scripts/validate-migrations.ts",
     "supabase:types": "supabase gen types typescript --local > types/supabase.ts"
   },
   "dependencies": {

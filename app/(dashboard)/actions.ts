@@ -1,30 +1,46 @@
 "use server";
 
 import {
-  assignCoordinatorCareerAction as assignCoordinatorCareerActionImpl,
-  assignCoordinatorTeacherAction as assignCoordinatorTeacherActionImpl,
   createAssignmentAction as createAssignmentActionImpl,
-  createCustomScheduleBlockAction as createCustomScheduleBlockActionImpl,
-  createGroupAction as createGroupActionImpl,
-  createGroupStateAction as createGroupStateActionImpl,
-  createSubjectAction as createSubjectActionImpl,
-  createTeacherAction as createTeacherActionImpl,
-  createUserAction as createUserActionImpl,
   deleteAssignmentAction as deleteAssignmentActionImpl,
+  updateAssignmentAction as updateAssignmentActionImpl
+} from "./actions/asignaciones";
+import {
+  createCustomScheduleBlockAction as createCustomScheduleBlockActionImpl
+} from "./actions/horarios";
+import {
+  assignCoordinatorCareerAction as assignCoordinatorCareerActionImpl,
   deleteCoordinatorRecordAction as deleteCoordinatorRecordActionImpl,
-  deleteGroupAction as deleteGroupActionImpl,
-  deleteGroupFeedbackAction as deleteGroupFeedbackActionImpl,
-  setSubjectActiveAction as setSubjectActiveActionImpl,
-  setTeacherActiveAction as setTeacherActiveActionImpl,
-  updateAssignmentAction as updateAssignmentActionImpl,
   updateCoordinatorCareersAction as updateCoordinatorCareersActionImpl,
   updateCoordinatorRecordAction as updateCoordinatorRecordActionImpl,
-  updateCoordinatorUserAction as updateCoordinatorUserActionImpl,
-  updateSubjectAction as updateSubjectActionImpl,
+  updateCoordinatorUserAction as updateCoordinatorUserActionImpl
+} from "./actions/coordinadores";
+import {
+  assignCoordinatorTeacherAction as assignCoordinatorTeacherActionImpl,
+  createTeacherAction as createTeacherActionImpl,
+  setTeacherActiveAction as setTeacherActiveActionImpl,
   updateTeacherMaxHoursAction as updateTeacherMaxHoursActionImpl,
-  updateTeacherProfilesAction as updateTeacherProfilesActionImpl,
+  updateTeacherProfilesAction as updateTeacherProfilesActionImpl
+} from "./actions/docentes";
+import {
+  createGroupAction as createGroupActionImpl,
+  createGroupStateAction as createGroupStateActionImpl,
+  deleteGroupAction as deleteGroupActionImpl,
+  deleteGroupFeedbackAction as deleteGroupFeedbackActionImpl,
+  setGroupArchivedAction as setGroupArchivedActionImpl,
+  setGroupDraftAction as setGroupDraftActionImpl,
+  setGroupFinalAction as setGroupFinalActionImpl,
+  setGroupReviewAction as setGroupReviewActionImpl
+} from "./actions/grupos";
+import {
+  createSubjectAction as createSubjectActionImpl,
+  setSubjectActiveAction as setSubjectActiveActionImpl,
+  updateSubjectAction as updateSubjectActionImpl
+} from "./actions/materias";
+import {
+  createUserAction as createUserActionImpl,
   updateUserAction as updateUserActionImpl
-} from "./actions/legacy";
+} from "./actions/usuarios";
 import { actionFailure, actionSuccess, type ActionState } from "@/lib/actions/action-state";
 
 async function runFeedbackAction(
@@ -263,4 +279,56 @@ export async function assignCoordinatorTeacherFeedbackAction(formData: FormData)
     "Docente asignado correctamente.",
     "No se pudo asignar el docente."
   );
+}
+
+export async function setGroupDraftAction(formData: FormData) {
+  return setGroupDraftActionImpl(formData);
+}
+
+export async function setGroupReviewAction(formData: FormData) {
+  return setGroupReviewActionImpl(formData);
+}
+
+export async function setGroupFinalAction(formData: FormData) {
+  return setGroupFinalActionImpl(formData);
+}
+
+export async function setGroupArchivedAction(formData: FormData) {
+  return setGroupArchivedActionImpl(formData);
+}
+
+export async function setGroupDraftStateAction(previousState: ActionState, formData: FormData) {
+  try {
+    await setGroupDraftActionImpl(formData);
+    return { success: true, message: "Grupo enviado a borrador.", timestamp: Date.now() };
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : "No se pudo cambiar el estado del grupo.", timestamp: Date.now() };
+  }
+}
+
+export async function setGroupReviewStateAction(previousState: ActionState, formData: FormData) {
+  try {
+    await setGroupReviewActionImpl(formData);
+    return { success: true, message: "Grupo enviado a revision.", timestamp: Date.now() };
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : "No se pudo cambiar el estado del grupo.", timestamp: Date.now() };
+  }
+}
+
+export async function setGroupFinalStateAction(previousState: ActionState, formData: FormData) {
+  try {
+    await setGroupFinalActionImpl(formData);
+    return { success: true, message: "Grupo finalizado.", timestamp: Date.now() };
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : "No se pudo finalizar el grupo.", timestamp: Date.now() };
+  }
+}
+
+export async function setGroupArchivedStateAction(previousState: ActionState, formData: FormData) {
+  try {
+    await setGroupArchivedActionImpl(formData);
+    return { success: true, message: "Grupo archivado.", timestamp: Date.now() };
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : "No se pudo archivar el grupo.", timestamp: Date.now() };
+  }
 }

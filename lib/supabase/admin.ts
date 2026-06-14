@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 
 export function createServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -15,4 +16,36 @@ export function createServiceClient() {
       autoRefreshToken: false
     }
   });
+}
+
+export async function requireActiveAdminServiceClient() {
+  const supabase = await createServerClient();
+
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("No hay una sesión activa.");
+  }
+
+  const { data: profile } = await supabase
+    .from("users_profile")
+    .select("id, role_code, active")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile) {
+    throw new Error("No hay una sesión activa.");
+  }
+
+  if (!profile.active) {
+    throw new Error("Usuario inactivo.");
+  }
+
+  if (profile.role_code !== "admin") {
+    throw new Error("Solo el administrador puede realizar esta acción.");
+  }
+
+  return createServiceClient();
 }

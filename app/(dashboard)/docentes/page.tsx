@@ -1,11 +1,11 @@
 import { Save, Trash2, UserPlus } from "lucide-react";
 import { SectionHeader } from "@/components/section-header";
+import { ProfileCheckboxGroup } from "@/components/forms/profile-checkbox-group";
+import { ActionStateForm } from "@/components/ui/action-state-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ActionStateForm } from "@/components/ui/action-state-form";
 import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
-import { DataTable } from "@/components/ui/data-table";
-import { ProfileCheckboxGroup } from "@/components/forms/profile-checkbox-group";
+import { DataTableAdvanced, type DataTableAdvancedRow } from "@/components/ui/data-table-advanced";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import {
@@ -42,26 +42,129 @@ export default async function TeachersPage() {
   const profileOptions = (profiles ?? []).filter((teacherProfile: any) => isValidProfileCode(teacherProfile.code));
   const coordinatorOptions = coordinators ?? [];
 
+  const rows: DataTableAdvancedRow[] = teacherRows.map((teacher: any) => {
+    const selectedProfiles = (teacher.teacher_available_profiles ?? [])
+      .map((item: any) => item.profile_code)
+      .filter(isValidProfileCode);
+    const coordinatorLabel =
+      coordinatorOptions.find((coordinator: any) => coordinator.id === teacher.responsible_coordinator_id)?.name ?? "Sin asignar";
+    const statusLabel = teacher.active ? "Activo" : "Inactivo";
+
+    return {
+      id: teacher.id,
+      searchText: [teacher.name, teacher.email, coordinatorLabel, selectedProfiles.join(" "), statusLabel].join(" "),
+      filters: {
+        coordinador: coordinatorLabel,
+        estado: statusLabel,
+        perfil: selectedProfiles[0] ?? "Sin perfil"
+      },
+      cells: [
+        <span className="font-semibold text-ink" key="name">{teacher.name}</span>,
+        teacher.email ?? <span className="text-muted">Sin correo</span>,
+        coordinatorLabel === "Sin asignar" ? <span className="text-muted">{coordinatorLabel}</span> : coordinatorLabel,
+        <div className="flex flex-wrap gap-1" key="profiles">
+          {selectedProfiles.length === 0 ? (
+            <span className="text-muted">Sin perfiles</span>
+          ) : (
+            selectedProfiles.map((profileCode: string) => <Badge key={profileCode}>{profileCode}</Badge>)
+          )}
+        </div>,
+        `${formatHours(teacher.assigned_hours)} / ${formatHours(teacher.max_hours)}`,
+        <Badge key="state" tone={teacher.active ? "success" : "warning"}>
+          {statusLabel}
+        </Badge>,
+        ...(canManageTeachers
+          ? [
+              <form action={updateTeacherProfilesAction} className="grid min-w-56 gap-2" key="profiles-form">
+                <input name="teacher_id" type="hidden" value={teacher.id} />
+                <ProfileCheckboxGroup maxHeight="max-h-36" profiles={profileOptions as any[]} selected={selectedProfiles} />
+                <ConfirmActionButton
+                  action={updateTeacherProfilesFeedbackAction}
+                  affectedName={teacher.name}
+                  className="h-8 px-3"
+                  confirmLabel="Guardar perfiles"
+                  description="Se reemplazarán los perfiles aptos del docente. Las próximas asignaciones validarán contra esta lista."
+                  title="Modificar perfiles del docente"
+                  variant="secondary"
+                >
+                  <Save className="h-4 w-4" />
+                  Guardar
+                </ConfirmActionButton>
+              </form>,
+              <form action={assignCoordinatorTeacherAction} className="grid min-w-52 gap-2" key="coordinator-form">
+                <input name="teacher_id" type="hidden" value={teacher.id} />
+                <Select defaultValue={teacher.responsible_coordinator_id ?? coordinatorOptions[0]?.id ?? ""} name="coordinator_id" required>
+                  {coordinatorOptions.map((coordinator: any) => (
+                    <option key={coordinator.id} value={coordinator.id}>
+                      {coordinator.name}
+                    </option>
+                  ))}
+                </Select>
+                <ConfirmActionButton
+                  action={assignCoordinatorTeacherFeedbackAction}
+                  affectedName={teacher.name}
+                  className="h-8 px-3"
+                  confirmLabel="Asignar coordinador"
+                  description="El docente quedará bajo el coordinador seleccionado y se ajustará su alcance de gestión."
+                  disabled={coordinatorOptions.length === 0}
+                  title="Cambiar coordinador del docente"
+                  variant="secondary"
+                >
+                  Asignar
+                </ConfirmActionButton>
+              </form>,
+              <form action={setTeacherActiveAction} key="active-form">
+                <input name="teacher_id" type="hidden" value={teacher.id} />
+                <input name="active" type="hidden" value={teacher.active ? "false" : "true"} />
+                <ConfirmActionButton
+                  action={setTeacherActiveFeedbackAction}
+                  affectedName={teacher.name}
+                  className="h-8 px-3"
+                  confirmLabel={teacher.active ? "Desactivar docente" : "Reactivar docente"}
+                  danger={teacher.active}
+                  description={
+                    teacher.active
+                      ? "El docente dejará de estar disponible para nuevas asignaciones."
+                      : "El docente volverá a estar disponible para asignaciones."
+                  }
+                  title={teacher.active ? "Desactivar docente" : "Reactivar docente"}
+                  variant={teacher.active ? "danger" : "secondary"}
+                >
+                  {teacher.active ? <Trash2 className="h-4 w-4" /> : null}
+                  {teacher.active ? "Quitar" : "Reactivar"}
+                </ConfirmActionButton>
+              </form>
+            ]
+          : [])
+      ]
+    };
+  });
+
   return (
     <>
-      <SectionHeader eyebrow="Catálogo" title="Docentes" />
+      <SectionHeader
+        eyebrow="Catálogo"
+        title="Docentes"
+        description="Administra docentes, perfiles aptos, coordinador responsable y disponibilidad de horas para asignaciones."
+      />
       {canManageTeachers ? (
         <section className="mb-6 rounded-md border border-line bg-white p-4 shadow-subtle">
-          <h2 className="mb-3 text-lg font-semibold text-ink">Agregar docente</h2>
+          <h2 className="mb-1 text-lg font-semibold text-ink">Agregar docente</h2>
+          <p className="mb-3 text-sm text-muted">Registra datos mínimos y perfiles aptos antes de asignar clases.</p>
           <ActionStateForm action={createTeacherStateAction} className="grid gap-3 md:grid-cols-[1fr_1fr_140px_220px_auto]" alertClassName="md:col-span-full">
-            <label className="text-sm font-medium text-slate-700">
+            <label className="text-sm font-semibold text-slate-700">
               Nombre
               <Input className="mt-1" name="name" placeholder="Nombre del docente" required />
             </label>
-            <label className="text-sm font-medium text-slate-700">
+            <label className="text-sm font-semibold text-slate-700">
               Correo
               <Input className="mt-1" name="email" placeholder="correo@institucion.edu" type="email" />
             </label>
-            <label className="text-sm font-medium text-slate-700">
+            <label className="text-sm font-semibold text-slate-700">
               Horas máximas
               <Input className="mt-1" defaultValue={20} min={0} name="max_hours" required step={0.5} type="number" />
             </label>
-            <div className="text-sm font-medium text-slate-700">
+            <div className="text-sm font-semibold text-slate-700">
               Perfiles aptos
               <div className="mt-1">
                 <ProfileCheckboxGroup profiles={profileOptions as any[]} />
@@ -76,101 +179,20 @@ export default async function TeachersPage() {
           </ActionStateForm>
         </section>
       ) : null}
-      <DataTable
+      <DataTableAdvanced
+        emptyDescription="Agrega docentes para poder asignarlos a materias y validar perfiles requeridos."
+        emptyLabel="No hay docentes registrados."
+        filters={[
+          { key: "coordinador", label: "Coordinador" },
+          { key: "estado", label: "Estado" },
+          { key: "perfil", label: "Perfil" }
+        ]}
         headers={
           canManageTeachers
             ? ["Docente", "Correo", "Coordinador", "Perfiles aptos", "Horas", "Estado", "Editar perfiles", "Asignar coordinador", "Acciones"]
             : ["Docente", "Correo", "Coordinador", "Perfiles aptos", "Horas", "Estado"]
         }
-        rows={teacherRows.map((teacher: any) => [
-          <span className="font-medium text-ink" key="name">{teacher.name}</span>,
-          teacher.email ?? <span className="text-slate-400">Sin correo</span>,
-          coordinatorOptions.find((coordinator: any) => coordinator.id === teacher.responsible_coordinator_id)?.name ?? (
-            <span className="text-slate-400">Sin asignar</span>
-          ),
-          <div className="flex flex-wrap gap-1" key="profiles">
-            {((teacher.teacher_available_profiles ?? []).filter((profile: any) => isValidProfileCode(profile.profile_code))).length === 0 ? (
-              <span className="text-slate-400">Sin perfiles</span>
-            ) : (
-              (teacher.teacher_available_profiles ?? []).filter((profile: any) => isValidProfileCode(profile.profile_code)).map((profile: any) => (
-                <Badge key={profile.profile_code}>{profile.profile_code}</Badge>
-              ))
-            )}
-          </div>,
-          `${formatHours(teacher.assigned_hours)} / ${formatHours(teacher.max_hours)}`,
-          <Badge key="state" tone={teacher.active ? "success" : "warning"}>
-            {teacher.active ? "Activo" : "Inactivo"}
-          </Badge>,
-          ...(canManageTeachers
-            ? [
-                <form action={updateTeacherProfilesAction} className="grid min-w-56 gap-2" key="profiles-form">
-                  <input name="teacher_id" type="hidden" value={teacher.id} />
-                  <ProfileCheckboxGroup
-                    maxHeight="max-h-36"
-                    profiles={profileOptions as any[]}
-                    selected={(teacher.teacher_available_profiles ?? [])
-                      .map((item: any) => item.profile_code)
-                      .filter(isValidProfileCode)}
-                  />
-                  <ConfirmActionButton
-                    action={updateTeacherProfilesFeedbackAction}
-                    affectedName={teacher.name}
-                    className="h-8 px-3"
-                    confirmLabel="Guardar perfiles"
-                    description="Se reemplazaran los perfiles aptos del docente. Las proximas asignaciones validaran contra esta lista."
-                    title="Modificar perfiles del docente"
-                    variant="secondary"
-                  >
-                    <Save className="h-4 w-4" />
-                    Guardar
-                  </ConfirmActionButton>
-                </form>,
-                <form action={assignCoordinatorTeacherAction} className="grid min-w-52 gap-2" key="coordinator-form">
-                  <input name="teacher_id" type="hidden" value={teacher.id} />
-                  <Select defaultValue={teacher.responsible_coordinator_id ?? coordinatorOptions[0]?.id ?? ""} name="coordinator_id" required>
-                    {coordinatorOptions.map((coordinator: any) => (
-                      <option key={coordinator.id} value={coordinator.id}>
-                        {coordinator.name}
-                      </option>
-                    ))}
-                  </Select>
-                  <ConfirmActionButton
-                    action={assignCoordinatorTeacherFeedbackAction}
-                    affectedName={teacher.name}
-                    className="h-8 px-3"
-                    confirmLabel="Asignar coordinador"
-                    description="El docente quedara bajo el coordinador seleccionado y se ajustara su alcance de gestion."
-                    disabled={coordinatorOptions.length === 0}
-                    title="Cambiar coordinador del docente"
-                    variant="secondary"
-                  >
-                    Asignar
-                  </ConfirmActionButton>
-                </form>,
-                <form action={setTeacherActiveAction} key="active-form">
-                  <input name="teacher_id" type="hidden" value={teacher.id} />
-                  <input name="active" type="hidden" value={teacher.active ? "false" : "true"} />
-                  <ConfirmActionButton
-                    action={setTeacherActiveFeedbackAction}
-                    affectedName={teacher.name}
-                    className="h-8 px-3"
-                    confirmLabel={teacher.active ? "Desactivar docente" : "Reactivar docente"}
-                    danger={teacher.active}
-                    description={
-                      teacher.active
-                        ? "El docente dejara de estar disponible para nuevas asignaciones."
-                        : "El docente volvera a estar disponible para asignaciones."
-                    }
-                    title={teacher.active ? "Desactivar docente" : "Reactivar docente"}
-                    variant={teacher.active ? "danger" : "secondary"}
-                  >
-                    {teacher.active ? <Trash2 className="h-4 w-4" /> : null}
-                    {teacher.active ? "Quitar" : "Reactivar"}
-                  </ConfirmActionButton>
-                </form>
-              ]
-            : [])
-        ])}
+        rows={rows}
       />
     </>
   );

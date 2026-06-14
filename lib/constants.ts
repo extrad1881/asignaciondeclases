@@ -12,8 +12,8 @@ export const SHIFTS = [
 
 export const GROUP_STATUSES = [
   { value: "draft", label: "Borrador" },
-  { value: "active", label: "Activo" },
-  { value: "inactive", label: "Inactivo" },
+  { value: "review", label: "Revisión" },
+  { value: "final", label: "Finalizado" },
   { value: "archived", label: "Archivado" }
 ] as const;
 

@@ -1,11 +1,15 @@
-import { notFound } from "next/navigation";
-import { CalendarPlus, Save, Trash2 } from "lucide-react";
+﻿import { notFound } from "next/navigation";
+import { CalendarPlus, CheckCircle2, CircleAlert, Inbox, LayoutGrid, PenLine, Save, Send, Trash2 } from "lucide-react";
 import {
   createCustomScheduleBlockStateAction,
   deleteAssignmentAction,
   deleteAssignmentFeedbackAction,
   deleteGroupAction,
   deleteGroupFeedbackAction,
+  setGroupArchivedAction,
+  setGroupDraftAction,
+  setGroupFinalAction,
+  setGroupReviewAction,
   updateAssignmentAction,
   updateAssignmentFeedbackAction
 } from "@/app/(dashboard)/actions";
@@ -15,13 +19,14 @@ import { ActionStateForm } from "@/components/ui/action-state-form";
 import { Button } from "@/components/ui/button";
 import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
 import { DataTable } from "@/components/ui/data-table";
+import { MetricCard } from "@/components/ui/metric-card";
 import { AssignmentForm } from "@/components/forms/assignment-form";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { WEEKDAYS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 import { getGroupAuditHistory } from "@/lib/supabase/audit";
-import { getCurrentProfile } from "@/lib/supabase/queries";
+import { checkGroupSubjectHours, getCurrentProfile } from "@/lib/supabase/queries";
 import { isAdmin } from "@/lib/permissions";
 import { isValidProfileCode } from "@/lib/profiles";
 
@@ -92,6 +97,9 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       loadHours: Number(item.hours_per_week ?? 1.5)
     };
   });
+  const hoursStatus = await checkGroupSubjectHours((group as any).id);
+  const completeSubjects = hoursStatus.filter((item) => item.status === "completa").length;
+  const riskySubjects = hoursStatus.filter((item) => item.status === "incompleta" || item.status === "excedida").length;
   const groupHistory = await getGroupAuditHistory((group as any).id);
 
   function auditDetails(value: Record<string, unknown> | null) {
@@ -106,9 +114,14 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   return (
     <>
       <SectionHeader eyebrow="Grupo" title={(group as any).name}>
-        <Badge tone="info">
-          {(group as any).shift === "matutino" ? "MAT" : "VES"} {(group as any).quarter}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge tone={(group as any).status === "final" ? "success" : (group as any).status === "archived" ? "neutral" : (group as any).status === "review" ? "warning" : "info"}>
+            {(group as any).status === "draft" ? "Borrador" : (group as any).status === "review" ? "Revisión" : (group as any).status === "final" ? "Finalizado" : "Archivado"}
+          </Badge>
+          <Badge tone="info">
+            {(group as any).shift === "matutino" ? "MAT" : "VES"} {(group as any).quarter}
+          </Badge>
+        </div>
         {isAdmin(profile?.role_code) ? (
           <form action={deleteGroupAction}>
             <input name="group_id" type="hidden" value={(group as any).id} />
@@ -117,7 +130,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
               affectedName={(group as any).name}
               confirmLabel="Borrar grupo"
               danger
-              description="Se eliminara el grupo junto con sus materias y asignaciones asociadas si la base lo permite."
+              description="Se eliminará el grupo junto con sus materias y asignaciones asociadas si la base lo permite."
               title="Borrar grupo"
             >
               <Trash2 className="h-4 w-4" />
@@ -134,6 +147,71 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
         <p><span className="font-semibold">Aula:</span> {(group as any).classrooms?.name ?? "Sin aula"}</p>
       </section>
 
+      <section className="mb-5 grid gap-3 md:grid-cols-3">
+        <MetricCard
+          description="Materias con horas cubiertas"
+          icon={CheckCircle2}
+          label="Materias completas"
+          tone={completeSubjects === groupSubjects.length && groupSubjects.length > 0 ? "success" : "warning"}
+          value={`${completeSubjects}/${groupSubjects.length}`}
+        />
+        <MetricCard
+          description="Clases activas asignadas"
+          icon={CalendarPlus}
+          label="Asignaciones"
+          tone={(assignments ?? []).length > 0 ? "brand" : "neutral"}
+          value={(assignments ?? []).length}
+        />
+        <MetricCard
+          description="Materias incompletas o excedidas"
+          icon={riskySubjects > 0 ? CircleAlert : LayoutGrid}
+          label="Riesgo operativo"
+          tone={riskySubjects > 0 ? "danger" : "success"}
+          value={riskySubjects}
+        />
+      </section>
+
+      <section className="mb-5 flex flex-wrap gap-2 rounded-md border border-line bg-white p-3 shadow-subtle">
+        <span className="mr-2 self-center text-xs font-semibold uppercase text-slate-500">Estado:</span>
+        {(group as any).status === "draft" ? (
+          <form action={setGroupReviewAction}>
+            <input name="group_id" type="hidden" value={(group as any).id} />
+            <Button className="h-8 text-xs" type="submit" variant="secondary">
+              <Send className="h-3 w-3" />
+              Enviar a revisión
+            </Button>
+          </form>
+        ) : null}
+        {(group as any).status === "review" ? (
+          <>
+            <form action={setGroupDraftAction}>
+              <input name="group_id" type="hidden" value={(group as any).id} />
+              <Button className="h-8 text-xs" type="submit" variant="secondary">
+                <PenLine className="h-3 w-3" />
+                Volver a borrador
+              </Button>
+            </form>
+            <form action={setGroupFinalAction}>
+              <input name="group_id" type="hidden" value={(group as any).id} />
+              <Button className="h-8 text-xs" type="submit">
+                <CheckCircle2 className="h-3 w-3" />
+                Finalizar grupo
+              </Button>
+            </form>
+          </>
+        ) : null}
+        {(group as any).status === "final" ? (
+          <form action={setGroupArchivedAction}>
+            <input name="group_id" type="hidden" value={(group as any).id} />
+            <Button className="h-8 text-xs" type="submit" variant="secondary">
+              <Inbox className="h-3 w-3" />
+              Archivar grupo
+            </Button>
+          </form>
+        ) : null}
+        {(group as any).status !== "archived" ? null : null}
+      </section>
+
       <section className="space-y-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
@@ -145,7 +223,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
           <ActionStateForm action={createCustomScheduleBlockStateAction} className="grid gap-2 rounded-md border border-line bg-white p-3 shadow-subtle md:min-w-[520px] md:grid-cols-[150px_120px_120px_auto]" alertClassName="md:col-span-full">
             <input name="group_id" type="hidden" value={(group as any).id} />
             <label className="text-xs font-semibold uppercase text-slate-600">
-              Dia
+              Día
               <Select className="mt-1 h-9" name="day_of_week" required>
                 {WEEKDAYS.map((day) => (
                   <option key={day.value} value={day.value}>
@@ -194,7 +272,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
               groupSubjects={groupSubjects}
               teachers={(teachers as any[]).map((teacher) => ({
                 id: teacher.id,
-                label: `${teacher.name} · ${teacher.assigned_hours ?? 0}/${teacher.max_hours ?? 0} h`,
+                label: `${teacher.name} Â· ${teacher.assigned_hours ?? 0}/${teacher.max_hours ?? 0} h`,
                 profileCodes: ((teacher.teacher_available_profiles ?? []) as any[])
                   .map((teacherProfile) => teacherProfile.profile_code)
                   .filter(isValidProfileCode)
@@ -240,11 +318,11 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
                 </Select>
                 <ConfirmActionButton
                   action={updateAssignmentFeedbackAction}
-                  affectedName={`${assignment.group_subjects?.subjects?.name ?? "Asignacion"} - ${assignment.teachers?.name ?? "Docente"}`}
+                  affectedName={`${assignment.group_subjects?.subjects?.name ?? "Asignación"} - ${assignment.teachers?.name ?? "Docente"}`}
                   className="h-10 px-3"
                   confirmLabel="Guardar cambio"
-                  description="Se modificara el horario, aula y horas de esta asignacion activa."
-                  title="Modificar asignacion"
+                  description="Se modificará el horario, aula y horas de esta asignación activa."
+                  title="Modificar asignación"
                   variant="secondary"
                 >
                   <Save className="h-4 w-4" />
@@ -256,12 +334,12 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
                 <input name="group_id" type="hidden" value={(group as any).id} />
                 <ConfirmActionButton
                   action={deleteAssignmentFeedbackAction}
-                  affectedName={`${assignment.group_subjects?.subjects?.name ?? "Asignacion"} - ${assignment.teachers?.name ?? "Docente"}`}
+                  affectedName={`${assignment.group_subjects?.subjects?.name ?? "Asignación"} - ${assignment.teachers?.name ?? "Docente"}`}
                   className="h-10 px-3"
-                  confirmLabel="Eliminar asignacion"
+                  confirmLabel="Eliminar asignación"
                   danger
-                  description="La asignacion se eliminara y el docente liberara esas horas."
-                  title="Eliminar asignacion"
+                  description="La asignación se eliminará y el docente liberará esas horas."
+                  title="Eliminar asignación"
                 >
                   <Trash2 className="h-4 w-4" />
                   Eliminar
@@ -293,8 +371,9 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       <section className="mt-8">
         <h2 className="mb-3 text-lg font-semibold text-ink">Historial del grupo</h2>
         <DataTable
-          emptyLabel="Todavia no hay eventos auditados para este grupo."
-          headers={["Fecha", "Usuario", "Accion", "Tabla", "Resumen", "Valores"]}
+          emptyLabel="Todavía no hay eventos auditados para este grupo."
+          emptyDescription="Los cambios sensibles aparecerán aquí cuando existan eventos de auditoría relacionados con el grupo."
+          headers={["Fecha", "Usuario", "Acción", "Tabla", "Resumen", "Valores"]}
           rows={groupHistory.map((entry) => [
             entry.dateLabel,
             entry.userLabel,
@@ -320,3 +399,4 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
     </>
   );
 }
+

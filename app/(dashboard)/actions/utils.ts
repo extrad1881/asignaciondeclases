@@ -17,3 +17,8 @@ export function getStringList(formData: FormData, key: string) {
     .map((value) => String(value))
     .filter(Boolean);
 }
+
+export function timeToMinutes(value: string) {
+  const [hours, minutes] = value.split(":").map(Number);
+  return hours * 60 + minutes;
+}

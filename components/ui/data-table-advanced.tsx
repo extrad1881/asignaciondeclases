@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -25,6 +26,7 @@ export function DataTableAdvanced({
   pageSizeOptions = [10, 25, 50, 100],
   initialPageSize = 25,
   emptyLabel = "Sin registros.",
+  emptyDescription = "Ajusta los filtros o registra información para ver resultados.",
   loading = false
 }: {
   headers: string[];
@@ -33,6 +35,7 @@ export function DataTableAdvanced({
   pageSizeOptions?: number[];
   initialPageSize?: number;
   emptyLabel?: string;
+  emptyDescription?: string;
   loading?: boolean;
 }) {
   const [query, setQuery] = useState("");
@@ -82,14 +85,14 @@ export function DataTableAdvanced({
 
   return (
     <div className="rounded-md border border-line bg-white shadow-subtle">
-      <div className="grid gap-3 border-b border-line p-3 lg:grid-cols-[1fr_auto]">
+      <div className="grid gap-3 border-b border-line p-3 lg:grid-cols-[minmax(240px,1fr)_auto]">
         <Input
           aria-label="Buscar"
           onChange={(event) => {
             setQuery(event.target.value);
             resetPage();
           }}
-          placeholder="Buscar..."
+          placeholder="Buscar por nombre, carrera, grupo o estado..."
           value={query}
         />
         <div className="flex flex-wrap gap-2">
@@ -113,7 +116,7 @@ export function DataTableAdvanced({
             </Select>
           ))}
           <Select
-            aria-label="Tamano de pagina"
+            aria-label="Tamaño de página"
             className="w-32"
             onChange={(event) => {
               setPageSize(Number(event.target.value));
@@ -130,9 +133,14 @@ export function DataTableAdvanced({
         </div>
       </div>
 
+      <div className="flex flex-col gap-1 border-b border-line bg-slate-50 px-4 py-2 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
+        <span>{filteredRows.length} resultado(s) encontrados</span>
+        <span>Usa búsqueda y filtros para acotar la información.</span>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="w-full min-w-[760px] border-collapse text-left text-sm">
-          <thead className="bg-slate-100 text-xs uppercase text-slate-600">
+          <thead className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
             <tr>
               {headers.map((header) => (
                 <th className="px-4 py-3 font-semibold" key={header}>
@@ -145,18 +153,18 @@ export function DataTableAdvanced({
             {loading ? (
               <tr>
                 <td className="px-4 py-6 text-slate-500" colSpan={headers.length}>
-                  Cargando...
+                  Cargando información...
                 </td>
               </tr>
             ) : visibleRows.length === 0 ? (
               <tr>
-                <td className="px-4 py-6 text-slate-500" colSpan={headers.length}>
-                  {emptyLabel}
+                <td className="px-4 py-6" colSpan={headers.length}>
+                  <EmptyState description={emptyDescription} title={emptyLabel} />
                 </td>
               </tr>
             ) : (
               visibleRows.map((row, rowIndex) => (
-                <tr className={cn("border-t border-line", rowIndex % 2 === 1 && "bg-slate-50/60")} key={row.id}>
+                <tr className={cn("border-t border-line hover:bg-brandSoft/40", rowIndex % 2 === 1 && "bg-slate-50/60")} key={row.id}>
                   {row.cells.map((cell, cellIndex) => (
                     <td className="px-4 py-3 align-top" key={`${row.id}-${cellIndex}`}>
                       {cell}
@@ -169,7 +177,7 @@ export function DataTableAdvanced({
         </table>
       </div>
 
-      <div className="flex flex-col gap-2 border-t border-line px-3 py-3 text-sm text-slate-600 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-2 border-t border-line px-3 py-3 text-sm text-muted md:flex-row md:items-center md:justify-between">
         <span>
           {filteredRows.length === 0
             ? "0 registros"
@@ -177,7 +185,7 @@ export function DataTableAdvanced({
         </span>
         <div className="flex items-center gap-2">
           <button
-            className="rounded-md border border-line px-3 py-1 disabled:opacity-50"
+            className="focus-ring rounded-md border border-line px-3 py-1 font-medium disabled:opacity-50"
             disabled={safePage <= 1}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
             type="button"
@@ -185,10 +193,10 @@ export function DataTableAdvanced({
             Anterior
           </button>
           <span>
-            Pagina {safePage} de {totalPages}
+            Página {safePage} de {totalPages}
           </span>
           <button
-            className="rounded-md border border-line px-3 py-1 disabled:opacity-50"
+            className="focus-ring rounded-md border border-line px-3 py-1 font-medium disabled:opacity-50"
             disabled={safePage >= totalPages}
             onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
             type="button"

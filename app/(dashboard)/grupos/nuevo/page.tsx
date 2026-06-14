@@ -35,7 +35,11 @@ export default async function NewGroupPage() {
 
   return (
     <>
-      <SectionHeader eyebrow="Creación" title="Nuevo grupo" />
+      <SectionHeader
+        eyebrow="Creación"
+        title="Nuevo grupo"
+        description="Selecciona ciclo, carrera, cuatrimestre y materias. Las materias externas quedan registradas cuando el rol tiene permisos."
+      />
       <GroupForm
         careers={careers as any[]}
         classrooms={classrooms as any[]}

@@ -4,8 +4,8 @@
 
 :root {
   color-scheme: light;
-  --background: #f5f7fa;
-  --foreground: #1f2933;
+  --background: #f3f6fa;
+  --foreground: #182333;
 }
 
 * {
@@ -20,6 +20,8 @@ body {
 body {
   background: var(--background);
   color: var(--foreground);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 button,
@@ -31,4 +33,9 @@ textarea {
 
 .focus-ring {
   @apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand;
+}
+
+::selection {
+  background: #bde7df;
+  color: #102a2a;
 }

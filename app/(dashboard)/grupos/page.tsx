@@ -15,8 +15,8 @@ export default async function GroupsPage() {
     getCurrentProfile(),
     supabase
       .from("groups")
-      .select("id, name, quarter, modality, shift, academic_cycles(code), careers(code, name)")
-      .eq("status", "active")
+      .select("id, name, quarter, modality, shift, status, academic_cycles(code), careers(code, name)")
+      .neq("status", "archived")
       .order("academic_cycle_id")
       .order("modality")
       .order("shift")
@@ -25,11 +25,15 @@ export default async function GroupsPage() {
 
   return (
     <>
-      <SectionHeader eyebrow="Grupos guardados" title="Grupos">
+      <SectionHeader
+        eyebrow="Grupos guardados"
+        title="Grupos"
+        description="Consulta los grupos por ciclo, modalidad y turno. Entra a cada grupo para revisar materias, asignaciones e historial."
+      >
         <Link href="/grupos/nuevo">
           <Button>
             <Plus className="h-4 w-4" />
-            Nuevo
+            Crear grupo
           </Button>
         </Link>
       </SectionHeader>
