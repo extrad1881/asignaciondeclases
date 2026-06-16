@@ -1,7 +1,7 @@
+export const dynamic = "force-dynamic";
 import { SectionHeader } from "@/components/section-header";
 import { ScheduleReference } from "@/components/schedule/schedule-reference";
 
-export const dynamic = "force-dynamic";
 
 export default function SchedulePage() {
   return (

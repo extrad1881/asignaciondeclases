@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import Link from "next/link";
 import {
   BookOpen,
@@ -19,7 +20,6 @@ import { getCurrentProfile, getDashboardCounts } from "@/lib/supabase/queries";
 import { getIncompleteData } from "@/lib/supabase/incomplete-data";
 import { isAdmin } from "@/lib/permissions";
 
-export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const supabase = await createClient();

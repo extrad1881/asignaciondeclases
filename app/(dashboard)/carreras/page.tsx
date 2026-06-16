@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { SectionHeader } from "@/components/section-header";
@@ -8,7 +9,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/supabase/queries";
 import { isAdmin } from "@/lib/permissions";
 
-export const dynamic = "force-dynamic";
 
 export default async function CareersPage() {
   const supabase = await createClient();
