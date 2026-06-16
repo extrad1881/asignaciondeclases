@@ -19,6 +19,7 @@ import {
   assignCoordinatorTeacherAction as assignCoordinatorTeacherActionImpl,
   createTeacherAction as createTeacherActionImpl,
   setTeacherActiveAction as setTeacherActiveActionImpl,
+  unassignCoordinatorTeacherAction as unassignCoordinatorTeacherActionImpl,
   updateTeacherMaxHoursAction as updateTeacherMaxHoursActionImpl,
   updateTeacherProfilesAction as updateTeacherProfilesActionImpl
 } from "./actions/docentes";
@@ -278,6 +279,18 @@ export async function assignCoordinatorTeacherFeedbackAction(formData: FormData)
     () => assignCoordinatorTeacherActionImpl(formData),
     "Docente asignado correctamente.",
     "No se pudo asignar el docente."
+  );
+}
+
+export async function unassignCoordinatorTeacherAction(formData: FormData) {
+  return unassignCoordinatorTeacherActionImpl(formData);
+}
+
+export async function unassignCoordinatorTeacherFeedbackAction(formData: FormData) {
+  return runFeedbackAction(
+    () => unassignCoordinatorTeacherActionImpl(formData),
+    "Coordinador removido correctamente.",
+    "No se pudo remover el coordinador."
   );
 }
 

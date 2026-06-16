@@ -69,14 +69,13 @@ create table if not exists public.teachers (
 
 create table if not exists public.coordinator_teachers (
   coordinator_id uuid not null references public.coordinators(id) on delete cascade,
-  teacher_id uuid not null references public.teachers(id) on delete cascade,
+  teacher_id uuid not null references public.teachers(id) on delete cascade, -- ¡De vuelta a uuid!
   created_at timestamptz not null default now(),
   primary key (coordinator_id, teacher_id)
 );
 
 create table if not exists public.teacher_available_profiles (
-  teacher_id uuid not null references public.teachers(id) on delete cascade,
-  profile_code text not null references public.teacher_profiles(code) on update cascade,
+  teacher_id uuid not null references public.teachers(id) on delete cascade,  profile_code text not null references public.teacher_profiles(code) on update cascade,
   created_at timestamptz not null default now(),
   primary key (teacher_id, profile_code)
 );

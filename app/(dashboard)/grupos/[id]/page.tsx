@@ -48,7 +48,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   const profile = await getCurrentProfile();
   let blocksQuery = supabase
     .from("schedule_blocks")
-    .select("id, label, starts_at, ends_at, day_of_week, is_custom, created_by, schedule_templates!inner(modality, shift)")
+    .select("id, label, starts_at, ends_at, day_of_week, is_custom, created_by, module, schedule_templates!inner(modality, shift)")
     .eq("schedule_templates.modality", (group as any).modality)
     .eq("schedule_templates.shift", (group as any).shift)
     .eq("active", true)
@@ -60,10 +60,10 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   }
 
   const [
-    { data: teachers = [] },
-    { data: classrooms = [] },
-    { data: blocks = [] },
-    { data: assignments = [] }
+    { data: teachersData },
+    { data: classroomsData },
+    { data: blocksData },
+    { data: assignmentsData }
   ] =
     await Promise.all([
       supabase
@@ -82,6 +82,11 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
         )
         .eq("status", "active")
     ]);
+
+  const teachers = (teachersData ?? []) as any[];
+  const classrooms = (classroomsData ?? []) as any[];
+  const blocks = (blocksData ?? []) as any[];
+  const assignments = (assignmentsData ?? []) as any[];
 
   const groupSubjects = ((group as any).group_subjects ?? []).map((item: any) => {
     const requiredProfiles = item.required_profile_code && isValidProfileCode(item.required_profile_code)
@@ -257,7 +262,8 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
                 dayOfWeek: block.day_of_week,
                 startsAt: block.starts_at,
                 endsAt: block.ends_at,
-                isCustom: block.is_custom
+                isCustom: block.is_custom,
+                module: block.module
               }))}
               classrooms={(classrooms as any[]).map((classroom) => ({
                 id: classroom.id,

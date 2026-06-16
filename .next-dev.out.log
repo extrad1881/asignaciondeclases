@@ -70,3 +70,4 @@
  POST /grupos/0118ee3d-55a7-4202-ae74-a54cb182889f 200 in 203ms (next.js: 19ms, proxy.ts: 104ms, application-code: 80ms)
   └─ ƒ createAssignmentStateAction({"message":"","success":false,"timestamp":0}, {}) in 45ms app/(dashboard)/actions.ts
  GET /dashboard 200 in 1204ms (next.js: 16ms, proxy.ts: 123ms, application-code: 1065ms)
+[?25h

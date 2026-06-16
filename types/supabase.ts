@@ -483,6 +483,7 @@ export type Database = {
           active: boolean;
           is_custom: boolean | null;
           created_by: string | null;
+          module: number;
           created_at: string;
           updated_at: string;
         };
@@ -497,6 +498,7 @@ export type Database = {
           active?: boolean;
           is_custom?: boolean | null;
           created_by?: string | null;
+          module?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -511,6 +513,7 @@ export type Database = {
           active?: boolean;
           is_custom?: boolean | null;
           created_by?: string | null;
+          module?: number;
           created_at?: string;
           updated_at?: string;
         };

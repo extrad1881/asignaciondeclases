@@ -6,7 +6,7 @@ alter table public.groups
 
 alter table public.groups
   add constraint groups_status_check
-  check (status in ('draft', 'review', 'final', 'archived'));
+  check (status in ('draft', 'active', 'inactive', 'review', 'final', 'archived'));
 
 -- Change the default status when creating a group to 'draft'
 create or replace function public.create_group_with_subjects(

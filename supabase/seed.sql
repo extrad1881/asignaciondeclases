@@ -80,31 +80,83 @@ blocks(template_code, starts_at, ends_at, position) as (
     ('escolarizado-matutino', '08:00'::time, '09:30'::time, 1),
     ('escolarizado-matutino', '10:00'::time, '11:30'::time, 2),
     ('escolarizado-matutino', '11:30'::time, '13:00'::time, 3),
-    ('modular-matutino', '08:00'::time, '09:30'::time, 1),
-    ('modular-matutino', '10:00'::time, '11:30'::time, 2),
-    ('modular-matutino', '11:30'::time, '13:00'::time, 3),
-    ('virtual-modular-matutino', '08:00'::time, '09:30'::time, 1),
-    ('virtual-modular-matutino', '10:00'::time, '11:30'::time, 2),
-    ('virtual-modular-matutino', '11:30'::time, '13:00'::time, 3),
     ('escolarizado-vespertino', '15:00'::time, '16:30'::time, 1),
     ('escolarizado-vespertino', '17:00'::time, '18:30'::time, 2),
-    ('escolarizado-vespertino', '18:30'::time, '20:00'::time, 3),
-    ('modular-vespertino', '14:00'::time, '15:30'::time, 1),
-    ('modular-vespertino', '16:00'::time, '17:30'::time, 2),
-    ('modular-vespertino', '17:30'::time, '19:00'::time, 3)
+    ('escolarizado-vespertino', '18:30'::time, '20:00'::time, 3)
 )
-insert into public.schedule_blocks (template_id, day_of_week, starts_at, ends_at, label, position)
+insert into public.schedule_blocks (template_id, day_of_week, starts_at, ends_at, label, position, module)
 select
   st.id,
   d.day_of_week,
   b.starts_at,
   b.ends_at,
   d.day_label || ' ' || to_char(b.starts_at, 'HH24:MI') || '-' || to_char(b.ends_at, 'HH24:MI'),
-  b.position
+  b.position,
+  0
 from blocks b
 join public.schedule_templates st on st.code = b.template_code
 cross join days d
-on conflict (template_id, day_of_week, starts_at, ends_at) do update
+on conflict (template_id, day_of_week, starts_at, ends_at, module) do update
+set label = excluded.label,
+    position = excluded.position,
+    active = true,
+    is_custom = false;
+
+-- Modular blocks: Saturday only, Module 1 (matutino + virtual)
+with mod_m1(template_code, starts_at, ends_at, position) as (
+  values
+    ('modular-matutino', '08:00'::time, '09:30'::time, 1),
+    ('modular-matutino', '10:00'::time, '11:30'::time, 2),
+    ('modular-matutino', '11:30'::time, '13:00'::time, 3),
+    ('virtual-modular-matutino', '08:00'::time, '09:30'::time, 1),
+    ('virtual-modular-matutino', '10:00'::time, '11:30'::time, 2),
+    ('virtual-modular-matutino', '11:30'::time, '13:00'::time, 3),
+    ('modular-vespertino', '14:00'::time, '15:30'::time, 1),
+    ('modular-vespertino', '16:00'::time, '17:30'::time, 2),
+    ('modular-vespertino', '17:30'::time, '19:00'::time, 3)
+)
+insert into public.schedule_blocks (template_id, day_of_week, starts_at, ends_at, label, position, module)
+select
+  st.id,
+  6,
+  m.starts_at,
+  m.ends_at,
+  'SAB M1 ' || to_char(m.starts_at, 'HH24:MI') || '-' || to_char(m.ends_at, 'HH24:MI'),
+  m.position,
+  1
+from mod_m1 m
+join public.schedule_templates st on st.code = m.template_code
+on conflict (template_id, day_of_week, starts_at, ends_at, module) do update
+set label = excluded.label,
+    position = excluded.position,
+    active = true,
+    is_custom = false;
+
+-- Modular blocks: Saturday only, Module 2 (matutino + virtual)
+with mod_m2(template_code, starts_at, ends_at, position) as (
+  values
+    ('modular-matutino', '08:00'::time, '09:30'::time, 1),
+    ('modular-matutino', '10:00'::time, '11:30'::time, 2),
+    ('modular-matutino', '11:30'::time, '13:00'::time, 3),
+    ('virtual-modular-matutino', '08:00'::time, '09:30'::time, 1),
+    ('virtual-modular-matutino', '10:00'::time, '11:30'::time, 2),
+    ('virtual-modular-matutino', '11:30'::time, '13:00'::time, 3),
+    ('modular-vespertino', '14:00'::time, '15:30'::time, 1),
+    ('modular-vespertino', '16:00'::time, '17:30'::time, 2),
+    ('modular-vespertino', '17:30'::time, '19:00'::time, 3)
+)
+insert into public.schedule_blocks (template_id, day_of_week, starts_at, ends_at, label, position, module)
+select
+  st.id,
+  6,
+  m.starts_at,
+  m.ends_at,
+  'SAB M2 ' || to_char(m.starts_at, 'HH24:MI') || '-' || to_char(m.ends_at, 'HH24:MI'),
+  m.position,
+  2
+from mod_m2 m
+join public.schedule_templates st on st.code = m.template_code
+on conflict (template_id, day_of_week, starts_at, ends_at, module) do update
 set label = excluded.label,
     position = excluded.position,
     active = true,
@@ -115,17 +167,18 @@ with master_blocks(starts_at, ends_at, position) as (
     ('14:30'::time, '16:30'::time, 1),
     ('17:00'::time, '19:00'::time, 2)
 )
-insert into public.schedule_blocks (template_id, day_of_week, starts_at, ends_at, label, position)
+insert into public.schedule_blocks (template_id, day_of_week, starts_at, ends_at, label, position, module)
 select
   st.id,
   6,
   mb.starts_at,
   mb.ends_at,
   'SAB ' || to_char(mb.starts_at, 'HH24:MI') || '-' || to_char(mb.ends_at, 'HH24:MI'),
-  mb.position
+  mb.position,
+  0
 from master_blocks mb
 join public.schedule_templates st on st.code = 'maestrias-vespertino'
-on conflict (template_id, day_of_week, starts_at, ends_at) do update
+on conflict (template_id, day_of_week, starts_at, ends_at, module) do update
 set label = excluded.label,
     position = excluded.position,
     active = true,

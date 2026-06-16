@@ -32,6 +32,7 @@ type ScheduleBlockOption = Option & {
   startsAt: string;
   endsAt: string;
   isCustom?: boolean;
+  module?: number;
 };
 
 type AssignmentPreview = {
@@ -46,6 +47,7 @@ type TimeRow = {
   startsAt: string;
   endsAt: string;
   kind: "class" | "break";
+  module?: number;
 };
 
 function formatTime(value: string) {
@@ -57,14 +59,15 @@ function buildTimeRows(blocks: ScheduleBlockOption[]): TimeRow[] {
     new Map(
       blocks
         .map((block) => ({
-          key: `${formatTime(block.startsAt)}-${formatTime(block.endsAt)}`,
+          key: `${formatTime(block.startsAt)}-${formatTime(block.endsAt)}-M${block.module ?? 0}`,
           startsAt: formatTime(block.startsAt),
           endsAt: formatTime(block.endsAt),
+          module: block.module ?? 0,
           kind: "class" as const
         }))
         .map((block) => [block.key, block])
     ).values()
-  ).sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+  ).sort((a, b) => a.startsAt.localeCompare(b.startsAt) || a.module - b.module);
 
   return classRows.flatMap((row, index) => {
     const previous = classRows[index - 1];
@@ -201,6 +204,9 @@ export function AssignmentForm({
                 <tr className="border-t border-line" key={time.key}>
                   <th className="bg-white px-3 py-3 text-left text-xs font-semibold text-slate-600">
                     {time.kind === "break" ? "RECESO" : `${time.startsAt} - ${time.endsAt}`}
+                    {time.module && time.module > 0 ? (
+                      <span className="ml-1 text-brand">M{time.module}</span>
+                    ) : null}
                   </th>
                   {time.kind === "break" ? (
                     <td className="bg-amber-50 px-3 py-3 text-center text-xs font-semibold uppercase text-amber-700" colSpan={days.length}>
@@ -212,7 +218,8 @@ export function AssignmentForm({
                       (item) =>
                         item.dayOfWeek === day.value &&
                         formatTime(item.startsAt) === time.startsAt &&
-                        formatTime(item.endsAt) === time.endsAt
+                        formatTime(item.endsAt) === time.endsAt &&
+                        (item.module ?? 0) === (time.module ?? 0)
                     );
                     const blockAssignments = assignments.filter((assignment) => assignment.scheduleBlockId === block?.id);
 

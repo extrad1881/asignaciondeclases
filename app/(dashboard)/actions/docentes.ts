@@ -187,10 +187,31 @@ export async function assignCoordinatorTeacherAction(formData: FormData) {
   });
   if (error) throw new Error(error.message);
 
-  await supabase
-    .from("teachers")
-    .update({ responsible_coordinator_id: parsed.data.coordinator_id })
-    .eq("id", parsed.data.teacher_id);
+  revalidatePath("/admin");
+  revalidatePath("/coordinadores");
+  revalidatePath("/docentes");
+}
+
+const unassignCoordinatorTeacherSchema = z.object({
+  coordinator_id: z.string().uuid(),
+  teacher_id: z.string().uuid()
+});
+
+export async function unassignCoordinatorTeacherAction(formData: FormData) {
+  const supabase = await requireAdmin();
+  const parsed = unassignCoordinatorTeacherSchema.safeParse({
+    coordinator_id: formData.get("coordinator_id"),
+    teacher_id: formData.get("teacher_id")
+  });
+  if (!parsed.success) throw new Error("Selecciona coordinador y docente.");
+
+  const { error } = await supabase
+    .from("coordinator_teachers")
+    .delete()
+    .eq("coordinator_id", parsed.data.coordinator_id)
+    .eq("teacher_id", parsed.data.teacher_id);
+
+  if (error) throw new Error(error.message);
 
   revalidatePath("/admin");
   revalidatePath("/coordinadores");

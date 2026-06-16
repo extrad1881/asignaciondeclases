@@ -14,6 +14,10 @@ import {
   createTeacherStateAction,
   setTeacherActiveAction,
   setTeacherActiveFeedbackAction,
+  unassignCoordinatorTeacherAction,
+  unassignCoordinatorTeacherFeedbackAction,
+  updateTeacherMaxHoursAction,
+  updateTeacherMaxHoursFeedbackAction,
   updateTeacherProfilesAction,
   updateTeacherProfilesFeedbackAction
 } from "@/app/(dashboard)/actions";
@@ -31,7 +35,7 @@ export default async function TeachersPage() {
     getCurrentProfile(),
     supabase
       .from("teachers")
-      .select("id, name, email, max_hours, assigned_hours, active, responsible_coordinator_id, teacher_available_profiles(profile_code)")
+      .select("id, name, max_hours, assigned_hours, active, coordinator_teachers(coordinators(id, name)), teacher_available_profiles(profile_code)")
       .order("name")
       .limit(300),
     supabase.from("teacher_profiles").select("code, name").order("code"),
@@ -46,22 +50,50 @@ export default async function TeachersPage() {
     const selectedProfiles = (teacher.teacher_available_profiles ?? [])
       .map((item: any) => item.profile_code)
       .filter(isValidProfileCode);
-    const coordinatorLabel =
-      coordinatorOptions.find((coordinator: any) => coordinator.id === teacher.responsible_coordinator_id)?.name ?? "Sin asignar";
+    const assignedCoordinators: Array<{ id: string; name: string }> = (teacher.coordinator_teachers ?? [])
+      .map((ct: any) => ct.coordinators)
+      .filter(Boolean);
+    const coordinatorNames = assignedCoordinators.map((c) => c.name);
     const statusLabel = teacher.active ? "Activo" : "Inactivo";
 
     return {
       id: teacher.id,
-      searchText: [teacher.name, teacher.email, coordinatorLabel, selectedProfiles.join(" "), statusLabel].join(" "),
+      searchText: [teacher.name, ...coordinatorNames, selectedProfiles.join(" "), statusLabel].join(" "),
       filters: {
-        coordinador: coordinatorLabel,
+        coordinador: coordinatorNames[0] ?? "Sin asignar",
         estado: statusLabel,
         perfil: selectedProfiles[0] ?? "Sin perfil"
       },
       cells: [
         <span className="font-semibold text-ink" key="name">{teacher.name}</span>,
-        teacher.email ?? <span className="text-muted">Sin correo</span>,
-        coordinatorLabel === "Sin asignar" ? <span className="text-muted">{coordinatorLabel}</span> : coordinatorLabel,
+        <div className="flex flex-wrap gap-1 min-w-32" key="coordinators">
+          {assignedCoordinators.length === 0 ? (
+            <span className="text-muted text-xs">Sin asignar</span>
+          ) : (
+            assignedCoordinators.map((coordinator) => (
+              <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-700" key={coordinator.id}>
+                {coordinator.name}
+                {canManageTeachers ? (
+                  <form action={unassignCoordinatorTeacherAction}>
+                    <input name="teacher_id" type="hidden" value={teacher.id} />
+                    <input name="coordinator_id" type="hidden" value={coordinator.id} />
+                    <ConfirmActionButton
+                      action={unassignCoordinatorTeacherFeedbackAction}
+                      affectedName={`${coordinator.name} de ${teacher.name}`}
+                      className="h-4 w-4 p-0 text-[10px] leading-none hover:text-danger"
+                      confirmLabel="Remover coordinador"
+                      description={`Se removerá a ${coordinator.name} de los coordinadores asignados a ${teacher.name}.`}
+                      title="Remover coordinador"
+                      variant="ghost"
+                    >
+                      ×
+                    </ConfirmActionButton>
+                  </form>
+                ) : null}
+              </span>
+            ))
+          )}
+        </div>,
         <div className="flex flex-wrap gap-1" key="profiles">
           {selectedProfiles.length === 0 ? (
             <span className="text-muted">Sin perfiles</span>
@@ -69,7 +101,37 @@ export default async function TeachersPage() {
             selectedProfiles.map((profileCode: string) => <Badge key={profileCode}>{profileCode}</Badge>)
           )}
         </div>,
-        `${formatHours(teacher.assigned_hours)} / ${formatHours(teacher.max_hours)}`,
+        canManageTeachers ? (
+          <div className="grid min-w-48 gap-1" key="hours-cell">
+            <span className="text-xs font-medium tabular-nums text-ink">
+              {formatHours(teacher.assigned_hours)} / {formatHours(teacher.max_hours)}
+            </span>
+            <form action={updateTeacherMaxHoursAction} className="flex items-center gap-1">
+              <input name="teacher_id" type="hidden" value={teacher.id} />
+              <Input
+                className="h-8 w-16 text-xs"
+                defaultValue={teacher.max_hours}
+                min={teacher.assigned_hours ?? 0}
+                name="max_hours"
+                step={0.5}
+                type="number"
+              />
+              <ConfirmActionButton
+                action={updateTeacherMaxHoursFeedbackAction}
+                affectedName={teacher.name}
+                className="h-8 px-2 text-xs"
+                confirmLabel="Guardar horas"
+                description="Se actualizarán las horas máximas del docente. No puede quedar por debajo de las horas ya asignadas."
+                title="Modificar horas máximas"
+                variant="secondary"
+              >
+                <Save className="h-3 w-3" />
+              </ConfirmActionButton>
+            </form>
+          </div>
+        ) : (
+          `${formatHours(teacher.assigned_hours)} / ${formatHours(teacher.max_hours)}`
+        ),
         <Badge key="state" tone={teacher.active ? "success" : "warning"}>
           {statusLabel}
         </Badge>,
@@ -151,14 +213,10 @@ export default async function TeachersPage() {
         <section className="mb-6 rounded-md border border-line bg-white p-4 shadow-subtle">
           <h2 className="mb-1 text-lg font-semibold text-ink">Agregar docente</h2>
           <p className="mb-3 text-sm text-muted">Registra datos mínimos y perfiles aptos antes de asignar clases.</p>
-          <ActionStateForm action={createTeacherStateAction} className="grid gap-3 md:grid-cols-[1fr_1fr_140px_220px_auto]" alertClassName="md:col-span-full">
+          <ActionStateForm action={createTeacherStateAction} className="grid gap-3 md:grid-cols-[1fr_140px_220px_auto]" alertClassName="md:col-span-full">
             <label className="text-sm font-semibold text-slate-700">
               Nombre
               <Input className="mt-1" name="name" placeholder="Nombre del docente" required />
-            </label>
-            <label className="text-sm font-semibold text-slate-700">
-              Correo
-              <Input className="mt-1" name="email" placeholder="correo@institucion.edu" type="email" />
             </label>
             <label className="text-sm font-semibold text-slate-700">
               Horas máximas
@@ -189,8 +247,8 @@ export default async function TeachersPage() {
         ]}
         headers={
           canManageTeachers
-            ? ["Docente", "Correo", "Coordinador", "Perfiles aptos", "Horas", "Estado", "Editar perfiles", "Asignar coordinador", "Acciones"]
-            : ["Docente", "Correo", "Coordinador", "Perfiles aptos", "Horas", "Estado"]
+            ? ["Docente", "Coordinadores", "Perfiles aptos", "Horas", "Estado", "Editar perfiles", "Agregar coordinador", "Acciones"]
+            : ["Docente", "Coordinadores", "Perfiles aptos", "Horas", "Estado"]
         }
         rows={rows}
       />
