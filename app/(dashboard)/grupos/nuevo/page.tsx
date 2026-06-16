@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { SectionHeader } from "@/components/section-header";
 import { GroupForm } from "@/components/groups/group-form";
 import { createClient } from "@/lib/supabase/server";
@@ -5,7 +6,6 @@ import { getCurrentProfile } from "@/lib/supabase/queries";
 import { isAdmin } from "@/lib/permissions";
 import { isValidProfileCode } from "@/lib/profiles";
 
-export const dynamic = "force-dynamic";
 
 export default async function NewGroupPage() {
   const supabase = await createClient();
