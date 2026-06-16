@@ -51,7 +51,7 @@ export function createServiceTestClient() {
     },
     // Inyección del transporte de WebSockets
     realtime: {
-      transport: ws
+      transport: ws as any
     }
   });
 }
@@ -65,7 +65,7 @@ export async function createAuthenticatedTestClient(email: string, password: str
     },
     // Inyección del transporte de WebSockets
     realtime: {
-      transport: ws
+      transport: ws as any
     }
   });
 
