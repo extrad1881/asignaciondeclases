@@ -38,7 +38,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   const { data: group } = await supabase
     .from("groups")
     .select(
-      "id, name, quarter, modality, shift, status, academic_cycle(code), careers(code, name), classrooms(name), group_subjects(id, hours_per_week, required_profile_code, subjects(id, name, quarter, class_requirements(profile_code)))"
+      "id, name, quarter, modality, shift, status, academic_cycles(code), careers(code, name), classrooms(name), group_subjects(id, hours_per_week, required_profile_code, subjects(id, name, quarter, class_requirements(profile_code)))"
     ) 
     .eq("id", id)
     .single();
@@ -87,6 +87,20 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   const classrooms = (classroomsData ?? []) as any[];
   const blocks = (blocksData ?? []) as any[];
   const assignments = (assignmentsData ?? []) as any[];
+
+  // ---> INICIO DE DEBUG PARA VERCEL <---
+    console.log("=== DEBUG VERCEL ===");
+    console.log("ID del Grupo:", (group as any).id);
+    console.log("Modalidad leída:", `"${(group as any).modality}"`); // Las comillas revelan espacios ocultos
+    console.log("Turno leído:", `"${(group as any).shift}"`);
+    console.log("Cantidad de bloques (cuadrículas) obtenidos:", blocks.length);
+    if (blocks.length > 0) {
+        console.log("Primer bloque de ejemplo:", blocks[0].day_of_week);
+    } else {
+        console.log("ALERTA: Supabase no devolvió ningún bloque para esta modalidad/turno.");
+    }
+    console.log("====================");
+    // ---> FIN DE DEBUG <---
 
   const groupSubjects = ((group as any).group_subjects ?? []).map((item: any) => {
     const requiredProfiles = item.required_profile_code && isValidProfileCode(item.required_profile_code)
