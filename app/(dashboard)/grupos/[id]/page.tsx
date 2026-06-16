@@ -38,8 +38,8 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   const { data: group } = await supabase
     .from("groups")
     .select(
-      "id, name, quarter, modality, shift, status, academic_cycles(code), careers(code, name), classrooms(name), group_subjects(id, hours_per_week, required_profile_code, subjects(id, name, quarter, class_requirements(profile_code)))"
-    )
+      "id, name, quarter, modality, shift, status, academic_cycle(code), careers(code, name), classrooms(name), group_subjects(id, hours_per_week, required_profile_code, subjects(id, name, quarter, class_requirements(profile_code)))"
+    ) 
     .eq("id", id)
     .single();
 
@@ -94,7 +94,6 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       : ((item.subjects?.class_requirements ?? []) as any[])
           .map((requirement) => requirement.profile_code)
           .filter(isValidProfileCode);
-
     return {
       id: item.id,
       label: `${item.subjects?.name} (${item.hours_per_week ?? 0} h)`,
