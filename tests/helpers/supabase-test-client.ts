@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { config } from "dotenv";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import ws from "ws"; // Importación de la librería ws para Node 20
 
 config({ path: ".env.local" });
 config();
@@ -47,6 +48,10 @@ export function createServiceTestClient() {
     auth: {
       autoRefreshToken: false,
       persistSession: false
+    },
+    // Inyección del transporte de WebSockets
+    realtime: {
+      transport: ws
     }
   });
 }
@@ -57,6 +62,10 @@ export async function createAuthenticatedTestClient(email: string, password: str
     auth: {
       autoRefreshToken: false,
       persistSession: false
+    },
+    // Inyección del transporte de WebSockets
+    realtime: {
+      transport: ws
     }
   });
 
