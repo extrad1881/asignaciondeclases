@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MetricCard } from "@/components/ui/metric-card";
 import { DataTableAdvanced, type DataTableAdvancedRow } from "@/components/ui/data-table-advanced";
-import { getCurrentProfile } from "@/lib/supabase/queries";
+import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
 import { getIncompleteData, type IncompleteCategory, type IncompleteIssue } from "@/lib/supabase/incomplete-data";
 import { isAdmin } from "@/lib/permissions";
 
@@ -112,7 +112,7 @@ function issueToRow(issue: IncompleteIssue): DataTableAdvancedRow {
 }
 
 export default async function IncompleteDataPage() {
-  const profile = await getCurrentProfile();
+  const profile = await requireActiveProfileOrRedirect();
   if (!isAdmin(profile?.role_code)) redirect("/dashboard");
 
   const { issues, summary } = await getIncompleteData();

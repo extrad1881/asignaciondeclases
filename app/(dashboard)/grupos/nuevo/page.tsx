@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { SectionHeader } from "@/components/section-header";
 import { GroupForm } from "@/components/groups/group-form";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/supabase/queries";
+import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
 import { isAdmin } from "@/lib/permissions";
 import { isValidProfileCode } from "@/lib/profiles";
 
@@ -18,7 +18,7 @@ export default async function NewGroupPage() {
     { data: profiles = [] }
   ] =
     await Promise.all([
-      getCurrentProfile(),
+      requireActiveProfileOrRedirect(),
       supabase.from("academic_cycles").select("id, code, name").eq("active", true).order("code"),
       supabase.from("careers").select("id, code, name").eq("active", true).order("code"),
       supabase.from("classrooms").select("id, name").eq("active", true).order("name"),

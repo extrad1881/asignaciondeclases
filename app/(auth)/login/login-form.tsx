@@ -39,7 +39,7 @@ export function LoginForm() {
         });
       }}
     >
-      <label className="block text-sm font-semibold text-slate-700">
+      <label className="block text-sm font-semibold text-ink">
         Correo institucional
         <Input
           autoComplete="email"
@@ -50,7 +50,7 @@ export function LoginForm() {
           type="email"
         />
       </label>
-      <label className="block text-sm font-semibold text-slate-700">
+      <label className="block text-sm font-semibold text-ink">
         Contraseña
         <Input
           autoComplete="current-password"

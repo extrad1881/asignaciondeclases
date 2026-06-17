@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTableAdvanced, type DataTableAdvancedRow } from "@/components/ui/data-table-advanced";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/supabase/queries";
+import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
 import { isAdmin } from "@/lib/permissions";
 import { isValidProfileCode } from "@/lib/profiles";
 import { formatHours } from "@/lib/utils";
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function SubjectsPage() {
   const supabase = await createClient();
   const [profile, { data: subjects = [] }] = await Promise.all([
-    getCurrentProfile(),
+    requireActiveProfileOrRedirect(),
     supabase
       .from("subjects")
       .select("id, name, quarter, default_hours, active, careers(id, code, name), class_requirements(profile_code)")

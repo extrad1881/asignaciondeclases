@@ -73,8 +73,8 @@ export function GroupForm({
 
   return (
     <form action={formAction} className="grid gap-5">
-      <section className="grid gap-4 rounded-md border border-line bg-white p-4 shadow-subtle md:grid-cols-2 xl:grid-cols-4">
-        <label className="text-sm font-medium text-slate-700">
+      <section className="grid gap-4 rounded-md border border-line bg-card p-4 shadow-subtle md:grid-cols-2 xl:grid-cols-4">
+        <label className="text-sm font-medium text-ink">
           Ciclo escolar
           <Select className="mt-1" name="academic_cycle_id" required>
             {cycles.map((cycle) => (
@@ -84,7 +84,7 @@ export function GroupForm({
             ))}
           </Select>
         </label>
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-ink">
           Carrera
           <Select
             className="mt-1"
@@ -100,7 +100,7 @@ export function GroupForm({
             ))}
           </Select>
         </label>
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-ink">
           Cuatrimestre
           <Select
             className="mt-1"
@@ -115,7 +115,7 @@ export function GroupForm({
             ))}
           </Select>
         </label>
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-ink">
           Modalidad
           <Select className="mt-1" name="modality" required>
             {MODALITIES.map((modality) => (
@@ -125,7 +125,7 @@ export function GroupForm({
             ))}
           </Select>
         </label>
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-ink">
           Turno
           <Select className="mt-1" name="shift" required>
             {SHIFTS.map((shift) => (
@@ -135,11 +135,11 @@ export function GroupForm({
             ))}
           </Select>
         </label>
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-ink">
           Grupo
           <Input className="mt-1" name="name" placeholder="Ej. SISCOM 1A" required />
         </label>
-        <label className="text-sm font-medium text-slate-700">
+        <label className="text-sm font-medium text-ink">
           Aula
           <Select className="mt-1" name="classroom_id">
             <option value="">Sin aula fija</option>
@@ -152,15 +152,15 @@ export function GroupForm({
         </label>
       </section>
 
-      <section className="rounded-md border border-line bg-white p-4 shadow-subtle">
+      <section className="rounded-md border border-line bg-card p-4 shadow-subtle">
         <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-ink">Materias del grupo</h2>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-muted">
               Puedes incluir materias de otros cuatrimestres cuando sea necesario.
             </p>
           </div>
-          <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+          <label className="flex items-center gap-2 text-sm font-medium text-ink">
             <input
               checked={includeOtherQuarters}
               className="h-4 w-4 accent-brand"
@@ -173,15 +173,15 @@ export function GroupForm({
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {visibleSubjects.map((subject) => (
             <label
-              className="grid gap-2 rounded-md border border-line bg-slate-50 p-3 text-sm"
+              className="grid gap-2 rounded-md border border-line bg-panel p-3 text-sm"
               key={subject.id}
             >
               <span className="flex items-start gap-2 font-medium text-ink">
                 <input className="mt-1 h-4 w-4 accent-brand" name="subject_ids" type="checkbox" value={subject.id} />
                 {subject.name}
               </span>
-              <span className="ml-6 text-xs text-slate-500">Cuatrimestre {subject.quarter}</span>
-              <span className="ml-6 flex items-center gap-2 text-xs text-slate-600">
+              <span className="ml-6 text-xs text-muted">Cuatrimestre {subject.quarter}</span>
+              <span className="ml-6 flex items-center gap-2 text-xs text-muted">
                 Horas
                 <Input
                   className="h-8 max-w-24"
@@ -203,24 +203,24 @@ export function GroupForm({
       </section>
 
       {externalSubjectKeys.length > 0 ? (
-        <section className="rounded-md border border-line bg-white p-4 shadow-subtle">
+        <section className="rounded-md border border-line bg-card p-4 shadow-subtle">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-ink">Materias externas</h2>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-muted">
               Estas materias se guardan en el catálogo de la carrera seleccionada.
             </p>
           </div>
           <div className="grid gap-3">
             {externalSubjectKeys.map((key) => (
               <div
-                className="grid gap-3 rounded-md border border-line bg-slate-50 p-3 md:grid-cols-[1fr_130px_120px_180px_auto]"
+                className="grid gap-3 rounded-md border border-line bg-panel p-3 md:grid-cols-[1fr_130px_120px_180px_auto]"
                 key={key}
               >
-                <label className="text-sm font-medium text-slate-700">
+                <label className="text-sm font-medium text-ink">
                   Materia
                   <Input className="mt-1" name="external_subject_name" placeholder="Nombre de la materia" required />
                 </label>
-                <label className="text-sm font-medium text-slate-700">
+                <label className="text-sm font-medium text-ink">
                   Cuatrimestre
                   <Select className="mt-1" defaultValue={quarter} name="external_subject_quarter" required>
                     {Array.from({ length: 12 }, (_, index) => index + 1).map((item) => (
@@ -230,7 +230,7 @@ export function GroupForm({
                     ))}
                   </Select>
                 </label>
-                <label className="text-sm font-medium text-slate-700">
+                <label className="text-sm font-medium text-ink">
                   Horas
                   <Input
                     className="mt-1"
@@ -242,7 +242,7 @@ export function GroupForm({
                     type="number"
                   />
                 </label>
-                <label className="text-sm font-medium text-slate-700">
+                <label className="text-sm font-medium text-ink">
                   Perfil
                   <Select className="mt-1" name="external_subject_profile_code">
                     <option value="">Sin perfil</option>

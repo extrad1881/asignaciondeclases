@@ -23,11 +23,12 @@ import { Button } from "@/components/ui/button";
 import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
 import { DataTable } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
+import { MetricCard } from "@/components/ui/metric-card";
 import { Select } from "@/components/ui/select";
 import { MODALITIES, SHIFTS, WEEKDAYS } from "@/lib/constants";
 import { isValidProfileCode } from "@/lib/profiles";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/supabase/queries";
+import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
 import { formatHours } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -49,8 +50,7 @@ function templateLabel(modality: string, shift: string) {
 }
 
 export default async function CoordinatorPage() {
-  const profile = await getCurrentProfile();
-  if (!profile) redirect("/login");
+  const profile = await requireActiveProfileOrRedirect();
   if (profile.role_code !== "coordinator") redirect("/dashboard");
 
   const supabase = await createClient();
@@ -121,10 +121,10 @@ export default async function CoordinatorPage() {
   }));
 
   const stats = [
-    { label: "Carreras", value: careers?.length ?? 0, icon: LayoutGrid, tone: "bg-blue-50 text-blue-700" },
-    { label: "Docentes a cargo", value: teacherRows.length, icon: Users, tone: "bg-emerald-50 text-emerald-700" },
-    { label: "Grupos visibles", value: groupRows.length, icon: UserCog, tone: "bg-slate-100 text-slate-700" },
-    { label: "Asignaciones", value: assignments?.length ?? 0, icon: Clock, tone: "bg-amber-50 text-amber-700" }
+    { label: "Carreras", value: careers?.length ?? 0, icon: LayoutGrid, tone: "info" as const, description: "Carreras asignadas" },
+    { label: "Docentes a cargo", value: teacherRows.length, icon: Users, tone: "success" as const, description: "Docentes bajo tu responsabilidad" },
+    { label: "Grupos visibles", value: groupRows.length, icon: UserCog, tone: "neutral" as const, description: "Grupos activos asignados" },
+    { label: "Asignaciones", value: assignments?.length ?? 0, icon: Clock, tone: "warning" as const, description: "Asignaciones activas" }
   ];
 
   return (
@@ -134,27 +134,25 @@ export default async function CoordinatorPage() {
       </SectionHeader>
 
       <section className="mb-6 grid gap-3 md:grid-cols-4">
-        {stats.map((item) => {
-          const Icon = item.icon;
-          return (
-            <div className="rounded-md border border-line bg-white p-4 shadow-subtle" key={item.label}>
-              <div className={`mb-3 inline-flex rounded-md p-2 ${item.tone}`}>
-                <Icon className="h-5 w-5" />
-              </div>
-              <p className="text-sm text-slate-500">{item.label}</p>
-              <p className="text-2xl font-semibold text-ink">{item.value}</p>
-            </div>
-          );
-        })}
+        {stats.map((item) => (
+          <MetricCard
+            description={item.description}
+            icon={item.icon}
+            key={item.label}
+            label={item.label}
+            tone={item.tone}
+            value={item.value}
+          />
+        ))}
       </section>
 
       <section className="mb-8">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-ink">Crear grupo</h2>
-            <p className="text-sm text-slate-600">Las carreras y materias disponibles dependen de tu coordinacion asignada.</p>
+            <p className="text-sm text-muted">Las carreras y materias disponibles dependen de tu coordinación asignada.</p>
           </div>
-          <Link className="text-sm font-medium text-brand hover:text-teal-800" href="/grupos">
+          <Link className="text-sm font-medium text-brand hover:text-brandDeep" href="/grupos">
             Ver grupos
           </Link>
         </div>
@@ -171,17 +169,17 @@ export default async function CoordinatorPage() {
       <section className="mb-8">
         <div className="mb-3">
           <h2 className="text-lg font-semibold text-ink">Docentes a cargo</h2>
-          <p className="text-sm text-slate-600">Puedes ajustar perfiles aptos y horas maximas sin cambiar datos generales del docente.</p>
+          <p className="text-sm text-muted">Puedes ajustar perfiles aptos y horas máximas sin cambiar datos generales del docente.</p>
         </div>
         <DataTable
           emptyLabel="No tienes docentes asignados todavia."
-          headers={["Docente", "Correo", "Perfiles aptos", "Horas", "Editar perfiles", "Horas maximas"]}
+          headers={["Docente", "Correo", "Perfiles aptos", "Horas", "Editar perfiles", "Horas máximas"]}
           rows={teacherRows.map((teacher: any) => [
             <span className="font-medium text-ink" key="name">{teacher.name}</span>,
-            teacher.email ?? <span className="text-slate-400">Sin correo</span>,
+            teacher.email ?? <span className="text-muted-foreground">Sin correo</span>,
             <div className="flex flex-wrap gap-1" key="profiles">
               {((teacher.teacher_available_profiles ?? []) as any[]).filter((item) => isValidProfileCode(item.profile_code)).length === 0 ? (
-                <span className="text-slate-400">Sin perfiles</span>
+                <span className="text-muted-foreground">Sin perfiles</span>
               ) : (
                 ((teacher.teacher_available_profiles ?? []) as any[])
                   .filter((item) => isValidProfileCode(item.profile_code))
@@ -220,7 +218,7 @@ export default async function CoordinatorPage() {
                 className="h-8 px-3"
                 confirmLabel="Guardar horas"
                 description="Se modificara el limite de horas del docente. No puede quedar debajo de las horas ya asignadas."
-                title="Modificar horas maximas"
+                title="Modificar horas máximas"
                 variant="secondary"
               >
                 <Save className="h-4 w-4" />
@@ -234,12 +232,12 @@ export default async function CoordinatorPage() {
       <section className="space-y-7">
         <div>
           <h2 className="text-lg font-semibold text-ink">Dashboard visual de grupos</h2>
-          <p className="text-sm text-slate-600">Cada grupo usa el cuadro de horario correspondiente a su modalidad y turno.</p>
+          <p className="text-sm text-muted">Cada grupo usa el cuadro de horario correspondiente a su modalidad y turno.</p>
         </div>
 
         {groupRows.length === 0 ? (
           <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-            Todavia no hay grupos activos en tus carreras asignadas.
+            Todavía no hay grupos activos en tus carreras asignadas.
           </div>
         ) : (
           groupRows.map((group: any) => {
@@ -272,7 +270,7 @@ export default async function CoordinatorPage() {
                     <Link className="text-xl font-semibold text-ink hover:text-brand" href={`/grupos/${group.id}`}>
                       {group.name}
                     </Link>
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-muted">
                       {group.careers?.code} - Cuatrimestre {group.quarter} - {templateLabel(group.modality, group.shift)}
                     </p>
                   </div>
@@ -313,7 +311,7 @@ export default async function CoordinatorPage() {
                     <div className="mt-4">
                       <h3 className="mb-2 text-base font-semibold text-ink">Asignaciones activas</h3>
                       <DataTable
-                        emptyLabel="Todavia no hay asignaciones en este grupo."
+                        emptyLabel="Todavía no hay asignaciones en este grupo."
                         headers={["Materia", "Docente", "Bloque", "Horas", "Cambiar", "Eliminar"]}
                         rows={groupAssignments.map((assignment) => [
                           assignment.group_subjects?.subjects?.name,
@@ -349,7 +347,7 @@ export default async function CoordinatorPage() {
                             </Select>
                             <ConfirmActionButton
                               action={updateAssignmentFeedbackAction}
-                              affectedName={`${assignment.group_subjects?.subjects?.name ?? "Asignacion"} - ${assignment.teachers?.name ?? "Docente"}`}
+                              affectedName={`${assignment.group_subjects?.subjects?.name ?? "Asignación"} - ${assignment.teachers?.name ?? "Docente"}`}
                               className="h-10 px-3"
                               confirmLabel="Guardar cambio"
                               description="Se modificara el horario, aula y horas de esta asignacion activa."
@@ -365,7 +363,7 @@ export default async function CoordinatorPage() {
                             <input name="group_id" type="hidden" value={group.id} />
                             <ConfirmActionButton
                               action={deleteAssignmentFeedbackAction}
-                              affectedName={`${assignment.group_subjects?.subjects?.name ?? "Asignacion"} - ${assignment.teachers?.name ?? "Docente"}`}
+                              affectedName={`${assignment.group_subjects?.subjects?.name ?? "Asignación"} - ${assignment.teachers?.name ?? "Docente"}`}
                               className="h-10 px-3"
                               confirmLabel="Eliminar asignacion"
                               danger
@@ -383,9 +381,9 @@ export default async function CoordinatorPage() {
 
                   <div>
                     <h3 className="mb-2 text-base font-semibold text-ink">Bloque personalizado</h3>
-                    <ActionStateForm action={createCustomScheduleBlockStateAction} className="grid gap-3 rounded-md border border-line bg-white p-4 shadow-subtle">
+                    <ActionStateForm action={createCustomScheduleBlockStateAction} className="grid gap-3 rounded-md border border-line bg-card p-4 shadow-subtle">
                       <input name="group_id" type="hidden" value={group.id} />
-                      <label className="text-sm font-medium text-slate-700">
+                      <label className="text-sm font-medium text-ink">
                         Dia
                         <Select className="mt-1" name="day_of_week" required>
                           {WEEKDAYS.map((day) => (
@@ -395,11 +393,11 @@ export default async function CoordinatorPage() {
                           ))}
                         </Select>
                       </label>
-                      <label className="text-sm font-medium text-slate-700">
+                      <label className="text-sm font-medium text-ink">
                         Inicio
                         <Input className="mt-1" name="starts_at" required type="time" />
                       </label>
-                      <label className="text-sm font-medium text-slate-700">
+                      <label className="text-sm font-medium text-ink">
                         Fin
                         <Input className="mt-1" name="ends_at" required type="time" />
                       </label>

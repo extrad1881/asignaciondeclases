@@ -26,8 +26,6 @@ import {
 import {
   createGroupAction as createGroupActionImpl,
   createGroupStateAction as createGroupStateActionImpl,
-  deleteGroupAction as deleteGroupActionImpl,
-  deleteGroupFeedbackAction as deleteGroupFeedbackActionImpl,
   setGroupArchivedAction as setGroupArchivedActionImpl,
   setGroupDraftAction as setGroupDraftActionImpl,
   setGroupFinalAction as setGroupFinalActionImpl,
@@ -47,7 +45,7 @@ import { actionFailure, actionSuccess, type ActionState } from "@/lib/actions/ac
 async function runFeedbackAction(
   action: () => Promise<unknown>,
   successMessage: string,
-  fallbackMessage = "No se pudo completar la accion.",
+  fallbackMessage = "No se pudo completar la acción.",
   redirectTo?: string
 ) {
   try {
@@ -74,7 +72,7 @@ export async function createAssignmentStateAction(_previousState: ActionState, f
   return runFeedbackAction(
     () => createAssignmentActionImpl(formData),
     "Asignacion guardada correctamente.",
-    "No se pudo guardar la asignacion."
+    "No se pudo guardar la asignación."
   );
 }
 
@@ -86,7 +84,7 @@ export async function updateAssignmentFeedbackAction(formData: FormData) {
   return runFeedbackAction(
     () => updateAssignmentActionImpl(formData),
     "Asignacion actualizada correctamente.",
-    "No se pudo actualizar la asignacion."
+    "No se pudo actualizar la asignación."
   );
 }
 
@@ -98,16 +96,8 @@ export async function deleteAssignmentFeedbackAction(formData: FormData) {
   return runFeedbackAction(
     () => deleteAssignmentActionImpl(formData),
     "Asignacion eliminada correctamente.",
-    "No se pudo eliminar la asignacion."
+    "No se pudo eliminar la asignación."
   );
-}
-
-export async function deleteGroupAction(formData: FormData) {
-  return deleteGroupActionImpl(formData);
-}
-
-export async function deleteGroupFeedbackAction(formData: FormData) {
-  return deleteGroupFeedbackActionImpl(formData);
 }
 
 export async function createUserAction(formData: FormData) {
@@ -157,8 +147,8 @@ export async function deleteCoordinatorRecordAction(formData: FormData) {
 export async function deleteCoordinatorRecordFeedbackAction(formData: FormData) {
   return runFeedbackAction(
     () => deleteCoordinatorRecordActionImpl(formData),
-    "Coordinador eliminado correctamente.",
-    "No se pudo eliminar el coordinador."
+    "Coordinador desactivado correctamente.",
+    "No se pudo desactivar el coordinador."
   );
 }
 
@@ -201,8 +191,8 @@ export async function updateTeacherMaxHoursAction(formData: FormData) {
 export async function updateTeacherMaxHoursFeedbackAction(formData: FormData) {
   return runFeedbackAction(
     () => updateTeacherMaxHoursActionImpl(formData),
-    "Horas maximas actualizadas correctamente.",
-    "No se pudieron actualizar las horas maximas."
+    "Horas máximas actualizadas correctamente.",
+    "No se pudieron actualizar las horas máximas."
   );
 }
 
@@ -310,6 +300,14 @@ export async function setGroupArchivedAction(formData: FormData) {
   return setGroupArchivedActionImpl(formData);
 }
 
+export async function setGroupArchivedFeedbackAction(formData: FormData) {
+  return runFeedbackAction(
+    () => setGroupArchivedActionImpl(formData),
+    "Grupo archivado correctamente.",
+    "No se pudo archivar el grupo."
+  );
+}
+
 export async function setGroupDraftStateAction(previousState: ActionState, formData: FormData) {
   try {
     await setGroupDraftActionImpl(formData);
@@ -322,7 +320,7 @@ export async function setGroupDraftStateAction(previousState: ActionState, formD
 export async function setGroupReviewStateAction(previousState: ActionState, formData: FormData) {
   try {
     await setGroupReviewActionImpl(formData);
-    return { success: true, message: "Grupo enviado a revision.", timestamp: Date.now() };
+    return { success: true, message: "Grupo enviado a revisión.", timestamp: Date.now() };
   } catch (error) {
     return { success: false, message: error instanceof Error ? error.message : "No se pudo cambiar el estado del grupo.", timestamp: Date.now() };
   }

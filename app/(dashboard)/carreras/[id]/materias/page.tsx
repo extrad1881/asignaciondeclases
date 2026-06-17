@@ -18,7 +18,7 @@ import { ProfileCheckboxGroup } from "@/components/forms/profile-checkbox-group"
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/supabase/queries";
+import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
 import { isAdmin } from "@/lib/permissions";
 import { isValidProfileCode } from "@/lib/profiles";
 import { formatHours } from "@/lib/utils";
@@ -26,7 +26,7 @@ import { formatHours } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 export default async function CareerSubjectsPage({ params }: { params: Promise<{ id: string }> }) {
-  const profile = await getCurrentProfile();
+  const profile = await requireActiveProfileOrRedirect();
   if (!isAdmin(profile?.role_code)) redirect("/carreras");
 
   const { id } = await params;
@@ -61,18 +61,18 @@ export default async function CareerSubjectsPage({ params }: { params: Promise<{
         </Link>
       </SectionHeader>
 
-      <section className="mb-6 rounded-md border border-line bg-white p-4 shadow-subtle">
+      <section className="mb-6 rounded-md border border-line bg-card p-4 shadow-subtle">
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-ink">Agregar materia</h2>
-          <p className="text-sm text-slate-600">{career.name}</p>
+          <p className="text-sm text-muted">{career.name}</p>
         </div>
         <ActionStateForm action={createSubjectStateAction} className="grid gap-3 md:grid-cols-[1fr_130px_130px_minmax(260px,1fr)_auto]" alertClassName="md:col-span-full">
           <input name="career_id" type="hidden" value={career.id} />
-          <label className="text-sm font-medium text-slate-700">
+          <label className="text-sm font-medium text-ink">
             Materia
             <Input className="mt-1" name="name" placeholder="Nombre de la materia" required />
           </label>
-          <label className="text-sm font-medium text-slate-700">
+          <label className="text-sm font-medium text-ink">
             Cuatrimestre
             <Select className="mt-1" defaultValue={1} name="quarter" required>
               {Array.from({ length: 12 }, (_, index) => index + 1).map((quarter) => (
@@ -82,11 +82,11 @@ export default async function CareerSubjectsPage({ params }: { params: Promise<{
               ))}
             </Select>
           </label>
-          <label className="text-sm font-medium text-slate-700">
+          <label className="text-sm font-medium text-ink">
             Horas
             <Input className="mt-1" defaultValue={5} min={0.5} name="default_hours" required step={0.5} type="number" />
           </label>
-          <div className="text-sm font-medium text-slate-700">
+          <div className="text-sm font-medium text-ink">
             Perfil requerido
             <div className="mt-1">
               <ProfileCheckboxGroup profiles={profileOptions as any[]} />
@@ -112,7 +112,7 @@ export default async function CareerSubjectsPage({ params }: { params: Promise<{
           formatHours(subject.default_hours),
           <div className="flex flex-wrap gap-1" key="profiles">
             {((subject.class_requirements ?? []).filter((item: any) => isValidProfileCode(item.profile_code))).length === 0 ? (
-              <span className="text-slate-400">Sin perfil</span>
+              <span className="text-muted-foreground">Sin perfil</span>
             ) : (
               (subject.class_requirements ?? []).filter((item: any) => isValidProfileCode(item.profile_code)).map((item: any) => (
                 <Badge key={item.profile_code} tone="info">

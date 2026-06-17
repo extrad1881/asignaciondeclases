@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 
@@ -5,6 +6,8 @@ export type AuthenticatedProfile = {
   supabase: Awaited<ReturnType<typeof createClient>>;
   profile: {
     id: string;
+    display_name: string;
+    email: string;
     role_code: string;
     active: boolean;
   };
@@ -19,7 +22,7 @@ export async function requireAuthenticatedProfile(): Promise<AuthenticatedProfil
 
   const { data: profile } = await supabase
     .from("users_profile")
-    .select("id, role_code, active")
+    .select("id, display_name, email, role_code, active")
     .eq("id", user.id)
     .single();
 
@@ -42,4 +45,12 @@ export async function requireAdmin() {
   }
 
   return supabase;
+}
+
+export async function requireActiveProfileOrRedirect() {
+  const { profile } = await requireAuthenticatedProfile();
+  if (!profile.active) {
+    redirect("/login");
+  }
+  return profile;
 }

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { ComicShell } from "@/components/comic-shell";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/supabase/queries";
+import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
 import { isAdmin } from "@/lib/permissions";
 
 type NavItemDef = {
@@ -34,7 +34,7 @@ async function signOut() {
 }
 
 export async function AppShell({ children }: { children: React.ReactNode }) {
-  const profile = await getCurrentProfile();
+  const profile = await requireActiveProfileOrRedirect();
 
   const visibleNavItems: Array<{ href: string; label: string; icon: string }> = navItems
     .filter((item) => {

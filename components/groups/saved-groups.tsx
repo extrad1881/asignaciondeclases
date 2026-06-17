@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { LayoutGrid, Trash2 } from "lucide-react";
-import { deleteGroupAction, deleteGroupFeedbackAction } from "@/app/(dashboard)/actions";
+import { Inbox, LayoutGrid } from "lucide-react";
+import { setGroupArchivedAction, setGroupArchivedFeedbackAction } from "@/app/(dashboard)/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
@@ -34,7 +34,7 @@ function modalityLabel(value: string) {
   return value.replace(/_/g, " ");
 }
 
-export function SavedGroups({ groups, canDelete = false }: { groups: SavedGroup[]; canDelete?: boolean }) {
+export function SavedGroups({ groups, canArchive = false }: { groups: SavedGroup[]; canArchive?: boolean }) {
   const activeGroups = groups.filter(Boolean);
   const buckets = new Map<string, SavedGroup[]>();
 
@@ -47,8 +47,11 @@ export function SavedGroups({ groups, canDelete = false }: { groups: SavedGroup[
     return (
       <EmptyState
         action={
-          <Link href="/grupos/nuevo">
-            <Button type="button">Crear grupo</Button>
+          <Link
+            className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-primary-foreground shadow-subtle transition hover:bg-brandDeep"
+            href="/grupos/nuevo"
+          >
+            Crear grupo
           </Link>
         }
         description="Crea un grupo para empezar a configurar materias, docentes y bloques de horario."
@@ -61,7 +64,7 @@ export function SavedGroups({ groups, canDelete = false }: { groups: SavedGroup[
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       {Array.from(buckets.entries()).map(([key, bucket]) => (
-        <section className="rounded-md border border-line bg-white p-4 shadow-subtle" key={key}>
+        <section className="rounded-md border border-line bg-card p-4 shadow-subtle" key={key}>
           <div className="mb-3 flex items-start justify-between gap-2">
             <div>
               <h2 className="text-base font-semibold text-ink">{key}</h2>
@@ -73,7 +76,7 @@ export function SavedGroups({ groups, canDelete = false }: { groups: SavedGroup[
             {bucket.map((group) => (
               <div className="flex items-center gap-2" key={group.id}>
                 <Link
-                  className="min-w-0 flex-1 rounded-md border border-line bg-slate-50 px-3 py-2 text-sm transition hover:border-brand hover:bg-brandSoft/50"
+                  className="min-w-0 flex-1 rounded-md border border-line bg-panel px-3 py-2 text-sm transition hover:border-brand hover:bg-brandSoft/50"
                   href={`/grupos/${group.id}`}
                 >
                   <span className="block truncate font-semibold text-ink">{group.name}</span>
@@ -84,21 +87,20 @@ export function SavedGroups({ groups, canDelete = false }: { groups: SavedGroup[
                     </Badge>
                   </span>
                 </Link>
-                {canDelete ? (
-                  <form action={deleteGroupAction}>
+                {canArchive ? (
+                  <form action={setGroupArchivedAction}>
                     <input name="group_id" type="hidden" value={group.id} />
                     <ConfirmActionButton
-                      action={deleteGroupFeedbackAction}
-                      aria-label={`Borrar ${group.name}`}
+                      action={setGroupArchivedFeedbackAction}
+                      aria-label={`Archivar ${group.name}`}
                       affectedName={group.name}
                       className="h-10 w-10 px-0"
-                      confirmLabel="Borrar grupo"
-                      danger
-                      description="Se eliminará el grupo junto con sus materias y asignaciones asociadas si la base lo permite."
-                      title="Borrar grupo"
-                      variant="danger"
+                      confirmLabel="Archivar grupo"
+                      description="El grupo pasará a estado archivado y no aparecerá en listados activos."
+                      title="Archivar grupo"
+                      variant="secondary"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Inbox className="h-4 w-4" />
                     </ConfirmActionButton>
                   </form>
                 ) : null}

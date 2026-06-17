@@ -3,7 +3,7 @@ import { LoginForm } from "@/app/(auth)/login/login-form";
 
 export default function LoginPage() {
   return (
-    <main className="grid min-h-screen bg-[radial-gradient(circle_at_top_left,#dff4ef,transparent_30rem),#eef3f7] px-4 py-8 lg:grid-cols-[1.05fr_0.95fr]">
+    <main className="grid min-h-screen bg-[radial-gradient(circle_at_top_left,var(--brand-soft),transparent_30rem),var(--panel)] px-4 py-8 lg:grid-cols-[1.05fr_0.95fr]">
       <section className="hidden flex-col justify-between border-r border-line px-10 py-8 lg:flex">
         <div className="flex items-center gap-4">
           <Image alt="Logo institucional" className="h-16 w-16 rounded-md object-contain" height={64} src="/logos/logo-color.png" width={64} />
@@ -25,7 +25,7 @@ export default function LoginPage() {
       </section>
 
       <section className="flex items-center justify-center">
-        <div className="w-full max-w-md rounded-md border border-line bg-white p-6 shadow-panel">
+        <div className="w-full max-w-md rounded-md border border-line bg-card p-6 shadow-panel">
           <div className="mb-6 text-center lg:text-left">
             <Image alt="Logo institucional" className="mx-auto mb-4 h-14 w-14 rounded-md object-contain lg:hidden" height={56} src="/logos/logo-color.png" width={56} />
             <p className="text-xs font-semibold uppercase tracking-wide text-brand">Acceso administrativo</p>

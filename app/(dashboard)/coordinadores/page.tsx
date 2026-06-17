@@ -15,7 +15,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { isAdmin } from "@/lib/permissions";
-import { getCurrentProfile } from "@/lib/supabase/queries";
+import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
 export default async function CoordinatorsPage() {
   const supabase = await createClient();
   const [profile, { data: coordinators = [] }, { data: careers = [] }] = await Promise.all([
-    getCurrentProfile(),
+    requireActiveProfileOrRedirect(),
     supabase
       .from("coordinators")
       .select(
@@ -65,10 +65,10 @@ export default async function CoordinatorsPage() {
             <span className="font-medium text-ink" key="name">
               {coordinator.name}
             </span>,
-            coordinator.users_profile?.email ?? <span className="text-slate-400">Sin usuario vinculado</span>,
+            coordinator.users_profile?.email ?? <span className="text-muted-foreground">Sin usuario vinculado</span>,
             <div className="flex flex-wrap gap-1" key="careers">
               {(coordinator.coordinator_careers ?? []).length === 0 ? (
-                <span className="text-slate-400">Sin asignar</span>
+                <span className="text-muted-foreground">Sin asignar</span>
               ) : (
                 (coordinator.coordinator_careers ?? []).map((item: any, index: number) => (
                   <Badge key={index}>{item.careers?.code}</Badge>
@@ -79,10 +79,10 @@ export default async function CoordinatorsPage() {
               ? [
                   <form action={updateCoordinatorCareersAction} className="grid min-w-[560px] gap-2" key="edit-careers">
                     <input name="coordinator_id" type="hidden" value={coordinator.id} />
-                    <div className="grid max-h-56 gap-2 overflow-y-auto rounded-md border border-line bg-white p-2 md:grid-cols-2">
+                    <div className="grid max-h-56 gap-2 overflow-y-auto rounded-md border border-line bg-card p-2 md:grid-cols-2">
                       {careerRows.map((career: any) => (
                         <label
-                          className="flex items-start gap-2 rounded-md border border-line bg-slate-50 px-2 py-2 text-xs font-medium text-ink"
+                          className="flex items-start gap-2 rounded-md border border-line bg-panel px-2 py-2 text-xs font-medium text-ink"
                           key={career.id}
                         >
                           <input
@@ -94,26 +94,26 @@ export default async function CoordinatorsPage() {
                           />
                           <span className="grid gap-0.5">
                             <span>{career.code}</span>
-                            <span className="font-normal text-slate-500">
+                            <span className="font-normal text-muted">
                               {career.name}
                               {career.active ? "" : " (Inactiva)"}
                             </span>
                           </span>
                         </label>
                       ))}
-                      {careerRows.length === 0 ? <span className="text-sm text-slate-400">Sin carreras</span> : null}
+                      {careerRows.length === 0 ? <span className="text-sm text-muted-foreground">Sin carreras</span> : null}
                     </div>
-                    <ConfirmActionButton
-                      action={updateCoordinatorCareersFeedbackAction}
-                      affectedName={coordinator.name}
-                      className="h-9 px-3"
-                      confirmLabel="Guardar carreras"
-                      description="Se reemplazara la lista de carreras asignadas al coordinador por la seleccion actual."
-                      title="Modificar carreras del coordinador"
-                      variant="secondary"
-                    >
-                      Guardar carreras
-                    </ConfirmActionButton>
+                      <ConfirmActionButton
+                        action={updateCoordinatorCareersFeedbackAction}
+                        affectedName={coordinator.name}
+                        className="h-9 px-3"
+                        confirmLabel="Guardar carreras"
+                        description="Se reemplazará la lista de carreras asignadas al coordinador por la selección actual."
+                        title="Modificar carreras del coordinador"
+                        variant="secondary"
+                      >
+                        Guardar carreras
+                      </ConfirmActionButton>
                   </form>
                 ]
               : []),
@@ -144,7 +144,7 @@ export default async function CoordinatorsPage() {
                       </ConfirmActionButton>
                     </form>
                     {coordinator.profile_id ? (
-                      <span className="text-xs text-slate-400">Con usuario vinculado</span>
+                      <span className="text-xs text-muted-foreground">Con usuario vinculado</span>
                     ) : (
                       <form action={deleteCoordinatorRecordAction}>
                         <input name="coordinator_id" type="hidden" value={coordinator.id} />
@@ -152,12 +152,12 @@ export default async function CoordinatorsPage() {
                           action={deleteCoordinatorRecordFeedbackAction}
                           affectedName={coordinator.name}
                           className="h-9 px-3"
-                          confirmLabel="Eliminar coordinador"
+                          confirmLabel="Desactivar coordinador"
                           danger
-                          description="El registro del coordinador se eliminara. Esta opcion solo aplica cuando no tiene usuario vinculado."
-                          title="Eliminar coordinador"
+                          description="El coordinador se desactivará. Esta opción solo aplica cuando no tiene usuario vinculado."
+                          title="Desactivar coordinador"
                         >
-                          Eliminar coordinador
+                          Desactivar coordinador
                         </ConfirmActionButton>
                       </form>
                     )}
@@ -178,7 +178,7 @@ export default async function CoordinatorsPage() {
                           affectedName={coordinator.name}
                           className="h-10 px-3"
                           confirmLabel="Guardar usuario"
-                          description="Se actualizara el correo, estado y, si escribiste una nueva, la contrasena del usuario vinculado."
+                          description="Se actualizará el correo, estado y, si escribiste una nueva, la contraseña del usuario vinculado."
                           title="Modificar usuario del coordinador"
                           variant="secondary"
                         >
@@ -187,7 +187,7 @@ export default async function CoordinatorsPage() {
                       </div>
                     </form>
                   ) : (
-                    <span className="text-sm text-slate-400" key="no-user">
+                    <span className="text-sm text-muted-foreground" key="no-user">
                       Sin usuario para editar
                     </span>
                   )

@@ -22,7 +22,7 @@ import {
   updateTeacherProfilesFeedbackAction
 } from "@/app/(dashboard)/actions";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/supabase/queries";
+import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
 import { isAdmin } from "@/lib/permissions";
 import { isValidProfileCode } from "@/lib/profiles";
 import { formatHours } from "@/lib/utils";
@@ -32,7 +32,7 @@ export const dynamic = "force-dynamic";
 export default async function TeachersPage() {
   const supabase = await createClient();
   const [profile, { data: teachers = [] }, { data: profiles = [] }, { data: coordinators = [] }] = await Promise.all([
-    getCurrentProfile(),
+    requireActiveProfileOrRedirect(),
     supabase
       .from("teachers")
       .select("id, name, max_hours, assigned_hours, active, coordinator_teachers(coordinators(id, name)), teacher_available_profiles(profile_code)")
@@ -71,7 +71,7 @@ export default async function TeachersPage() {
             <span className="text-muted text-xs">Sin asignar</span>
           ) : (
             assignedCoordinators.map((coordinator) => (
-              <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-700" key={coordinator.id}>
+              <span className="inline-flex items-center gap-1 rounded bg-panel px-1.5 py-0.5 text-xs font-medium text-ink" key={coordinator.id}>
                 {coordinator.name}
                 {canManageTeachers ? (
                   <form action={unassignCoordinatorTeacherAction}>
@@ -80,7 +80,7 @@ export default async function TeachersPage() {
                     <ConfirmActionButton
                       action={unassignCoordinatorTeacherFeedbackAction}
                       affectedName={`${coordinator.name} de ${teacher.name}`}
-                      className="h-4 w-4 p-0 text-[10px] leading-none hover:text-danger"
+                      className="h-4 w-4 p-0 text-[10px] leading-none hover:text-destructive"
                       confirmLabel="Remover coordinador"
                       description={`Se removerá a ${coordinator.name} de los coordinadores asignados a ${teacher.name}.`}
                       title="Remover coordinador"
@@ -210,19 +210,19 @@ export default async function TeachersPage() {
         description="Administra docentes, perfiles aptos, coordinador responsable y disponibilidad de horas para asignaciones."
       />
       {canManageTeachers ? (
-        <section className="mb-6 rounded-md border border-line bg-white p-4 shadow-subtle">
+        <section className="mb-6 rounded-md border border-line bg-card p-4 shadow-subtle">
           <h2 className="mb-1 text-lg font-semibold text-ink">Agregar docente</h2>
           <p className="mb-3 text-sm text-muted">Registra datos mínimos y perfiles aptos antes de asignar clases.</p>
           <ActionStateForm action={createTeacherStateAction} className="grid gap-3 md:grid-cols-[1fr_140px_220px_auto]" alertClassName="md:col-span-full">
-            <label className="text-sm font-semibold text-slate-700">
+            <label className="text-sm font-semibold text-ink">
               Nombre
               <Input className="mt-1" name="name" placeholder="Nombre del docente" required />
             </label>
-            <label className="text-sm font-semibold text-slate-700">
+            <label className="text-sm font-semibold text-ink">
               Horas máximas
               <Input className="mt-1" defaultValue={20} min={0} name="max_hours" required step={0.5} type="number" />
             </label>
-            <div className="text-sm font-semibold text-slate-700">
+            <div className="text-sm font-semibold text-ink">
               Perfiles aptos
               <div className="mt-1">
                 <ProfileCheckboxGroup profiles={profileOptions as any[]} />

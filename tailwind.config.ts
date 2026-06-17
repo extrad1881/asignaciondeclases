@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./app/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
@@ -9,17 +10,16 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "#182333",
-        muted: "#526173",
-        line: "#d7dee8",
-        panel: "#f7f9fc",
-        brand: "#0f766e",
-        brandDeep: "#134e4a",
-        brandSoft: "#e6f5f2",
-        gold: "#b7791f",
-        warn: "#b45309",
-        danger: "#b91c1c",
-        info: "#2563eb",
+        // Tokens de marca institucional
+        ink: "var(--ink)",
+        muted: "var(--muted)",
+        line: "var(--line)",
+        panel: "var(--panel)",
+        brand: "var(--brand)",
+        brandDeep: "var(--brand-deep)",
+        brandSoft: "var(--brand-soft)",
+        brandLight: "var(--brand-light)",
+        // Tokens semánticos de shadcn
         background: "var(--background)",
         foreground: "var(--foreground)",
         card: "var(--card)",
@@ -37,25 +37,20 @@ const config: Config = {
         border: "var(--border)",
         input: "var(--input)",
         ring: "var(--ring)",
-        sidebar: "var(--sidebar)",
-        "sidebar-foreground": "var(--sidebar-foreground)",
-        "sidebar-primary": "var(--sidebar-primary)",
-        "sidebar-primary-foreground": "var(--sidebar-primary-foreground)",
-        "sidebar-accent": "var(--sidebar-accent)",
-        "sidebar-accent-foreground": "var(--sidebar-accent-foreground)",
-        "sidebar-border": "var(--sidebar-border)",
-        "sidebar-ring": "var(--sidebar-ring)"
+        sidebar: "var(--panel)",
+        "sidebar-foreground": "var(--foreground)",
+        "sidebar-primary": "var(--brand)",
+        "sidebar-primary-foreground": "var(--primary-foreground)",
+        "sidebar-accent": "var(--accent)",
+        "sidebar-accent-foreground": "var(--accent-foreground)",
+        "sidebar-border": "var(--line)",
+        "sidebar-ring": "var(--ring)"
       },
       boxShadow: {
         subtle: "0 1px 2px rgb(15 23 42 / 0.06)",
-        panel: "0 10px 30px rgb(24 35 51 / 0.08)",
-        "2xs": "var(--shadow-2xs)",
-        xs: "var(--shadow-xs)",
-        sm: "var(--shadow-sm)",
-        md: "var(--shadow-md)",
-        lg: "var(--shadow-lg)",
-        xl: "var(--shadow-xl)",
-        "2xl": "var(--shadow-2xl)"
+        panel: "0 10px 30px rgb(15 23 42 / 0.08)",
+        md: "0 4px 6px -1px rgb(15 23 42 / 0.10), 0 2px 4px -2px rgb(15 23 42 / 0.10)",
+        lg: "0 10px 15px -3px rgb(15 23 42 / 0.10), 0 4px 6px -4px rgb(15 23 42 / 0.10)"
       },
       borderRadius: {
         sm: "calc(var(--radius) - 4px)",
@@ -64,7 +59,7 @@ const config: Config = {
         xl: "calc(var(--radius) + 4px)"
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "ui-serif", "serif"],
+        sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
         serif: ["var(--font-serif)", "Georgia", "serif"],
         mono: ["var(--font-mono)", "monospace"]
       },

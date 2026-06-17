@@ -16,13 +16,13 @@ import { DataTable } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/supabase/queries";
+import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
 import { isAdmin } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  const profile = await getCurrentProfile();
+  const profile = await requireActiveProfileOrRedirect();
   if (!isAdmin(profile?.role_code)) redirect("/dashboard");
 
   const supabase = await createClient();
@@ -42,7 +42,7 @@ export default async function AdminPage() {
     <>
       <SectionHeader eyebrow="Administración" title="Panel de administración" />
       <section className="mb-6 grid gap-4 xl:grid-cols-3">
-        <ActionStateForm action={createUserStateAction} className="grid gap-3 rounded-md border border-line bg-white p-4 shadow-subtle">
+        <ActionStateForm action={createUserStateAction} className="grid gap-3 rounded-md border border-line bg-card p-4 shadow-subtle">
           <h2 className="text-lg font-semibold text-ink">Crear usuario</h2>
           <Input name="display_name" placeholder="Nombre" required />
           <Input name="email" placeholder="correo@institucion.edu" required type="email" />
@@ -54,7 +54,7 @@ export default async function AdminPage() {
           <Button type="submit">Crear</Button>
         </ActionStateForm>
 
-        <form action={assignCoordinatorCareerAction} className="grid gap-3 rounded-md border border-line bg-white p-4 shadow-subtle">
+        <form action={assignCoordinatorCareerAction} className="grid gap-3 rounded-md border border-line bg-card p-4 shadow-subtle">
           <h2 className="text-lg font-semibold text-ink">Asignar carrera</h2>
           <Select name="coordinator_id" required>
             {(coordinators ?? []).map((coordinator: any) => (
@@ -76,7 +76,7 @@ export default async function AdminPage() {
           </ConfirmActionButton>
         </form>
 
-        <form action={assignCoordinatorTeacherAction} className="grid gap-3 rounded-md border border-line bg-white p-4 shadow-subtle">
+        <form action={assignCoordinatorTeacherAction} className="grid gap-3 rounded-md border border-line bg-card p-4 shadow-subtle">
           <h2 className="text-lg font-semibold text-ink">Asignar docente</h2>
           <Select name="coordinator_id" required>
             {(coordinators ?? []).map((coordinator: any) => (

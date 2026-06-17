@@ -84,7 +84,7 @@ export function DataTableAdvanced({
   }
 
   return (
-    <div className="rounded-md border border-line bg-white shadow-subtle">
+    <div className="rounded-md border border-line bg-card text-card-foreground shadow-subtle">
       <div className="grid gap-3 border-b border-line p-3 lg:grid-cols-[minmax(240px,1fr)_auto]">
         <Input
           aria-label="Buscar"
@@ -133,17 +133,17 @@ export function DataTableAdvanced({
         </div>
       </div>
 
-      <div className="flex flex-col gap-1 border-b border-line bg-slate-50 px-4 py-2 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-1 border-b border-line bg-panel px-4 py-2 text-xs text-muted sm:flex-row sm:items-center sm:justify-between">
         <span>{filteredRows.length} resultado(s) encontrados</span>
         <span>Usa búsqueda y filtros para acotar la información.</span>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[760px] border-collapse text-left text-sm">
-          <thead className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
+          <thead className="bg-panel text-xs uppercase tracking-wide text-muted">
             <tr>
               {headers.map((header) => (
-                <th className="px-4 py-3 font-semibold" key={header}>
+                <th className="px-4 py-3 font-semibold" key={header} scope="col">
                   {header}
                 </th>
               ))}
@@ -152,7 +152,7 @@ export function DataTableAdvanced({
           <tbody>
             {loading ? (
               <tr>
-                <td className="px-4 py-6 text-slate-500" colSpan={headers.length}>
+                <td className="px-4 py-6 text-muted" colSpan={headers.length}>
                   Cargando información...
                 </td>
               </tr>
@@ -163,8 +163,8 @@ export function DataTableAdvanced({
                 </td>
               </tr>
             ) : (
-              visibleRows.map((row, rowIndex) => (
-                <tr className={cn("border-t border-line hover:bg-brandSoft/40", rowIndex % 2 === 1 && "bg-slate-50/60")} key={row.id}>
+              visibleRows.map((row) => (
+                <tr className={cn("border-t border-line hover:bg-brandSoft/40")} key={row.id}>
                   {row.cells.map((cell, cellIndex) => (
                     <td className="px-4 py-3 align-top" key={`${row.id}-${cellIndex}`}>
                       {cell}
@@ -185,7 +185,7 @@ export function DataTableAdvanced({
         </span>
         <div className="flex items-center gap-2">
           <button
-            className="focus-ring rounded-md border border-line px-3 py-1 font-medium disabled:opacity-50"
+            className="focus-ring rounded-md border border-line bg-background px-3 py-1 font-medium text-ink disabled:opacity-50"
             disabled={safePage <= 1}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
             type="button"
@@ -196,7 +196,7 @@ export function DataTableAdvanced({
             Página {safePage} de {totalPages}
           </span>
           <button
-            className="focus-ring rounded-md border border-line px-3 py-1 font-medium disabled:opacity-50"
+            className="focus-ring rounded-md border border-line bg-background px-3 py-1 font-medium text-ink disabled:opacity-50"
             disabled={safePage >= totalPages}
             onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
             type="button"

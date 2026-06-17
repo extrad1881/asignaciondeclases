@@ -5,14 +5,14 @@ import { SectionHeader } from "@/components/section-header";
 import { Button } from "@/components/ui/button";
 import { SavedGroups } from "@/components/groups/saved-groups";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/supabase/queries";
+import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
 import { isAdmin } from "@/lib/permissions";
 
 
 export default async function GroupsPage() {
   const supabase = await createClient();
   const [profile, { data: groups = [] }] = await Promise.all([
-    getCurrentProfile(),
+    requireActiveProfileOrRedirect(),
     supabase
       .from("groups")
       .select("id, name, quarter, modality, shift, status, academic_cycles(code), careers(code, name)")
@@ -30,14 +30,15 @@ export default async function GroupsPage() {
         title="Grupos"
         description="Consulta los grupos por ciclo, modalidad y turno. Entra a cada grupo para revisar materias, asignaciones e historial."
       >
-        <Link href="/grupos/nuevo">
-          <Button>
-            <Plus className="h-4 w-4" />
-            Crear grupo
-          </Button>
+        <Link
+          className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-primary-foreground shadow-subtle transition hover:bg-brandDeep"
+          href="/grupos/nuevo"
+        >
+          <Plus className="h-4 w-4" />
+          Crear grupo
         </Link>
       </SectionHeader>
-      <SavedGroups canDelete={isAdmin(profile?.role_code)} groups={groups as any[]} />
+      <SavedGroups canArchive={isAdmin(profile?.role_code)} groups={groups as any[]} />
     </>
   );
 }

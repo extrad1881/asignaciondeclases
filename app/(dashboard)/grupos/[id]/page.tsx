@@ -5,8 +5,6 @@ import {
   createCustomScheduleBlockStateAction,
   deleteAssignmentAction,
   deleteAssignmentFeedbackAction,
-  deleteGroupAction,
-  deleteGroupFeedbackAction,
   setGroupArchivedAction,
   setGroupDraftAction,
   setGroupFinalAction,
@@ -27,7 +25,8 @@ import { Select } from "@/components/ui/select";
 import { WEEKDAYS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 import { getGroupAuditHistory } from "@/lib/supabase/audit";
-import { checkGroupSubjectHours, getCurrentProfile } from "@/lib/supabase/queries";
+import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
+import { checkGroupSubjectHours } from "@/lib/supabase/queries";
 import { isAdmin } from "@/lib/permissions";
 import { isValidProfileCode } from "@/lib/profiles";
 
@@ -45,7 +44,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
 
   if (!group) notFound();
 
-  const profile = await getCurrentProfile();
+  const profile = await requireActiveProfileOrRedirect();
   let blocksQuery = supabase
     .from("schedule_blocks")
     .select("id, label, starts_at, ends_at, day_of_week, is_custom, created_by, module, schedule_templates!inner(modality, shift)")
@@ -88,20 +87,6 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   const blocks = (blocksData ?? []) as any[];
   const assignments = (assignmentsData ?? []) as any[];
 
-  // ---> INICIO DE DEBUG PARA VERCEL <---
-    console.log("=== DEBUG VERCEL ===");
-    console.log("ID del Grupo:", (group as any).id);
-    console.log("Modalidad leída:", `"${(group as any).modality}"`); // Las comillas revelan espacios ocultos
-    console.log("Turno leído:", `"${(group as any).shift}"`);
-    console.log("Cantidad de bloques (cuadrículas) obtenidos:", blocks.length);
-    if (blocks.length > 0) {
-        console.log("Primer bloque de ejemplo:", blocks[0].day_of_week);
-    } else {
-        console.log("ALERTA: Supabase no devolvió ningún bloque para esta modalidad/turno.");
-    }
-    console.log("====================");
-    // ---> FIN DE DEBUG <---
-
   const groupSubjects = ((group as any).group_subjects ?? []).map((item: any) => {
     const requiredProfiles = item.required_profile_code && isValidProfileCode(item.required_profile_code)
       ? [item.required_profile_code]
@@ -121,9 +106,9 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   const groupHistory = await getGroupAuditHistory((group as any).id);
 
   function auditDetails(value: Record<string, unknown> | null) {
-    if (!value) return <span className="text-slate-400">Sin datos</span>;
+    if (!value) return <span className="text-muted-foreground">Sin datos</span>;
     return (
-      <pre className="max-h-48 overflow-auto rounded-md bg-slate-950 p-3 text-xs text-slate-50">
+      <pre className="max-h-48 overflow-auto rounded-md bg-ink p-3 text-xs text-primary-foreground">
         {JSON.stringify(value, null, 2)}
       </pre>
     );
@@ -140,25 +125,9 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
             {(group as any).shift === "matutino" ? "MAT" : "VES"} {(group as any).quarter}
           </Badge>
         </div>
-        {isAdmin(profile?.role_code) ? (
-          <form action={deleteGroupAction}>
-            <input name="group_id" type="hidden" value={(group as any).id} />
-            <ConfirmActionButton
-              action={deleteGroupFeedbackAction}
-              affectedName={(group as any).name}
-              confirmLabel="Borrar grupo"
-              danger
-              description="Se eliminará el grupo junto con sus materias y asignaciones asociadas si la base lo permite."
-              title="Borrar grupo"
-            >
-              <Trash2 className="h-4 w-4" />
-              Borrar grupo
-            </ConfirmActionButton>
-          </form>
-        ) : null}
       </SectionHeader>
 
-      <section className="mb-5 grid gap-3 rounded-md border border-line bg-white p-4 text-sm shadow-subtle md:grid-cols-4">
+      <section className="mb-5 grid gap-3 rounded-md border border-line bg-card p-4 text-sm shadow-subtle md:grid-cols-4">
         <p><span className="font-semibold">Ciclo:</span> {(group as any).academic_cycles?.code}</p>
         <p><span className="font-semibold">Carrera:</span> {(group as any).careers?.code}</p>
         <p><span className="font-semibold">Modalidad:</span> {(group as any).modality}</p>
@@ -189,8 +158,8 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
         />
       </section>
 
-      <section className="mb-5 flex flex-wrap gap-2 rounded-md border border-line bg-white p-3 shadow-subtle">
-        <span className="mr-2 self-center text-xs font-semibold uppercase text-slate-500">Estado:</span>
+      <section className="mb-5 flex flex-wrap gap-2 rounded-md border border-line bg-card p-3 shadow-subtle">
+        <span className="mr-2 self-center text-xs font-semibold uppercase text-muted">Estado:</span>
         {(group as any).status === "draft" ? (
           <form action={setGroupReviewAction}>
             <input name="group_id" type="hidden" value={(group as any).id} />
@@ -227,20 +196,19 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
             </Button>
           </form>
         ) : null}
-        {(group as any).status !== "archived" ? null : null}
       </section>
 
       <section className="space-y-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-ink">Asignar docente</h2>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-muted">
               Selecciona la materia, el docente apto y el bloque visual del cuadro correspondiente.
             </p>
           </div>
-          <ActionStateForm action={createCustomScheduleBlockStateAction} className="grid gap-2 rounded-md border border-line bg-white p-3 shadow-subtle md:min-w-[520px] md:grid-cols-[150px_120px_120px_auto]" alertClassName="md:col-span-full">
+          <ActionStateForm action={createCustomScheduleBlockStateAction} className="grid gap-2 rounded-md border border-line bg-card p-3 shadow-subtle md:min-w-[520px] md:grid-cols-[150px_120px_120px_auto]" alertClassName="md:col-span-full">
             <input name="group_id" type="hidden" value={(group as any).id} />
-            <label className="text-xs font-semibold uppercase text-slate-600">
+            <label className="text-xs font-semibold uppercase text-muted">
               Día
               <Select className="mt-1 h-9" name="day_of_week" required>
                 {WEEKDAYS.map((day) => (
@@ -250,11 +218,11 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
                 ))}
               </Select>
             </label>
-            <label className="text-xs font-semibold uppercase text-slate-600">
+            <label className="text-xs font-semibold uppercase text-muted">
               Inicio
               <Input className="mt-1 h-9" name="starts_at" required type="time" />
             </label>
-            <label className="text-xs font-semibold uppercase text-slate-600">
+            <label className="text-xs font-semibold uppercase text-muted">
               Fin
               <Input className="mt-1 h-9" name="ends_at" required type="time" />
             </label>
@@ -368,15 +336,15 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
                 <summary className="cursor-pointer font-medium text-brand">Ver historial</summary>
                 <div className="mt-2 space-y-2">
                   {groupHistory.filter((entry) => entry.table_name === "assignments" && entry.record_id === assignment.id).length === 0 ? (
-                    <p className="text-slate-500">Sin eventos auditados.</p>
+                    <p className="text-muted">Sin eventos auditados.</p>
                   ) : (
                     groupHistory
                       .filter((entry) => entry.table_name === "assignments" && entry.record_id === assignment.id)
                       .map((entry) => (
-                        <div className="rounded-md border border-line bg-white p-2" key={entry.id}>
+                        <div className="rounded-md border border-line bg-card p-2" key={entry.id}>
                           <p className="font-medium text-ink">{entry.dateLabel}</p>
-                          <p className="text-xs text-slate-500">{entry.actionLabel} - {entry.userLabel}</p>
-                          <p className="mt-1 text-xs text-slate-600">{entry.summary}</p>
+                          <p className="text-xs text-muted">{entry.actionLabel} - {entry.userLabel}</p>
+                          <p className="mt-1 text-xs text-muted">{entry.summary}</p>
                         </div>
                       ))
                   )}
@@ -403,11 +371,11 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
               <summary className="cursor-pointer text-sm font-medium text-brand">Ver valores</summary>
               <div className="mt-2 grid gap-2">
                 <div>
-                  <p className="mb-1 text-xs font-semibold uppercase text-slate-500">Anterior</p>
+                  <p className="mb-1 text-xs font-semibold uppercase text-muted">Anterior</p>
                   {auditDetails(entry.old_value)}
                 </div>
                 <div>
-                  <p className="mb-1 text-xs font-semibold uppercase text-slate-500">Nuevo</p>
+                  <p className="mb-1 text-xs font-semibold uppercase text-muted">Nuevo</p>
                   {auditDetails(entry.new_value)}
                 </div>
               </div>

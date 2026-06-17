@@ -6,14 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTableAdvanced, type DataTableAdvancedRow } from "@/components/ui/data-table-advanced";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile } from "@/lib/supabase/queries";
+import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
 import { isAdmin } from "@/lib/permissions";
 
 
 export default async function CareersPage() {
   const supabase = await createClient();
   const [profile, { data: careers = [] }] = await Promise.all([
-    getCurrentProfile(),
+    requireActiveProfileOrRedirect(),
     supabase
       .from("careers")
       .select("id, code, name, active, coordinator_careers(coordinators(name)), subjects(id, active)")

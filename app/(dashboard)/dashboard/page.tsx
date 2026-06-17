@@ -16,7 +16,8 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MetricCard } from "@/components/ui/metric-card";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentProfile, getDashboardCounts } from "@/lib/supabase/queries";
+import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
+import { getDashboardCounts } from "@/lib/supabase/queries";
 import { getIncompleteData } from "@/lib/supabase/incomplete-data";
 import { isAdmin } from "@/lib/permissions";
 
@@ -24,7 +25,7 @@ import { isAdmin } from "@/lib/permissions";
 export default async function DashboardPage() {
   const supabase = await createClient();
   const [profile, counts, { data: groups = [] }] = await Promise.all([
-    getCurrentProfile(),
+    requireActiveProfileOrRedirect(),
     getDashboardCounts(),
     supabase
       .from("groups")
@@ -54,11 +55,12 @@ export default async function DashboardPage() {
         title="Dashboard"
         description="Vista ejecutiva del estado académico: catálogos, grupos, asignaciones y pendientes de corrección."
       >
-        <Link href="/grupos/nuevo">
-          <Button>
-            <Plus className="h-4 w-4" />
-            Crear grupo
-          </Button>
+        <Link
+          className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-primary-foreground shadow-subtle transition hover:bg-brandDeep"
+          href="/grupos/nuevo"
+        >
+          <Plus className="h-4 w-4" />
+          Crear grupo
         </Link>
       </SectionHeader>
 
@@ -71,7 +73,7 @@ export default async function DashboardPage() {
       </section>
 
       <section className="mt-6 grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
-        <div className="rounded-md border border-line bg-white p-4 shadow-subtle">
+        <div className="rounded-md border border-line bg-card p-4 shadow-subtle">
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-ink">Grupos recientes</h2>
@@ -84,8 +86,11 @@ export default async function DashboardPage() {
           {activeGroups.length === 0 ? (
             <EmptyState
               action={
-                <Link href="/grupos/nuevo">
-                  <Button type="button">Crear primer grupo</Button>
+                <Link
+                  className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-primary-foreground shadow-subtle transition hover:bg-brandDeep"
+                  href="/grupos/nuevo"
+                >
+                  Crear primer grupo
                 </Link>
               }
               description="Crea un grupo para empezar a asignar materias, docentes y bloques de horario."
@@ -95,7 +100,7 @@ export default async function DashboardPage() {
             <div className="grid gap-3 md:grid-cols-2">
               {activeGroups.map((group: any) => (
                 <Link
-                  className="rounded-md border border-line bg-slate-50 p-3 transition hover:border-brand hover:bg-brandSoft/50"
+                  className="rounded-md border border-line bg-panel p-3 transition hover:border-brand hover:bg-brandSoft/50"
                   href={`/grupos/${group.id}`}
                   key={group.id}
                 >
@@ -116,7 +121,7 @@ export default async function DashboardPage() {
           )}
         </div>
 
-        <div className="rounded-md border border-line bg-white p-4 shadow-subtle">
+        <div className="rounded-md border border-line bg-card p-4 shadow-subtle">
           <h2 className="text-lg font-semibold text-ink">Próximos pasos</h2>
           <p className="mt-1 text-sm text-muted">Acciones frecuentes para mantener el sistema listo.</p>
           <div className="mt-4 grid gap-2">
@@ -124,11 +129,11 @@ export default async function DashboardPage() {
               const Icon = item.icon;
               return (
                 <Link
-                  className="flex items-start gap-3 rounded-md border border-line bg-slate-50 p-3 transition hover:border-brand hover:bg-brandSoft/50"
+                  className="flex items-start gap-3 rounded-md border border-line bg-panel p-3 transition hover:border-brand hover:bg-brandSoft/50"
                   href={item.href}
                   key={item.href}
                 >
-                  <span className="rounded-md bg-white p-2 text-brand shadow-subtle">
+                  <span className="rounded-md bg-card p-2 text-brand shadow-subtle">
                     <Icon className="h-4 w-4" aria-hidden />
                   </span>
                   <span>

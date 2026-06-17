@@ -51,7 +51,7 @@ export function ConfirmActionButton({
 
     const form = submitRef.current?.form;
     if (!form) {
-      setError("No se encontro el formulario para ejecutar la accion.");
+      setError("No se encontró el formulario para ejecutar la acción.");
       return;
     }
 
@@ -62,7 +62,7 @@ export function ConfirmActionButton({
       try {
         result = await action(formData);
       } catch (error) {
-        const message = error instanceof Error && error.message ? error.message : "No se pudo completar la accion.";
+        const message = error instanceof Error && error.message ? error.message : "No se pudo completar la acción.";
         setError(message);
         toast.error(message);
         return;

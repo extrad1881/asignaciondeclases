@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { requireAdmin, requireAuthenticatedProfile } from "@/lib/supabase/auth-helpers";
+import { requireAuthenticatedProfile } from "@/lib/supabase/auth-helpers";
 import { actionFailure, actionSuccess, type ActionState } from "@/lib/actions/action-state";
 import { cleanString, getStringList, normalizeKey } from "@/app/(dashboard)/actions/utils";
 import { isValidProfileCode, normalizeProfileCode } from "@/lib/profiles";
@@ -53,7 +53,7 @@ async function getExternalSubjectCatalogClient(
   const {
     data: { user }
   } = await supabase.auth.getUser();
-  if (!user) throw new Error("No hay una sesion activa.");
+  if (!user) throw new Error("No hay una sesión activa.");
 
   const { data: profile, error: profileError } = await supabase
     .from("users_profile")
@@ -89,7 +89,7 @@ async function getExternalSubjectCatalogClient(
 }
 
 async function createGroupFromFormData(formData: FormData) {
-  const supabase = await createClient();
+  const { supabase, profile } = await requireAuthenticatedProfile();
   const parsed = groupSchema.safeParse({
     academic_cycle_id: formData.get("academic_cycle_id"),
     career_id: formData.get("career_id"),
@@ -102,6 +102,15 @@ async function createGroupFromFormData(formData: FormData) {
 
   if (!parsed.success) {
     throw new Error(parsed.error.issues.map((issue) => issue.message).join(" "));
+  }
+
+  if (profile.role_code !== "admin") {
+    const { data: allowed, error } = await supabase.rpc("can_access_career", {
+      target_career_id: parsed.data.career_id
+    });
+    if (error || !allowed) {
+      throw new Error("No tienes permiso para crear grupos en esta carrera.");
+    }
   }
 
   const subjectIds = getStringList(formData, "subject_ids");
@@ -160,41 +169,6 @@ export async function createGroupStateAction(_previousState: ActionState, formDa
   }
 }
 
-const groupIdSchema = z.object({
-  group_id: z.string().uuid()
-});
-
-async function deleteGroupFromFormData(formData: FormData) {
-  const supabase = await requireAdmin();
-  const parsed = groupIdSchema.safeParse({
-    group_id: formData.get("group_id")
-  });
-
-  if (!parsed.success) {
-    throw new Error("Selecciona un grupo valido.");
-  }
-
-  const { error } = await supabase.from("groups").delete().eq("id", parsed.data.group_id);
-  if (error) throw new Error(error.message);
-
-  revalidatePath("/dashboard");
-  revalidatePath("/grupos");
-}
-
-export async function deleteGroupAction(formData: FormData) {
-  await deleteGroupFromFormData(formData);
-  redirect("/grupos");
-}
-
-export async function deleteGroupFeedbackAction(formData: FormData) {
-  try {
-    await deleteGroupFromFormData(formData);
-    return actionSuccess("Grupo eliminado correctamente.", "/grupos");
-  } catch (error) {
-    return actionFailure(error, "No se pudo eliminar el grupo.");
-  }
-}
-
 const statusTransitionSchema = z.object({
   group_id: z.string().uuid()
 });
@@ -248,7 +222,7 @@ export async function setGroupDraftStateAction(_previousState: ActionState, form
 export async function setGroupReviewStateAction(_previousState: ActionState, formData: FormData): Promise<ActionState> {
   try {
     await setGroupReviewAction(formData);
-    return actionSuccess("Grupo enviado a revision.");
+    return actionSuccess("Grupo enviado a revisión.");
   } catch (error) {
     return actionFailure(error, "No se pudo cambiar el estado del grupo.");
   }

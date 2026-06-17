@@ -44,7 +44,7 @@ export async function updateCoordinatorUserAction(formData: FormData) {
 
   if (parsed.data.password) {
     if (parsed.data.password.length < 6) {
-      throw new Error("La contrasena debe tener al menos 6 caracteres.");
+      throw new Error("La contraseña debe tener al menos 6 caracteres.");
     }
     authUpdate.password = parsed.data.password;
   }
@@ -127,12 +127,15 @@ export async function deleteCoordinatorRecordAction(formData: FormData) {
     .eq("id", parsed.data.coordinator_id)
     .maybeSingle();
   if (lookupError) throw new Error(lookupError.message);
-  if (!coordinator) throw new Error("No se encontro el coordinador.");
+  if (!coordinator) throw new Error("No se encontró el coordinador.");
   if (coordinator.profile_id) {
     throw new Error("No se puede eliminar un coordinador con usuario vinculado. Primero desactiva o cambia ese usuario.");
   }
 
-  const { error } = await supabase.from("coordinators").delete().eq("id", parsed.data.coordinator_id);
+  const { error } = await supabase
+    .from("coordinators")
+    .update({ active: false })
+    .eq("id", parsed.data.coordinator_id);
   if (error) throw new Error(error.message);
 
   revalidatePath("/admin");

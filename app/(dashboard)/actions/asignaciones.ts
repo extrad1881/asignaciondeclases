@@ -14,8 +14,26 @@ const assignmentSchema = z.object({
   classroom_id: z.string().uuid().optional().or(z.literal(""))
 });
 
+async function requireAssignmentPermission(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  profile: { id: string; role_code: string; active: boolean },
+  groupSubjectId: string,
+  teacherId: string
+) {
+  if (profile.role_code === "admin") return;
+
+  const { data: allowed, error } = await supabase.rpc("can_manage_assignment", {
+    target_group_subject_id: groupSubjectId,
+    target_teacher_id: teacherId
+  });
+
+  if (error || !allowed) {
+    throw new Error("No tienes permiso para gestionar esta asignación.");
+  }
+}
+
 export async function createAssignmentAction(formData: FormData) {
-  const supabase = await createClient();
+  const { supabase, profile } = await requireAuthenticatedProfile();
   const parsed = assignmentSchema.safeParse({
     group_subject_id: formData.get("group_subject_id"),
     teacher_id: formData.get("teacher_id"),
@@ -27,6 +45,8 @@ export async function createAssignmentAction(formData: FormData) {
   if (!parsed.success) {
     throw new Error(parsed.error.issues.map((issue) => issue.message).join(" "));
   }
+
+  await requireAssignmentPermission(supabase, profile, parsed.data.group_subject_id, parsed.data.teacher_id);
 
   const { error } = await supabase.from("assignments").insert({
     ...parsed.data,
@@ -44,9 +64,9 @@ export async function createAssignmentAction(formData: FormData) {
 export async function createAssignmentActionState(_previousState: ActionState, formData: FormData): Promise<ActionState> {
   try {
     await createAssignmentAction(formData);
-    return actionSuccess("Asignacion creada correctamente.");
+    return actionSuccess("Asignación creada correctamente.");
   } catch (error) {
-    return actionFailure(error, "No se pudo crear la asignacion.");
+    return actionFailure(error, "No se pudo crear la asignación.");
   }
 }
 
@@ -59,7 +79,7 @@ const assignmentUpdateSchema = z.object({
 });
 
 export async function updateAssignmentAction(formData: FormData) {
-  const supabase = await createClient();
+  const { supabase, profile } = await requireAuthenticatedProfile();
   const parsed = assignmentUpdateSchema.safeParse({
     assignment_id: formData.get("assignment_id"),
     group_id: formData.get("group_id"),
@@ -74,13 +94,20 @@ export async function updateAssignmentAction(formData: FormData) {
 
   const { data: currentAssignment } = await supabase
     .from("assignments")
-    .select("id, group_subject_id")
+    .select("id, group_subject_id, teacher_id")
     .eq("id", parsed.data.assignment_id)
     .maybeSingle();
 
   if (!currentAssignment) {
-    throw new Error("No tienes permiso para modificar esta asignacion.");
+    throw new Error("No tienes permiso para modificar esta asignación.");
   }
+
+  await requireAssignmentPermission(
+    supabase,
+    profile,
+    currentAssignment.group_subject_id,
+    currentAssignment.teacher_id
+  );
 
   const { error } = await supabase
     .from("assignments")
@@ -105,15 +132,32 @@ const assignmentDeleteSchema = z.object({
 });
 
 export async function deleteAssignmentAction(formData: FormData) {
-  const supabase = await createClient();
+  const { supabase, profile } = await requireAuthenticatedProfile();
   const parsed = assignmentDeleteSchema.safeParse({
     assignment_id: formData.get("assignment_id"),
     group_id: formData.get("group_id")
   });
 
   if (!parsed.success) {
-    throw new Error("Selecciona una asignacion valida.");
+    throw new Error("Selecciona una asignación válida.");
   }
+
+  const { data: currentAssignment } = await supabase
+    .from("assignments")
+    .select("id, group_subject_id, teacher_id")
+    .eq("id", parsed.data.assignment_id)
+    .maybeSingle();
+
+  if (!currentAssignment) {
+    throw new Error("No tienes permiso para eliminar esta asignación.");
+  }
+
+  await requireAssignmentPermission(
+    supabase,
+    profile,
+    currentAssignment.group_subject_id,
+    currentAssignment.teacher_id
+  );
 
   const { error } = await supabase.from("assignments").delete().eq("id", parsed.data.assignment_id);
   if (error) throw new Error(error.message);
@@ -127,17 +171,17 @@ export async function deleteAssignmentAction(formData: FormData) {
 export async function deleteAssignmentActionState(_previousState: ActionState, formData: FormData): Promise<ActionState> {
   try {
     await deleteAssignmentAction(formData);
-    return actionSuccess("Asignacion eliminada correctamente.");
+    return actionSuccess("Asignación eliminada correctamente.");
   } catch (error) {
-    return actionFailure(error, "No se pudo eliminar la asignacion.");
+    return actionFailure(error, "No se pudo eliminar la asignación.");
   }
 }
 
 export async function updateAssignmentActionState(_previousState: ActionState, formData: FormData): Promise<ActionState> {
   try {
     await updateAssignmentAction(formData);
-    return actionSuccess("Asignacion actualizada correctamente.");
+    return actionSuccess("Asignación actualizada correctamente.");
   } catch (error) {
-    return actionFailure(error, "No se pudo actualizar la asignacion.");
+    return actionFailure(error, "No se pudo actualizar la asignación.");
   }
 }

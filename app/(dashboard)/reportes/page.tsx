@@ -43,11 +43,12 @@ export default async function ReportsPage() {
         title="Reportes"
         description="Previsualiza asignaciones activas y descarga archivos CSV para revisión académica o entrega administrativa."
       >
-        <a href="/api/reportes/csv">
-          <Button>
-            <FileDown className="h-4 w-4" />
-            Exportar CSV completo
-          </Button>
+        <a
+          className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-primary-foreground shadow-subtle transition hover:bg-brandDeep"
+          href="/api/reportes/csv"
+        >
+          <FileDown className="h-4 w-4" />
+          Exportar CSV completo
         </a>
       </SectionHeader>
 
@@ -57,7 +58,7 @@ export default async function ReportsPage() {
         <MetricCard description="Formato compatible con hojas de cálculo" icon={FileText} label="Formato" tone="success" value="CSV" />
       </div>
 
-      <section className="mt-6 rounded-md border border-line bg-white p-4 shadow-subtle">
+      <section className="mt-6 rounded-md border border-line bg-card p-4 shadow-subtle">
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-ink">Exportar por grupo</h2>
           <p className="mt-1 text-sm text-muted">Cada archivo incluye ciclo, carrera, grupo, materia, docente, día, hora y aula.</p>
@@ -72,7 +73,7 @@ export default async function ReportsPage() {
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {groups.map((group) => (
               <a
-                className="flex items-center gap-2 rounded-md border border-line bg-slate-50 px-3 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:bg-brandSoft/50"
+                className="flex items-center gap-2 rounded-md border border-line bg-panel px-3 py-2 text-sm font-semibold text-ink transition hover:border-brand hover:bg-brandSoft/50"
                 href={`/api/reportes/csv?group_id=${group.id}`}
                 key={group.id}
               >
