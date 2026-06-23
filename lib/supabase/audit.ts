@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { requireAuthenticatedProfile } from "@/lib/supabase/auth-helpers";
 
 export type AuditLogRow = {
   id: number;
@@ -65,6 +66,7 @@ function recordTouchesGroupSubject(log: AuditLogRow, groupSubjectIds: Set<string
 
 async function fetchAuditLogsByRecordIds(recordIds: string[]) {
   if (recordIds.length === 0) return [];
+  await requireAuthenticatedProfile();
   const service = createServiceClient();
   const { data, error } = await service
     .from("audit_logs")

@@ -23,6 +23,8 @@ const navItems: NavItemDef[] = [
   { href: "/horarios", label: "Horarios", icon: "CalendarDays" },
   { href: "/reportes", label: "Reportes", icon: "FileText" },
   { href: "/datos-incompletos", label: "Incompletos", icon: "CircleAlert", adminOnly: true },
+  { href: "/ciclos", label: "Ciclos", icon: "CalendarDays", adminOnly: true },
+  { href: "/cohortes", label: "Cohortes", icon: "LayoutGrid" },
   { href: "/admin", label: "Admin", icon: "Settings", adminOnly: true }
 ];
 

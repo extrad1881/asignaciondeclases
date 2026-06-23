@@ -30,14 +30,13 @@ export default async function DashboardPage() {
     supabase
       .from("groups")
       .select("id, name, modality, shift, quarter, status, academic_cycles(code), careers(code)")
-      .neq("status", "archived")
+      .in("status", ["draft", "review", "final", "active"])
       .order("created_at", { ascending: false })
       .limit(6)
   ]);
 
   const incomplete = isAdmin(profile?.role_code) ? await getIncompleteData() : null;
   const incompleteTotal = incomplete?.issues.length ?? 0;
-  const activeGroups = (groups ?? []).filter((group: any) => group.status !== "archived");
   const assignmentCoverage =
     counts.groups > 0 ? Math.round((Math.min(counts.assignments, counts.groups) / counts.groups) * 100) : 0;
 
@@ -83,7 +82,7 @@ export default async function DashboardPage() {
               Ver todos
             </Link>
           </div>
-          {activeGroups.length === 0 ? (
+          {(groups ?? []).length === 0 ? (
             <EmptyState
               action={
                 <Link
@@ -98,7 +97,7 @@ export default async function DashboardPage() {
             />
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
-              {activeGroups.map((group: any) => (
+              {(groups ?? []).map((group: any) => (
                 <Link
                   className="rounded-md border border-line bg-panel p-3 transition hover:border-brand hover:bg-brandSoft/50"
                   href={`/grupos/${group.id}`}

@@ -38,7 +38,7 @@ export type SubjectHoursStatus = {
 
 export async function checkGroupSubjectHours(groupId: string): Promise<SubjectHoursStatus[]> {
   const supabase = await createClient();
-  const { data } = await (supabase.rpc as any)("check_group_subject_hours", {
+  const { data } = await supabase.rpc("check_group_subject_hours", {
     target_group_id: groupId
   });
   return (data ?? []) as SubjectHoursStatus[];
@@ -46,17 +46,26 @@ export async function checkGroupSubjectHours(groupId: string): Promise<SubjectHo
 
 export async function getDashboardCounts() {
   const supabase = await createClient();
-  const tables = ["careers", "teachers", "subjects", "groups", "assignments"] as const;
 
-  const entries = await Promise.all(
-    tables.map(async (table) => {
-      const { count } = await supabase.from(table).select("*", {
-        count: "exact",
-        head: true
-      });
-      return [table, count ?? 0] as const;
-    })
-  );
+  const [
+    { count: careersCt },
+    { count: teachersCt },
+    { count: subjectsCt },
+    { count: groupsCt },
+    { count: assignmentsCt }
+  ] = await Promise.all([
+    supabase.from("careers").select("*", { count: "exact", head: true }).eq("active", true),
+    supabase.from("teachers").select("*", { count: "exact", head: true }).eq("active", true),
+    supabase.from("subjects").select("*", { count: "exact", head: true }).eq("active", true),
+    supabase.from("groups").select("*", { count: "exact", head: true }),
+    supabase.from("assignments").select("*", { count: "exact", head: true }).eq("status", "active")
+  ]);
 
-  return Object.fromEntries(entries) as Record<(typeof tables)[number], number>;
+  return {
+    careers: careersCt ?? 0,
+    teachers: teachersCt ?? 0,
+    subjects: subjectsCt ?? 0,
+    groups: groupsCt ?? 0,
+    assignments: assignmentsCt ?? 0
+  };
 }

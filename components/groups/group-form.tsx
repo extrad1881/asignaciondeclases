@@ -26,12 +26,20 @@ type ProfileOption = {
   name: string;
 };
 
+type CohortOption = {
+  id: string;
+  name: string;
+  career_id: string;
+  current_quarter: number;
+};
+
 export function GroupForm({
   cycles,
   careers,
   classrooms,
   subjects,
   profiles,
+  cohorts = [],
   canCreateExternalSubjects = false
 }: {
   cycles: Option[];
@@ -39,6 +47,7 @@ export function GroupForm({
   classrooms: Option[];
   subjects: Option[];
   profiles: ProfileOption[];
+  cohorts?: CohortOption[];
   canCreateExternalSubjects?: boolean;
 }) {
   const router = useRouter();
@@ -47,6 +56,9 @@ export function GroupForm({
   const [quarter, setQuarter] = useState(1);
   const [includeOtherQuarters, setIncludeOtherQuarters] = useState(false);
   const [externalSubjectKeys, setExternalSubjectKeys] = useState<string[]>([]);
+  const [cohortId, setCohortId] = useState("");
+  const [showCompletedSubjects, setShowCompletedSubjects] = useState(false);
+  const [completedSubjectIds, setCompletedSubjectIds] = useState<Set<string>>(new Set());
   useActionFeedback(state);
 
   useEffect(() => {
@@ -54,6 +66,42 @@ export function GroupForm({
       router.push(state.redirectTo);
     }
   }, [router, state.redirectTo, state.success]);
+
+  const visibleCohorts = useMemo(() => {
+    if (!cohorts.length) return [];
+    return cohorts.filter((c) => c.career_id === careerId && c.current_quarter <= quarter);
+  }, [careerId, cohorts, quarter]);
+
+  const selectedCohort = useMemo(
+    () => cohorts.find((c) => c.id === cohortId),
+    [cohortId, cohorts]
+  );
+
+  const subjectsBeforeCurrentQuarter = useMemo(() => {
+    if (!selectedCohort || quarter <= 1) return [];
+    return subjects.filter(
+      (subject) => subject.career_id === careerId && subject.quarter && subject.quarter < quarter
+    );
+  }, [careerId, quarter, selectedCohort, subjects]);
+
+  const subjectsByQuarter = useMemo(() => {
+    const map = new Map<number, Option[]>();
+    for (const subject of subjectsBeforeCurrentQuarter) {
+      const q = subject.quarter ?? 0;
+      if (!map.has(q)) map.set(q, []);
+      map.get(q)!.push(subject);
+    }
+    return map;
+  }, [subjectsBeforeCurrentQuarter]);
+
+  function toggleCompletedSubject(subjectId: string) {
+    setCompletedSubjectIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(subjectId)) next.delete(subjectId);
+      else next.add(subjectId);
+      return next;
+    });
+  }
 
   const visibleSubjects = useMemo(() => {
     return subjects.filter((subject) => {
@@ -150,6 +198,27 @@ export function GroupForm({
             ))}
           </Select>
         </label>
+        {cohorts.length > 0 ? (
+          <label className="text-sm font-medium text-ink">
+            Cohorte (opcional)
+            <Select
+              className="mt-1"
+              name="cohort_group_id"
+              onChange={(event) => {
+                setCohortId(event.target.value);
+                if (!event.target.value) setShowCompletedSubjects(false);
+              }}
+              value={cohortId}
+            >
+              <option value="">Sin cohorte</option>
+              {visibleCohorts.map((cohort) => (
+                <option key={cohort.id} value={cohort.id}>
+                  {cohort.name} (Q{cohort.current_quarter})
+                </option>
+              ))}
+            </Select>
+          </label>
+        ) : null}
       </section>
 
       <section className="rounded-md border border-line bg-card p-4 shadow-subtle">
@@ -268,6 +337,54 @@ export function GroupForm({
               </div>
             ))}
           </div>
+        </section>
+      ) : null}
+
+      {selectedCohort && subjectsBeforeCurrentQuarter.length > 0 ? (
+        <section className="rounded-md border border-line bg-card p-4 shadow-subtle">
+          <button
+            className="flex w-full items-center justify-between text-left"
+            onClick={() => setShowCompletedSubjects(!showCompletedSubjects)}
+            type="button"
+          >
+            <div>
+              <h2 className="text-lg font-semibold text-ink">Materias ya cursadas</h2>
+              <p className="text-sm text-muted">
+                Marca las materias que esta cohorte ya tomó en cuatrimestres anteriores. Se excluirán del grupo actual.
+              </p>
+            </div>
+            <span className="text-sm text-muted">{showCompletedSubjects ? "▲" : "▼"}</span>
+          </button>
+          {showCompletedSubjects ? (
+            <div className="mt-3 space-y-3">
+              {Array.from(subjectsByQuarter.entries())
+                .sort(([a], [b]) => a - b)
+                .map(([q, qSubjects]) => (
+                  <div key={q}>
+                    <h4 className="mb-2 text-xs font-semibold uppercase text-muted">Cuatrimestre {q}</h4>
+                    <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                      {qSubjects.map((subject) => (
+                        <label
+                          className="flex items-center gap-2 rounded-md border border-line bg-panel p-2 text-sm"
+                          key={subject.id}
+                        >
+                          <input
+                            checked={completedSubjectIds.has(subject.id)}
+                            className="h-4 w-4 accent-brand"
+                            onChange={() => toggleCompletedSubject(subject.id)}
+                            type="checkbox"
+                          />
+                          {subject.name}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          ) : null}
+          {Array.from(completedSubjectIds).map((subjectId) => (
+            <input key={`completed-${subjectId}`} name="completed_subject_ids" type="hidden" value={subjectId} />
+          ))}
         </section>
       ) : null}
 

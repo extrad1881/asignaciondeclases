@@ -16,7 +16,7 @@ export default async function GroupsPage() {
     supabase
       .from("groups")
       .select("id, name, quarter, modality, shift, status, academic_cycles(code), careers(code, name)")
-      .neq("status", "archived")
+      .in("status", ["draft", "review", "final", "active"])
       .order("academic_cycle_id")
       .order("modality")
       .order("shift")

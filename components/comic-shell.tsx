@@ -203,7 +203,7 @@ export function ComicShell({ navItems, displayName, roleLabel, signOutAction, ch
       </aside>
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden min-h-0">
         {/* Mobile header */}
         <header className="flex items-center justify-between border-b border-line bg-panel px-4 py-3 lg:hidden">
           <div className="flex items-center gap-3">
@@ -224,7 +224,7 @@ export function ComicShell({ navItems, displayName, roleLabel, signOutAction, ch
           </button>
         </header>
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto min-h-0">
           <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-8">{children}</div>
         </main>
       </div>

@@ -53,7 +53,7 @@ export function ScheduleGrid({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-md border border-line bg-card shadow-subtle">
+      <div className="overflow-x-auto overscroll-x-contain rounded-md border border-line bg-card shadow-subtle">
         <ScheduleTable
           assignments={assignments}
           blocks={template.blocks}

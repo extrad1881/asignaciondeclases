@@ -159,7 +159,7 @@ export async function deleteAssignmentAction(formData: FormData) {
     currentAssignment.teacher_id
   );
 
-  const { error } = await supabase.from("assignments").delete().eq("id", parsed.data.assignment_id);
+  const { error } = await supabase.from("assignments").update({ status: "inactive" }).eq("id", parsed.data.assignment_id);
   if (error) throw new Error(error.message);
 
   revalidatePath("/grupos");

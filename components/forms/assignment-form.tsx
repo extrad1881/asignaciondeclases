@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { ScheduleTable } from "@/components/schedule/schedule-table";
-import { cn } from "@/lib/utils";
+import { cn, computeBlockHours } from "@/lib/utils";
 
 type Option = {
   id: string;
@@ -42,18 +42,25 @@ type AssignmentPreview = {
   teacherName?: string | null;
 };
 
+type SubjectHoursInfo = {
+  total: number;
+  assigned: number;
+};
+
 export function AssignmentForm({
   groupSubjects,
   teachers,
   blocks,
   classrooms,
-  assignments = []
+  assignments = [],
+  subjectHours
 }: {
   groupSubjects: GroupSubjectOption[];
   teachers: TeacherOption[];
   blocks: ScheduleBlockOption[];
   classrooms: Option[];
   assignments?: AssignmentPreview[];
+  subjectHours?: Record<string, SubjectHoursInfo>;
 }) {
   const [state, formAction, pending] = useActionState(createAssignmentStateAction, initialActionState);
   const [selectedSubjectId, setSelectedSubjectId] = useState(groupSubjects[0]?.id ?? "");
@@ -61,6 +68,34 @@ export function AssignmentForm({
   useActionFeedback(state);
   const selectedSubject = groupSubjects.find((subject) => subject.id === selectedSubjectId) ?? groupSubjects[0];
   const requiredProfiles = useMemo(() => selectedSubject?.requiredProfiles ?? [], [selectedSubject]);
+
+  const selectedBlock = useMemo(
+    () => blocks.find((block) => block.id === selectedBlockId),
+    [blocks, selectedBlockId]
+  );
+  const blockHours = computeBlockHours(selectedBlock?.startsAt, selectedBlock?.endsAt);
+
+  const selectedHoursInfo = subjectHours?.[selectedSubjectId ?? ""];
+  const hoursHint = useMemo(() => {
+    if (!selectedHoursInfo || selectedHoursInfo.total <= 0) return null;
+    const remaining = selectedHoursInfo.total - selectedHoursInfo.assigned;
+    if (remaining > 0) {
+      return {
+        text: `${selectedHoursInfo.assigned} h asignadas de ${selectedHoursInfo.total} h — faltan ${remaining} h`,
+        tone: "warning" as const
+      };
+    }
+    if (remaining === 0) {
+      return {
+        text: `Horas completas (${selectedHoursInfo.total} h)`,
+        tone: "success" as const
+      };
+    }
+    return {
+      text: `Excedida por ${Math.abs(remaining)} h (${selectedHoursInfo.assigned}/${selectedHoursInfo.total} h)`,
+      tone: "danger" as const
+    };
+  }, [selectedHoursInfo]);
 
   const eligibleTeachers = useMemo(() => {
     if (requiredProfiles.length === 0) return teachers;
@@ -113,8 +148,8 @@ export function AssignmentForm({
           Horas asignadas
           <Input
             className="mt-1"
-            defaultValue={selectedSubject?.loadHours ?? 1.5}
-            key={selectedSubject?.id ?? "hours"}
+            defaultValue={blockHours}
+            key={`${selectedSubject?.id ?? "s"}-${selectedBlockId ?? "b"}`}
             max={99}
             min={0.5}
             name="duration_hours"
@@ -122,6 +157,15 @@ export function AssignmentForm({
             step={0.5}
             type="number"
           />
+          {hoursHint ? (
+            <span className={`mt-1 block text-xs font-normal ${
+              hoursHint.tone === "success" ? "text-green-700" :
+              hoursHint.tone === "danger" ? "text-red-700" :
+              "text-amber-700"
+            }`}>
+              {hoursHint.text}
+            </span>
+          ) : null}
         </label>
 
         <label className="text-sm font-medium text-ink">
@@ -137,7 +181,7 @@ export function AssignmentForm({
         </label>
       </div>
 
-      <div className="overflow-x-auto rounded-md border border-line bg-panel">
+      <div className="overflow-x-auto overscroll-x-contain rounded-md border border-line bg-panel">
         <ScheduleTable
           assignments={assignments}
           blocks={blocks}

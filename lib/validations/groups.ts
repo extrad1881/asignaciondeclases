@@ -6,7 +6,7 @@ export const groupSchema = z
     academic_cycle_id: z.string().uuid("Selecciona un ciclo escolar."),
     career_id: z.string().uuid("Selecciona una carrera."),
     quarter: z.coerce.number().int().min(1).max(12),
-    modality: z.enum(["escolarizado", "modular", "virtual_modular", "maestrias"]),
+    modality: z.enum(["escolarizado", "modular", "virtual_modular", "maestrias", "sabatino"]),
     shift: z.enum(["matutino", "vespertino"]),
     name: z.string().min(1, "Escribe el nombre del grupo.").max(80),
     classroom_id: z.string().uuid().optional().or(z.literal(""))

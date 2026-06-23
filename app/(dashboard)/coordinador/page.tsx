@@ -7,6 +7,7 @@ import {
   deleteAssignmentFeedbackAction,
   updateAssignmentAction,
   updateAssignmentFeedbackAction,
+  updateGroupSubjectHoursAction,
   updateTeacherMaxHoursAction,
   updateTeacherMaxHoursFeedbackAction,
   updateTeacherProfilesAction,
@@ -160,6 +161,7 @@ export default async function CoordinatorPage() {
           careers={careers as any[]}
           classrooms={classrooms as any[]}
           canCreateExternalSubjects
+          cohorts={[]}
           cycles={cycles as any[]}
           profiles={profileOptions as any[]}
           subjects={subjects as any[]}
@@ -249,6 +251,35 @@ export default async function CoordinatorPage() {
             }));
             const groupSubjectIdSet = new Set(groupSubjects.map((subject) => subject.id));
             const groupAssignments = ((assignments ?? []) as any[]).filter((assignment) => groupSubjectIdSet.has(assignment.group_subject_id));
+
+            const assignedMap = new Map<string, number>();
+            for (const a of groupAssignments) {
+              const prev = assignedMap.get(a.group_subject_id) ?? 0;
+              assignedMap.set(a.group_subject_id, prev + Number(a.duration_hours ?? 0));
+            }
+
+            const subjectHours = Object.fromEntries(
+              groupSubjects.map((s) => [s.id, {
+                total: s.loadHours,
+                assigned: assignedMap.get(s.id) ?? 0
+              }])
+            );
+
+            const groupHoursStatus = ((group.group_subjects ?? []) as any[]).map((gs: any) => {
+              const assigned = assignedMap.get(gs.id) ?? 0;
+              const total = Number(gs.hours_per_week ?? 0);
+              const remaining = total - assigned;
+              return {
+                group_subject_id: gs.id,
+                subject_name: gs.subjects?.name ?? "Materia externa",
+                hours_per_week: total,
+                assigned_hours: assigned,
+                remaining,
+                status: assigned === 0 ? "sin_asignar" :
+                         remaining > 0 ? "incompleta" :
+                         remaining === 0 ? "completa" : "excedida"
+              };
+            });
             const groupBlocks = ((scheduleBlocks ?? []) as any[])
               .filter((block) => block.schedule_templates?.modality === group.modality && block.schedule_templates?.shift === group.shift)
               .map((block) => ({
@@ -305,8 +336,65 @@ export default async function CoordinatorPage() {
                         label: classroom.name
                       }))}
                       groupSubjects={groupSubjects}
+                      subjectHours={subjectHours}
                       teachers={teacherOptions}
                     />
+
+                    <div className="mt-4 rounded-md border border-line bg-card p-4 shadow-subtle">
+                      <h4 className="mb-2 text-sm font-semibold text-ink">Limites por materia</h4>
+                      <DataTable
+                        emptyLabel="No hay materias en este grupo."
+                        headers={["Materia", "Limite", "Asignadas", "Estado", "Editar limite"]}
+                        rows={groupHoursStatus.map((item: any) => {
+                          return [
+                            item.subject_name,
+                            `${item.hours_per_week} h/semana`,
+                            `${item.assigned_hours} h`,
+                            <Badge
+                              key="status"
+                              tone={
+                                item.status === "completa" ? "success" :
+                                item.status === "excedida" ? "danger" :
+                                item.status === "incompleta" ? "warning" : "neutral"
+                              }
+                            >
+                              {item.status === "completa" ? "Completa" :
+                               item.status === "excedida" ? "Excedida" :
+                               item.status === "incompleta" ? `Faltan ${item.remaining} h` : "Sin asignar"}
+                            </Badge>,
+                            <ActionStateForm
+                              action={updateGroupSubjectHoursAction}
+                              className="grid gap-2 md:grid-cols-[100px_auto]"
+                              key={`edit-${item.group_subject_id}`}
+                            >
+                              <input name="group_subject_id" type="hidden" value={item.group_subject_id} />
+                              <input name="group_id" type="hidden" value={group.id} />
+                              <Input
+                                className="h-8"
+                                defaultValue={item.hours_per_week}
+                                max={99}
+                                min={0.5}
+                                name="hours_per_week"
+                                required
+                                step={0.5}
+                                type="number"
+                              />
+                              <ConfirmActionButton
+                                affectedName={item.subject_name}
+                                className="h-8 px-3 text-xs"
+                                confirmLabel="Actualizar limite"
+                                description={`Se cambiara el limite semanal de ${item.subject_name} de ${item.hours_per_week} h a otro valor.`}
+                                title="Modificar limite de horas"
+                                variant="secondary"
+                              >
+                                <Save className="h-3 w-3" />
+                                Guardar
+                              </ConfirmActionButton>
+                            </ActionStateForm>
+                          ];
+                        })}
+                      />
+                    </div>
 
                     <div className="mt-4">
                       <h3 className="mb-2 text-base font-semibold text-ink">Asignaciones activas</h3>

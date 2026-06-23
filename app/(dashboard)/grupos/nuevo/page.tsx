@@ -31,6 +31,31 @@ export default async function NewGroupPage() {
       supabase.from("teacher_profiles").select("code, name").order("code")
     ]);
 
+  let cohortsQuery = (supabase as any)
+    .from("cohort_groups")
+    .select("id, name, career_id, current_quarter")
+    .eq("status", "active");
+
+  if (!isAdmin(profile?.role_code)) {
+    const { data: coordinator } = await (supabase as any)
+      .from("coordinators")
+      .select("id")
+      .eq("profile_id", profile?.id)
+      .maybeSingle();
+    if (coordinator) {
+      const { data: coordinatorCareers = [] } = await (supabase as any)
+        .from("coordinator_careers")
+        .select("career_id")
+        .eq("coordinator_id", coordinator.id);
+      const careerIds = coordinatorCareers.map((cc: any) => cc.career_id);
+      if (careerIds.length > 0) {
+        cohortsQuery = cohortsQuery.in("career_id", careerIds);
+      }
+    }
+  }
+
+  const { data: cohorts = [] } = await cohortsQuery.order("name");
+
   const canCreateExtraSubjects = isAdmin(profile?.role_code) || profile?.role_code === "coordinator";
 
   return (
@@ -44,6 +69,7 @@ export default async function NewGroupPage() {
         careers={careers as any[]}
         classrooms={classrooms as any[]}
         canCreateExternalSubjects={canCreateExtraSubjects}
+        cohorts={cohorts as any[]}
         cycles={cycles as any[]}
         profiles={(profiles ?? []).filter((teacherProfile: any) => isValidProfileCode(teacherProfile.code)) as any[]}
         subjects={subjects as any[]}

@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/admin";
 
 export type AuthenticatedProfile = {
   supabase: Awaited<ReturnType<typeof createClient>>;

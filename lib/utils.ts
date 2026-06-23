@@ -26,3 +26,11 @@ export function getInitials(name: string) {
     .map((part) => part[0]?.toUpperCase())
     .join("");
 }
+
+export function computeBlockHours(startsAt: string | null | undefined, endsAt: string | null | undefined): number {
+  if (!startsAt || !endsAt) return 1.5;
+  const [startH, startM] = startsAt.split(":").map(Number);
+  const [endH, endM] = endsAt.split(":").map(Number);
+  const minutes = (endH * 60 + endM) - (startH * 60 + startM);
+  return minutes > 0 ? minutes / 60 : 1.5;
+}

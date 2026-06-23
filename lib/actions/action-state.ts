@@ -1,3 +1,5 @@
+import { getSafeErrorMessage } from "@/lib/supabase/error-utils";
+
 export type ActionState = {
   success: boolean;
   message: string;
@@ -20,10 +22,11 @@ export function actionSuccess(message: string, redirectTo?: string): ActionState
   };
 }
 
-export function actionFailure(error: unknown, fallback = "No se pudo completar la accion."): ActionState {
+export function actionFailure(error: unknown, fallback?: string): ActionState {
+  const message = fallback ?? getSafeErrorMessage(error);
   return {
     success: false,
-    message: error instanceof Error && error.message ? error.message : fallback,
+    message,
     timestamp: Date.now()
   };
 }

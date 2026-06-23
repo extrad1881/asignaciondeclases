@@ -36,7 +36,7 @@ export function GroupScheduleBoard({
         </div>
       ) : null}
 
-      <div className="overflow-x-auto rounded-md border border-line bg-card">
+      <div className="overflow-x-auto overscroll-x-contain rounded-md border border-line bg-card">
         <ScheduleTable
           assignments={assignments}
           blocks={blocks}

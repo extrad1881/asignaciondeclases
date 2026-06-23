@@ -10,7 +10,9 @@ import {
   setGroupFinalAction,
   setGroupReviewAction,
   updateAssignmentAction,
-  updateAssignmentFeedbackAction
+  updateAssignmentFeedbackAction,
+  updateGroupSubjectHoursAction,
+  permanentDeleteGroupAction
 } from "@/app/(dashboard)/actions";
 import { SectionHeader } from "@/components/section-header";
 import { Badge } from "@/components/ui/badge";
@@ -82,6 +84,11 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
         .eq("status", "active")
     ]);
 
+  const [hoursStatus, groupHistory] = await Promise.all([
+    checkGroupSubjectHours((group as any).id),
+    getGroupAuditHistory((group as any).id)
+  ]);
+
   const teachers = (teachersData ?? []) as any[];
   const classrooms = (classroomsData ?? []) as any[];
   const blocks = (blocksData ?? []) as any[];
@@ -100,10 +107,16 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       loadHours: Number(item.hours_per_week ?? 1.5)
     };
   });
-  const hoursStatus = await checkGroupSubjectHours((group as any).id);
   const completeSubjects = hoursStatus.filter((item) => item.status === "completa").length;
   const riskySubjects = hoursStatus.filter((item) => item.status === "incompleta" || item.status === "excedida").length;
-  const groupHistory = await getGroupAuditHistory((group as any).id);
+
+  const subjectHours: Record<string, { total: number; assigned: number }> = {};
+  for (const item of hoursStatus) {
+    subjectHours[item.group_subject_id] = {
+      total: item.hours_per_week,
+      assigned: item.assigned_hours
+    };
+  }
 
   function auditDetails(value: Record<string, unknown> | null) {
     if (!value) return <span className="text-muted-foreground">Sin datos</span>;
@@ -158,6 +171,64 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
         />
       </section>
 
+      <section className="mb-5 rounded-md border border-line bg-card p-4 shadow-subtle">
+        <h3 className="mb-2 text-sm font-semibold text-ink">Limites por materia</h3>
+        <DataTable
+          emptyLabel="No hay materias en este grupo."
+          headers={["Materia", "Limite", "Asignadas", "Estado", "Editar limite"]}
+          rows={hoursStatus.map((item) => {
+            const subject = (group as any).group_subjects?.find((gs: any) => gs.id === item.group_subject_id);
+            const remaining = Number(item.hours_per_week) - Number(item.assigned_hours);
+            return [
+              item.subject_name,
+              `${item.hours_per_week} h/semana`,
+              `${item.assigned_hours} h`,
+              <Badge
+                key="status"
+                tone={
+                  item.status === "completa" ? "success" :
+                  item.status === "excedida" ? "danger" :
+                  item.status === "incompleta" ? "warning" : "neutral"
+                }
+              >
+                {item.status === "completa" ? "Completa" :
+                 item.status === "excedida" ? "Excedida" :
+                 item.status === "incompleta" ? `Faltan ${remaining} h` : "Sin asignar"}
+              </Badge>,
+              <ActionStateForm
+                action={updateGroupSubjectHoursAction}
+                className="grid gap-2 md:grid-cols-[100px_auto]"
+                key={`edit-${item.group_subject_id}`}
+              >
+                <input name="group_subject_id" type="hidden" value={item.group_subject_id} />
+                <input name="group_id" type="hidden" value={(group as any).id} />
+                <Input
+                  className="h-8"
+                  defaultValue={item.hours_per_week}
+                  max={99}
+                  min={0.5}
+                  name="hours_per_week"
+                  required
+                  step={0.5}
+                  type="number"
+                />
+                <ConfirmActionButton
+                  affectedName={item.subject_name}
+                  className="h-8 px-3 text-xs"
+                  confirmLabel="Actualizar limite"
+                  description={`Se cambiara el limite semanal de ${item.subject_name} de ${item.hours_per_week} h a otro valor.`}
+                  title="Modificar limite de horas"
+                  variant="secondary"
+                >
+                  <Save className="h-3 w-3" />
+                  Guardar
+                </ConfirmActionButton>
+              </ActionStateForm>
+            ];
+          })}
+        />
+      </section>
+
       <section className="mb-5 flex flex-wrap gap-2 rounded-md border border-line bg-card p-3 shadow-subtle">
         <span className="mr-2 self-center text-xs font-semibold uppercase text-muted">Estado:</span>
         {(group as any).status === "draft" ? (
@@ -194,6 +265,22 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
               <Inbox className="h-3 w-3" />
               Archivar grupo
             </Button>
+          </form>
+        ) : null}
+        {isAdmin(profile?.role_code) && ((group as any).status === "draft" || (group as any).status === "archived") ? (
+          <form action={permanentDeleteGroupAction}>
+            <input name="group_id" type="hidden" value={(group as any).id} />
+            <ConfirmActionButton
+              affectedName={(group as any).name}
+              className="h-8 text-xs"
+              confirmLabel="Eliminar permanentemente"
+              danger
+              description="El grupo y todas sus asignaciones se eliminaran permanentemente. Esta accion no se puede deshacer."
+              title="Eliminar grupo permanentemente"
+            >
+              <Trash2 className="h-3 w-3" />
+              Eliminar permanentemente
+            </ConfirmActionButton>
           </form>
         ) : null}
       </section>
@@ -257,6 +344,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
                 teacherName: assignment.teachers?.name
               }))}
               groupSubjects={groupSubjects}
+              subjectHours={subjectHours}
               teachers={(teachers as any[]).map((teacher) => ({
                 id: teacher.id,
                 label: `${teacher.name} Â· ${teacher.assigned_hours ?? 0}/${teacher.max_hours ?? 0} h`,

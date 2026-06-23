@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuthenticatedProfile } from "@/lib/supabase/auth-helpers";
 import { actionFailure, actionSuccess, type ActionState } from "@/lib/actions/action-state";
+import { getSafeErrorMessage } from "@/lib/supabase/error-utils";
 import { cleanString, getStringList, normalizeKey } from "@/app/(dashboard)/actions/utils";
 import { isValidProfileCode, normalizeProfileCode } from "@/lib/profiles";
 import { groupSchema } from "@/lib/validations/groups";
@@ -146,11 +147,38 @@ async function createGroupFromFormData(formData: FormData) {
 
   if (error) throw new Error(error.message);
 
+  const cohortGroupId = cleanString(formData.get("cohort_group_id"));
+  const completedSubjectIds = getStringList(formData, "completed_subject_ids");
+
+  if (cohortGroupId && groupId) {
+    const { error: linkError } = await supabase
+      .from("groups")
+      .update({ cohort_group_id: cohortGroupId })
+      .eq("id", groupId);
+    if (linkError) throw new Error(linkError.message);
+
+    if (completedSubjectIds.length > 0) {
+      const { error: historyError } = await supabase
+        .from("cohort_subject_history")
+        .upsert(
+          completedSubjectIds.map((subjectId) => ({
+            cohort_group_id: cohortGroupId,
+            subject_id: subjectId,
+            quarter: Math.max(1, Number(parsed.data.quarter) - 1),
+            group_id: groupId
+          })),
+          { onConflict: "cohort_group_id,subject_id" }
+        );
+      if (historyError) throw new Error(historyError.message);
+    }
+  }
+
   revalidatePath("/grupos");
   revalidatePath("/materias");
   revalidatePath("/carreras");
   revalidatePath("/coordinador");
   revalidatePath(`/carreras/${parsed.data.career_id}/materias`);
+  revalidatePath("/cohortes");
 
   return String(groupId);
 }
@@ -244,4 +272,114 @@ export async function setGroupArchivedStateAction(_previousState: ActionState, f
   } catch (error) {
     return actionFailure(error, "No se pudo archivar el grupo.");
   }
+}
+
+const updateHoursSchema = z.object({
+  group_subject_id: z.string().uuid(),
+  group_id: z.string().uuid(),
+  hours_per_week: z.coerce.number().min(0.5, "El minimo es 0.5 h.").max(99, "El maximo es 99 h.")
+});
+
+export async function updateGroupSubjectHoursAction(
+  _previousState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    const parsed = updateHoursSchema.safeParse({
+      group_subject_id: formData.get("group_subject_id"),
+      group_id: formData.get("group_id"),
+      hours_per_week: formData.get("hours_per_week")
+    });
+    if (!parsed.success) {
+      return actionFailure(new Error(parsed.error.issues.map((i) => i.message).join(" ")));
+    }
+
+    const { supabase, profile } = await requireAuthenticatedProfile();
+
+    if (profile.role_code !== "admin") {
+      const { data: group } = await supabase
+        .from("groups")
+        .select("career_id")
+        .eq("id", parsed.data.group_id)
+        .single();
+      if (!group) return actionFailure(new Error("Grupo no encontrado."));
+
+      const { data: allowed } = await supabase.rpc("can_access_career", {
+        target_career_id: group.career_id
+      });
+      if (!allowed) return actionFailure(new Error("No tienes permiso para modificar este grupo."));
+    }
+
+    const { data: existing, error: fetchError } = await supabase
+      .from("group_subjects")
+      .select("id, hours_per_week, subject_id")
+      .eq("id", parsed.data.group_subject_id)
+      .single();
+    if (fetchError || !existing) return actionFailure(new Error("Materia del grupo no encontrada."));
+
+    const { data: assignedRows } = await supabase
+      .from("assignments")
+      .select("duration_hours")
+      .eq("group_subject_id", parsed.data.group_subject_id)
+      .eq("status", "active");
+    const totalAssigned = (assignedRows ?? []).reduce((sum: number, row: any) => sum + Number(row.duration_hours ?? 0), 0);
+
+    const { error: updateError } = await supabase
+      .from("group_subjects")
+      .update({ hours_per_week: parsed.data.hours_per_week })
+      .eq("id", parsed.data.group_subject_id);
+
+    if (updateError) return actionFailure(updateError);
+
+    revalidatePath(`/grupos/${parsed.data.group_id}`);
+    revalidatePath("/coordinador");
+
+    if (parsed.data.hours_per_week < totalAssigned) {
+      return actionSuccess(
+        `Limite actualizado a ${parsed.data.hours_per_week} h. La materia tiene ${totalAssigned} h ya asignadas — esta excedida.`
+      );
+    }
+
+    return actionSuccess(`Limite actualizado a ${parsed.data.hours_per_week} h.`);
+  } catch (error) {
+    return actionFailure(error, "No se pudo actualizar el limite de horas.");
+  }
+}
+
+export async function permanentDeleteGroupAction(formData: FormData) {
+  const { supabase, profile } = await requireAuthenticatedProfile();
+  if (profile.role_code !== "admin") throw new Error("Solo el administrador puede eliminar grupos permanentemente.");
+
+  const groupId = cleanString(formData.get("group_id"));
+  if (!groupId) throw new Error("Grupo no valido.");
+
+  const { data: group } = await supabase
+    .from("groups")
+    .select("id, name, cohort_group_id")
+    .eq("id", groupId)
+    .single();
+  if (!group) throw new Error("Grupo no encontrado.");
+
+  if (group.cohort_group_id) {
+    const { data: cohort } = await supabase
+      .from("cohort_groups")
+      .select("status")
+      .eq("id", group.cohort_group_id)
+      .maybeSingle();
+    if (cohort?.status === "active") {
+      throw new Error("No se puede eliminar un grupo vinculado a una cohorte activa. Archiva la cohorte primero.");
+    }
+  }
+
+  const { error } = await supabase
+    .from("groups")
+    .delete()
+    .eq("id", groupId);
+  if (error) throw new Error(getSafeErrorMessage(error));
+
+  revalidatePath("/grupos");
+  revalidatePath("/coordinador");
+  revalidatePath("/cohortes");
+
+  redirect("/grupos");
 }

@@ -29,7 +29,9 @@ import {
   setGroupArchivedAction as setGroupArchivedActionImpl,
   setGroupDraftAction as setGroupDraftActionImpl,
   setGroupFinalAction as setGroupFinalActionImpl,
-  setGroupReviewAction as setGroupReviewActionImpl
+  setGroupReviewAction as setGroupReviewActionImpl,
+  updateGroupSubjectHoursAction as updateGroupSubjectHoursActionImpl,
+  permanentDeleteGroupAction as permanentDeleteGroupActionImpl
 } from "./actions/grupos";
 import {
   createSubjectAction as createSubjectActionImpl,
@@ -40,6 +42,19 @@ import {
   createUserAction as createUserActionImpl,
   updateUserAction as updateUserActionImpl
 } from "./actions/usuarios";
+import {
+  activateCycleAction as activateCycleActionImpl,
+  archiveCycleAction as archiveCycleActionImpl,
+  createCycleAction as createCycleActionImpl,
+  finalizeCycleAction as finalizeCycleActionImpl,
+  updateCycleAction as updateCycleActionImpl
+} from "./actions/ciclos";
+import {
+  advanceCohortAction as advanceCohortActionImpl,
+  archiveCohortAction as archiveCohortActionImpl,
+  completeCohortAction as completeCohortActionImpl,
+  createCohortAction as createCohortActionImpl
+} from "./actions/cohortes";
 import { actionFailure, actionSuccess, type ActionState } from "@/lib/actions/action-state";
 
 async function runFeedbackAction(
@@ -342,4 +357,48 @@ export async function setGroupArchivedStateAction(previousState: ActionState, fo
   } catch (error) {
     return { success: false, message: error instanceof Error ? error.message : "No se pudo archivar el grupo.", timestamp: Date.now() };
   }
+}
+
+export async function updateGroupSubjectHoursAction(previousState: ActionState, formData: FormData) {
+  return updateGroupSubjectHoursActionImpl(previousState, formData);
+}
+
+export async function permanentDeleteGroupAction(formData: FormData) {
+  return permanentDeleteGroupActionImpl(formData);
+}
+
+export async function createCycleAction(previousState: ActionState, formData: FormData) {
+  return createCycleActionImpl(previousState, formData);
+}
+
+export async function updateCycleAction(previousState: ActionState, formData: FormData) {
+  return updateCycleActionImpl(previousState, formData);
+}
+
+export async function activateCycleAction(formData: FormData) {
+  return activateCycleActionImpl(formData);
+}
+
+export async function finalizeCycleAction(formData: FormData) {
+  return finalizeCycleActionImpl(formData);
+}
+
+export async function archiveCycleAction(formData: FormData) {
+  return archiveCycleActionImpl(formData);
+}
+
+export async function createCohortAction(previousState: ActionState, formData: FormData) {
+  return createCohortActionImpl(previousState, formData);
+}
+
+export async function advanceCohortAction(previousState: ActionState, formData: FormData) {
+  return advanceCohortActionImpl(previousState, formData);
+}
+
+export async function completeCohortAction(formData: FormData) {
+  return completeCohortActionImpl(formData);
+}
+
+export async function archiveCohortAction(formData: FormData) {
+  return archiveCohortActionImpl(formData);
 }

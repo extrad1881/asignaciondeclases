@@ -2,7 +2,8 @@ export const MODALITIES = [
   { value: "escolarizado", label: "Escolarizado" },
   { value: "modular", label: "Modular" },
   { value: "virtual_modular", label: "Virtual modular" },
-  { value: "maestrias", label: "Maestrías" }
+  { value: "maestrias", label: "Maestrías" },
+  { value: "sabatino", label: "Sabatino" }
 ] as const;
 
 export const SHIFTS = [
