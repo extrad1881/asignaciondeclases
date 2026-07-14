@@ -1,5 +1,6 @@
-import { Save, Trash2, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import { SectionHeader } from "@/components/section-header";
+import { TeacherCard } from "@/components/docentes/teacher-card";
 import { ProfileCheckboxGroup } from "@/components/forms/profile-checkbox-group";
 import { ActionStateForm } from "@/components/ui/action-state-form";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
 import { DataTableAdvanced, type DataTableAdvancedRow } from "@/components/ui/data-table-advanced";
 import { Input } from "@/components/ui/input";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { Select } from "@/components/ui/select";
 import {
   assignCoordinatorTeacherAction,
@@ -35,7 +37,7 @@ export default async function TeachersPage() {
     requireActiveProfileOrRedirect(),
     supabase
       .from("teachers")
-      .select("id, name, max_hours, assigned_hours, active, coordinator_teachers(coordinators(id, name)), teacher_available_profiles(profile_code)")
+      .select("id, name, max_hours, assigned_hours, active, responsible_coordinator_id, coordinator_teachers(coordinators(id, name)), teacher_available_profiles(profile_code)")
       .order("name")
       .limit(300),
     supabase.from("teacher_profiles").select("code, name").order("code"),
@@ -44,7 +46,7 @@ export default async function TeachersPage() {
   const teacherRows = teachers ?? [];
   const canManageTeachers = isAdmin(profile?.role_code);
   const profileOptions = (profiles ?? []).filter((teacherProfile: any) => isValidProfileCode(teacherProfile.code));
-  const coordinatorOptions = coordinators ?? [];
+  const coordinatorOptions = (coordinators ?? []).map((c: any) => ({ id: c.id, name: c.name }));
 
   const rows: DataTableAdvancedRow[] = teacherRows.map((teacher: any) => {
     const selectedProfiles = (teacher.teacher_available_profiles ?? [])
@@ -125,7 +127,8 @@ export default async function TeachersPage() {
                 title="Modificar horas máximas"
                 variant="secondary"
               >
-                <Save className="h-3 w-3" />
+                <span className="sr-only">Guardar</span>
+                ✓
               </ConfirmActionButton>
             </form>
           </div>
@@ -149,14 +152,13 @@ export default async function TeachersPage() {
                   title="Modificar perfiles del docente"
                   variant="secondary"
                 >
-                  <Save className="h-4 w-4" />
                   Guardar
                 </ConfirmActionButton>
               </form>,
               <form action={assignCoordinatorTeacherAction} className="grid min-w-52 gap-2" key="coordinator-form">
                 <input name="teacher_id" type="hidden" value={teacher.id} />
                 <Select defaultValue={teacher.responsible_coordinator_id ?? coordinatorOptions[0]?.id ?? ""} name="coordinator_id" required>
-                  {coordinatorOptions.map((coordinator: any) => (
+                  {coordinatorOptions.map((coordinator) => (
                     <option key={coordinator.id} value={coordinator.id}>
                       {coordinator.name}
                     </option>
@@ -192,7 +194,6 @@ export default async function TeachersPage() {
                   title={teacher.active ? "Desactivar docente" : "Reactivar docente"}
                   variant={teacher.active ? "danger" : "secondary"}
                 >
-                  {teacher.active ? <Trash2 className="h-4 w-4" /> : null}
                   {teacher.active ? "Quitar" : "Reactivar"}
                 </ConfirmActionButton>
               </form>
@@ -230,27 +231,62 @@ export default async function TeachersPage() {
             </div>
             <div className="flex items-end">
               <Button className="w-full" type="submit">
-                <UserPlus className="h-4 w-4" />
+                <UserPlus className="h-4 w-4" aria-hidden />
                 Agregar
               </Button>
             </div>
           </ActionStateForm>
         </section>
       ) : null}
-      <DataTableAdvanced
-        emptyDescription="Agrega docentes para poder asignarlos a materias y validar perfiles requeridos."
-        emptyLabel="No hay docentes registrados."
-        filters={[
-          { key: "coordinador", label: "Coordinador" },
-          { key: "estado", label: "Estado" },
-          { key: "perfil", label: "Perfil" }
-        ]}
-        headers={
-          canManageTeachers
-            ? ["Docente", "Coordinadores", "Perfiles aptos", "Horas", "Estado", "Editar perfiles", "Agregar coordinador", "Acciones"]
-            : ["Docente", "Coordinadores", "Perfiles aptos", "Horas", "Estado"]
+      <ResponsiveTable
+        cards={
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {teacherRows.map((teacher: any) => {
+              const selectedProfiles = (teacher.teacher_available_profiles ?? [])
+                .map((item: any) => item.profile_code)
+                .filter(isValidProfileCode);
+              const assignedCoordinators = (teacher.coordinator_teachers ?? [])
+                .map((ct: any) => ct.coordinators)
+                .filter(Boolean);
+              return (
+                <li key={teacher.id}>
+                  <TeacherCard
+                    canManage={canManageTeachers}
+                    coordinatorOptions={coordinatorOptions}
+                    profileOptions={profileOptions as any[]}
+                    teacher={{
+                      id: teacher.id,
+                      name: teacher.name,
+                      max_hours: teacher.max_hours,
+                      assigned_hours: teacher.assigned_hours,
+                      active: teacher.active,
+                      responsible_coordinator_id: teacher.responsible_coordinator_id,
+                      assignedCoordinators,
+                      selectedProfiles
+                    }}
+                  />
+                </li>
+              );
+            })}
+          </ul>
         }
-        rows={rows}
+        table={
+          <DataTableAdvanced
+            emptyDescription="Agrega docentes para poder asignarlos a materias y validar perfiles requeridos."
+            emptyLabel="No hay docentes registrados."
+            filters={[
+              { key: "coordinador", label: "Coordinador" },
+              { key: "estado", label: "Estado" },
+              { key: "perfil", label: "Perfil" }
+            ]}
+            headers={
+              canManageTeachers
+                ? ["Docente", "Coordinadores", "Perfiles aptos", "Horas", "Estado", "Editar perfiles", "Agregar coordinador", "Acciones"]
+                : ["Docente", "Coordinadores", "Perfiles aptos", "Horas", "Estado"]
+            }
+            rows={rows}
+          />
+        }
       />
     </>
   );

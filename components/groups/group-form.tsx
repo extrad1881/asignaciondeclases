@@ -120,7 +120,7 @@ export function GroupForm({
   }
 
   return (
-    <form action={formAction} className="grid gap-5">
+    <form action={formAction} className="grid gap-5 pb-24 md:pb-0">
       <section className="grid gap-4 rounded-md border border-line bg-card p-4 shadow-subtle md:grid-cols-2 xl:grid-cols-4">
         <label className="text-sm font-medium text-ink">
           Ciclo escolar
@@ -361,7 +361,7 @@ export function GroupForm({
                 .sort(([a], [b]) => a - b)
                 .map(([q, qSubjects]) => (
                   <div key={q}>
-                    <h4 className="mb-2 text-xs font-semibold uppercase text-muted">Cuatrimestre {q}</h4>
+                    <h3 className="mb-2 text-xs font-semibold uppercase text-muted">Cuatrimestre {q}</h3>
                     <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                       {qSubjects.map((subject) => (
                         <label
@@ -388,18 +388,20 @@ export function GroupForm({
         </section>
       ) : null}
 
-      <div className="flex justify-end gap-2">
-        <ActionAlert className="mr-auto" state={state} />
-        {canCreateExternalSubjects ? (
-          <Button disabled={pending} onClick={addExternalSubject} type="button" variant="secondary">
-            <Plus className="h-4 w-4" />
-            Materia externa
+      <div className="sticky bottom-0 z-20 -mx-4 mt-2 border-t border-line bg-card/95 px-4 py-3 shadow-panel backdrop-blur supports-[backdrop-filter]:bg-card/80 md:static md:mx-0 md:mt-0 md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-0">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end md:gap-2">
+          <ActionAlert className="md:mr-auto" state={state} />
+          {canCreateExternalSubjects ? (
+            <Button disabled={pending} onClick={addExternalSubject} type="button" variant="secondary">
+              <Plus className="h-4 w-4" />
+              Materia externa
+            </Button>
+          ) : null}
+          <Button disabled={pending} type="submit">
+            <Save className="h-4 w-4" />
+            {pending ? "Guardando..." : "Guardar grupo"}
           </Button>
-        ) : null}
-        <Button disabled={pending} type="submit">
-          <Save className="h-4 w-4" />
-          {pending ? "Guardando..." : "Guardar grupo"}
-        </Button>
+        </div>
       </div>
     </form>
   );

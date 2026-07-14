@@ -92,11 +92,11 @@ export function ScheduleTable<TBlock, TAssignment>({
     <table className="w-full min-w-[720px] border-collapse text-sm">
       <thead>
         <tr className="bg-panel text-left text-xs uppercase text-muted">
-          <th className="w-32 px-3 py-3 font-semibold" scope="col">
+          <th className="w-32 snap-start px-3 py-3 font-semibold" scope="col">
             Hora
           </th>
           {days.map((day) => (
-            <th className="px-3 py-3 font-semibold" key={day.value} scope="col">
+            <th className="snap-start px-3 py-3 font-semibold" key={day.value} scope="col">
               {dayLabel === "full" ? day.label : day.short}
             </th>
           ))}
@@ -105,7 +105,7 @@ export function ScheduleTable<TBlock, TAssignment>({
       <tbody>
         {timeRows.map((time) => (
           <tr className="border-t border-line" key={time.key}>
-            <th className="bg-panel px-3 py-3 text-left text-xs font-semibold text-muted" scope="row">
+            <th className="snap-start bg-panel px-3 py-3 text-left text-xs font-semibold text-muted" scope="row">
               {time.kind === "break" ? "RECESO" : `${time.startsAt} - ${time.endsAt}`}
               {time.mod && time.mod > 0 ? (
                 <span className="ml-1 text-brand">M{time.mod}</span>
@@ -130,7 +130,7 @@ export function ScheduleTable<TBlock, TAssignment>({
 
                 if (!block) {
                   return (
-                    <td className="h-24 border-l border-line p-2 align-top" key={day.value}>
+                    <td className="h-24 snap-start border-l border-line p-2 align-top" key={day.value}>
                       {renderEmptyCell ? renderEmptyCell() : <span className="text-xs text-muted-foreground">No aplica</span>}
                     </td>
                   );
@@ -140,7 +140,7 @@ export function ScheduleTable<TBlock, TAssignment>({
                 const blockAssignments = assignments.filter((assignment) => getAssignmentBlockKey(assignment) === blockKey);
 
                 return (
-                  <td className="h-24 border-l border-line p-2 align-top" key={day.value}>
+                  <td className="h-24 snap-start border-l border-line p-2 align-top" key={day.value}>
                     {renderCell({ block, assignments: blockAssignments })}
                   </td>
                 );

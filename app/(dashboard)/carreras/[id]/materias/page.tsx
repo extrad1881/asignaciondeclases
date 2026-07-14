@@ -1,21 +1,22 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { RotateCcw, Save, Trash2 } from "lucide-react";
+import { Save } from "lucide-react";
 import {
   createSubjectStateAction,
   setSubjectActiveAction,
   setSubjectActiveFeedbackAction,
-  updateSubjectAction,
   updateSubjectFeedbackAction
 } from "@/app/(dashboard)/actions";
 import { SectionHeader } from "@/components/section-header";
-import { Badge } from "@/components/ui/badge";
+import { SubjectCard } from "@/components/carreras/subject-card";
+import { ProfileCheckboxGroup } from "@/components/forms/profile-checkbox-group";
 import { ActionStateForm } from "@/components/ui/action-state-form";
 import { Button } from "@/components/ui/button";
 import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
 import { DataTable } from "@/components/ui/data-table";
-import { ProfileCheckboxGroup } from "@/components/forms/profile-checkbox-group";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { Select } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/server";
 import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
@@ -51,6 +52,17 @@ export default async function CareerSubjectsPage({ params }: { params: Promise<{
   const subjectRows = subjects ?? [];
   const profileOptions = (profiles ?? []).filter((teacherProfile: any) => isValidProfileCode(teacherProfile.code));
 
+  const subjectItems = subjectRows.map((subject: any) => ({
+    id: subject.id,
+    name: subject.name,
+    quarter: subject.quarter,
+    default_hours: Number(subject.default_hours ?? 0),
+    active: Boolean(subject.active),
+    profiles: (subject.class_requirements ?? [])
+      .map((req: any) => req.profile_code)
+      .filter(isValidProfileCode)
+  }));
+
   return (
     <>
       <SectionHeader eyebrow="Carrera" title={`Asignaturas de ${career.code}`}>
@@ -66,7 +78,11 @@ export default async function CareerSubjectsPage({ params }: { params: Promise<{
           <h2 className="text-lg font-semibold text-ink">Agregar materia</h2>
           <p className="text-sm text-muted">{career.name}</p>
         </div>
-        <ActionStateForm action={createSubjectStateAction} className="grid gap-3 md:grid-cols-[1fr_130px_130px_minmax(260px,1fr)_auto]" alertClassName="md:col-span-full">
+        <ActionStateForm
+          action={createSubjectStateAction}
+          alertClassName="md:col-span-full"
+          className="grid gap-3 md:grid-cols-[1fr_130px_130px_minmax(260px,1fr)_auto]"
+        >
           <input name="career_id" type="hidden" value={career.id} />
           <label className="text-sm font-medium text-ink">
             Materia
@@ -94,94 +110,126 @@ export default async function CareerSubjectsPage({ params }: { params: Promise<{
           </div>
           <div className="flex items-end">
             <Button className="w-full" type="submit">
-              <Save className="h-4 w-4" />
+              <Save className="h-4 w-4" aria-hidden />
               Agregar
             </Button>
           </div>
         </ActionStateForm>
       </section>
 
-      <DataTable
-        emptyLabel="Esta carrera no tiene materias todavía."
-        headers={["Materia", "Cuatrimestre", "Carga", "Perfil", "Estado", "Modificar", "Acciones"]}
-        rows={subjectRows.map((subject: any) => [
-          <span className="font-medium text-ink" key="name">
-            {subject.name}
-          </span>,
-          subject.quarter,
-          formatHours(subject.default_hours),
-          <div className="flex flex-wrap gap-1" key="profiles">
-            {((subject.class_requirements ?? []).filter((item: any) => isValidProfileCode(item.profile_code))).length === 0 ? (
-              <span className="text-muted-foreground">Sin perfil</span>
-            ) : (
-              (subject.class_requirements ?? []).filter((item: any) => isValidProfileCode(item.profile_code)).map((item: any) => (
-                <Badge key={item.profile_code} tone="info">
-                  {item.profile_code}
-                </Badge>
-              ))
-            )}
-          </div>,
-          <Badge key="state" tone={subject.active ? "success" : "warning"}>
-            {subject.active ? "Activa" : "Inactiva"}
-          </Badge>,
-          <form action={updateSubjectAction} className="grid min-w-[360px] gap-2" key="edit">
-            <input name="career_id" type="hidden" value={career.id} />
-            <input name="subject_id" type="hidden" value={subject.id} />
-            <Input defaultValue={subject.name} name="name" required />
-            <div className="grid gap-2 md:grid-cols-2">
-              <Select defaultValue={subject.quarter} name="quarter" required>
-                {Array.from({ length: 12 }, (_, index) => index + 1).map((quarter) => (
-                  <option key={quarter} value={quarter}>
-                    Cuatrimestre {quarter}
-                  </option>
-                ))}
-              </Select>
-              <Input defaultValue={subject.default_hours} min={0.5} name="default_hours" required step={0.5} type="number" />
-            </div>
-            <ProfileCheckboxGroup
-              maxHeight="max-h-36"
-              profiles={profileOptions as any[]}
-              selected={(subject.class_requirements ?? [])
-                .map((item: any) => item.profile_code)
-                .filter(isValidProfileCode)}
+      {subjectItems.length === 0 ? (
+        <EmptyState
+          description="Agrega la primera materia para empezar a configurar grupos y asignaciones."
+          title="Esta carrera no tiene materias todavía."
+        />
+      ) : (
+        <ResponsiveTable
+          cards={
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {subjectItems.map((subject) => (
+                <li key={subject.id}>
+                  <SubjectCard careerId={career.id} profileOptions={profileOptions as any[]} subject={subject} />
+                </li>
+              ))}
+            </ul>
+          }
+          table={
+            <DataTable
+              emptyLabel="Esta carrera no tiene materias todavía."
+              headers={["Materia", "Cuatrimestre", "Carga", "Perfil", "Estado", "Modificar", "Acciones"]}
+              rows={subjectRows.map((subject: any) => [
+                <span className="font-medium text-ink" key="name">
+                  {subject.name}
+                </span>,
+                subject.quarter,
+                formatHours(subject.default_hours),
+                <div className="flex flex-wrap gap-1" key="profiles">
+                  {((subject.class_requirements ?? []).filter((item: any) => isValidProfileCode(item.profile_code))).length === 0 ? (
+                    <span className="text-muted-foreground">Sin perfil</span>
+                  ) : (
+                    (subject.class_requirements ?? []).filter((item: any) => isValidProfileCode(item.profile_code)).map((item: any) => (
+                      <Badge key={item.profile_code} tone="info">
+                        {item.profile_code}
+                      </Badge>
+                    ))
+                  )}
+                </div>,
+                <span
+                  className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold ${
+                    subject.active
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-amber-50 text-amber-700"
+                  }`}
+                  key="state"
+                >
+                  {subject.active ? "Activa" : "Inactiva"}
+                </span>,
+                <form
+                  action={updateSubjectAction}
+                  className="grid min-w-[360px] gap-2"
+                  key="edit"
+                >
+                  <input name="career_id" type="hidden" value={career.id} />
+                  <input name="subject_id" type="hidden" value={subject.id} />
+                  <Input defaultValue={subject.name} name="name" required />
+                  <div className="grid gap-2 md:grid-cols-2">
+                    <Select defaultValue={subject.quarter} name="quarter" required>
+                      {Array.from({ length: 12 }, (_, index) => index + 1).map((quarter) => (
+                        <option key={quarter} value={quarter}>
+                          Cuatrimestre {quarter}
+                        </option>
+                      ))}
+                    </Select>
+                    <Input defaultValue={subject.default_hours} min={0.5} name="default_hours" required step={0.5} type="number" />
+                  </div>
+                  <ProfileCheckboxGroup
+                    maxHeight="max-h-36"
+                    profiles={profileOptions as any[]}
+                    selected={(subject.class_requirements ?? [])
+                      .map((item: any) => item.profile_code)
+                      .filter(isValidProfileCode)}
+                  />
+                  <ConfirmActionButton
+                    action={updateSubjectFeedbackAction}
+                    affectedName={subject.name}
+                    className="h-8 px-3"
+                    confirmLabel="Guardar materia"
+                    description="Se actualizarán nombre, cuatrimestre, carga horaria y perfiles requeridos de la materia."
+                    title="Modificar materia"
+                    variant="secondary"
+                  >
+                    Guardar
+                  </ConfirmActionButton>
+                </form>,
+                <form action={setSubjectActiveAction} key="active">
+                  <input name="career_id" type="hidden" value={career.id} />
+                  <input name="subject_id" type="hidden" value={subject.id} />
+                  <input name="active" type="hidden" value={subject.active ? "false" : "true"} />
+                  <ConfirmActionButton
+                    action={setSubjectActiveFeedbackAction}
+                    affectedName={subject.name}
+                    className="h-8 px-3"
+                    confirmLabel={subject.active ? "Desactivar materia" : "Reactivar materia"}
+                    danger={subject.active}
+                    description={
+                      subject.active
+                        ? "La materia dejará de estar disponible para nuevas configuraciones."
+                        : "La materia volverá a estar disponible."
+                    }
+                    title={subject.active ? "Desactivar materia" : "Reactivar materia"}
+                    variant={subject.active ? "danger" : "secondary"}
+                  >
+                    {subject.active ? "Quitar" : "Reactivar"}
+                  </ConfirmActionButton>
+                </form>
+              ])}
             />
-            <ConfirmActionButton
-              action={updateSubjectFeedbackAction}
-              affectedName={subject.name}
-              className="h-8 px-3"
-              confirmLabel="Guardar materia"
-              description="Se actualizaran nombre, cuatrimestre, carga horaria y perfiles requeridos de la materia."
-              title="Modificar materia"
-              variant="secondary"
-            >
-              <Save className="h-4 w-4" />
-              Guardar
-            </ConfirmActionButton>
-          </form>,
-          <form action={setSubjectActiveAction} key="active">
-            <input name="career_id" type="hidden" value={career.id} />
-            <input name="subject_id" type="hidden" value={subject.id} />
-            <input name="active" type="hidden" value={subject.active ? "false" : "true"} />
-            <ConfirmActionButton
-              action={setSubjectActiveFeedbackAction}
-              affectedName={subject.name}
-              className="h-8 px-3"
-              confirmLabel={subject.active ? "Desactivar materia" : "Reactivar materia"}
-              danger={subject.active}
-              description={
-                subject.active
-                  ? "La materia dejara de estar disponible para nuevas configuraciones."
-                  : "La materia volvera a estar disponible."
-              }
-              title={subject.active ? "Desactivar materia" : "Reactivar materia"}
-              variant={subject.active ? "danger" : "secondary"}
-            >
-              {subject.active ? <Trash2 className="h-4 w-4" /> : <RotateCcw className="h-4 w-4" />}
-              {subject.active ? "Quitar" : "Reactivar"}
-            </ConfirmActionButton>
-          </form>
-        ])}
-      />
+          }
+        />
+      )}
     </>
   );
 }
+
+import { Badge } from "@/components/ui/badge";
+import { updateSubjectAction } from "@/app/(dashboard)/actions";

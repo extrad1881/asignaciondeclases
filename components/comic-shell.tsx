@@ -20,6 +20,7 @@ import {
   type LucideIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Drawer } from "@/components/ui/drawer";
 
 type NavItem = {
   href: string;
@@ -32,6 +33,7 @@ type ShellProps = {
   displayName: string;
   roleLabel: string;
   signOutAction: () => void;
+  breadcrumbs?: React.ReactNode;
   children: React.ReactNode;
 };
 
@@ -49,6 +51,7 @@ const iconMap: Record<string, LucideIcon> = {
 };
 
 function subscribeTheme(callback: () => void) {
+  if (typeof window === "undefined") return () => {};
   const storage = (event: StorageEvent) => {
     if (event.key === "theme") callback();
   };
@@ -69,8 +72,12 @@ function getThemeSnapshot() {
   return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
+function getServerThemeSnapshot() {
+  return false;
+}
+
 function useDarkMode(): [boolean, () => void] {
-  const dark = useSyncExternalStore(subscribeTheme, getThemeSnapshot, () => false);
+  const dark = useSyncExternalStore(subscribeTheme, getThemeSnapshot, getServerThemeSnapshot);
 
   useEffect(() => {
     if (dark) {
@@ -93,7 +100,106 @@ function useDarkMode(): [boolean, () => void] {
   return [dark, toggle];
 }
 
-export function ComicShell({ navItems, displayName, roleLabel, signOutAction, children }: ShellProps) {
+type SidebarContentProps = {
+  items: NavItem[];
+  activeHref: string;
+  displayName: string;
+  roleLabel: string;
+  dark: boolean;
+  onToggleDark: () => void;
+  onNavigate?: () => void;
+  signOutAction: () => void;
+};
+
+function SidebarContent({
+  items,
+  activeHref,
+  displayName,
+  roleLabel,
+  dark,
+  onToggleDark,
+  onNavigate,
+  signOutAction
+}: SidebarContentProps) {
+  return (
+    <>
+      <div className="flex items-center gap-3 border-b border-line px-5 py-4">
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-brand text-primary-foreground">
+          <GraduationCap aria-hidden className="h-6 w-6" />
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-ink">Coordinación</p>
+          <p className="truncate text-xs text-muted">Académica</p>
+        </div>
+      </div>
+
+      <nav aria-label="Principal" className="flex-1 overflow-y-auto px-3 py-4">
+        <ul className="flex flex-col gap-1">
+          {items.map((item) => {
+            const Icon = item.icon;
+            const active = activeHref === item.href;
+            return (
+              <li key={item.href}>
+                <Link
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "focus-ring flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold transition",
+                    active
+                      ? "bg-brand text-primary-foreground"
+                      : "text-ink hover:bg-accent hover:text-accent-foreground"
+                  )}
+                  href={item.href}
+                  onClick={onNavigate}
+                >
+                  <Icon aria-hidden className="h-4 w-4 flex-shrink-0" />
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
+      <div className="border-t border-line p-4">
+        <div className="mb-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">{roleLabel}</p>
+          <p className="truncate text-sm font-semibold text-ink">{displayName}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            aria-label={dark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+            aria-pressed={dark}
+            className="focus-ring inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-md border border-line bg-background text-sm font-medium text-ink transition hover:bg-accent"
+            onClick={onToggleDark}
+            type="button"
+          >
+            {dark ? <Sun aria-hidden className="h-4 w-4" /> : <Moon aria-hidden className="h-4 w-4" />}
+            <span className="sr-only lg:not-sr-only">{dark ? "Claro" : "Oscuro"}</span>
+          </button>
+          <form action={signOutAction} className="flex-1">
+            <button
+              aria-label="Cerrar sesión"
+              className="focus-ring inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border border-line bg-background text-sm font-medium text-ink transition hover:bg-accent"
+              type="submit"
+            >
+              <LogOut aria-hidden className="h-4 w-4" />
+              <span className="sr-only lg:not-sr-only">Salir</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </>
+  );
+}
+
+export function ComicShell({
+  navItems,
+  displayName,
+  roleLabel,
+  signOutAction,
+  breadcrumbs,
+  children
+}: ShellProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dark, toggleDark] = useDarkMode();
@@ -113,118 +219,87 @@ export function ComicShell({ navItems, displayName, roleLabel, signOutAction, ch
     return items.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))?.href ?? "/dashboard";
   }, [pathname, items]);
 
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
+
   return (
     <div className="fixed inset-0 flex overflow-hidden bg-background text-foreground">
-      {/* Mobile overlay */}
-      {mobileOpen ? (
-        <button
-          aria-label="Cerrar menú"
-          className="absolute inset-0 z-20 bg-ink/40 lg:hidden"
-          onClick={() => setMobileOpen(false)}
-          type="button"
-        />
-      ) : null}
-
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          "absolute z-30 flex h-full w-64 flex-col border-r border-line bg-panel transition-transform duration-200 lg:static lg:translate-x-0",
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
-        )}
+      <Drawer
+        ariaLabel="Menú principal"
+        className="border-r border-line"
+        onClose={closeMobile}
+        open={mobileOpen}
+        side="left"
       >
-        {/* Brand */}
-        <div className="flex items-center gap-3 border-b border-line px-5 py-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-brand text-primary-foreground">
-            <GraduationCap aria-hidden className="h-6 w-6" />
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-ink">Coordinación</p>
-            <p className="truncate text-xs text-muted">Académica</p>
-          </div>
-        </div>
+        <SidebarContent
+          activeHref={activeHref}
+          dark={dark}
+          displayName={displayName}
+          items={items}
+          onNavigate={closeMobile}
+          onToggleDark={toggleDark}
+          roleLabel={roleLabel}
+          signOutAction={signOutAction}
+        />
+      </Drawer>
 
-        {/* Navigation */}
-        <nav aria-label="Principal" className="flex-1 overflow-y-auto px-3 py-4">
-          <ul className="flex flex-col gap-1">
-            {items.map((item) => {
-              const Icon = item.icon;
-              const active = activeHref === item.href;
-              return (
-                <li key={item.href}>
-                  <Link
-                    aria-current={active ? "page" : undefined}
-                    className={cn(
-                      "focus-ring flex min-h-10 items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold transition",
-                      active
-                        ? "bg-brand text-primary-foreground"
-                        : "text-ink hover:bg-accent hover:text-accent-foreground"
-                    )}
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    <Icon aria-hidden className="h-4 w-4 flex-shrink-0" />
-                    <span className="truncate">{item.label}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-
-        {/* User + controls */}
-        <div className="border-t border-line p-4">
-          <div className="mb-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">{roleLabel}</p>
-            <p className="truncate text-sm font-semibold text-ink">{displayName}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              aria-label={dark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-              aria-pressed={dark}
-              className="focus-ring inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-md border border-line bg-background text-sm font-medium text-ink transition hover:bg-accent"
-              onClick={toggleDark}
-              type="button"
-            >
-              {dark ? <Sun aria-hidden className="h-4 w-4" /> : <Moon aria-hidden className="h-4 w-4" />}
-              <span className="sr-only lg:not-sr-only">{dark ? "Claro" : "Oscuro"}</span>
-            </button>
-            <form action={signOutAction} className="flex-1">
-              <button
-                aria-label="Cerrar sesión"
-                className="focus-ring inline-flex h-9 w-full items-center justify-center gap-2 rounded-md border border-line bg-background text-sm font-medium text-ink transition hover:bg-accent"
-                type="submit"
-              >
-                <LogOut aria-hidden className="h-4 w-4" />
-                <span className="sr-only lg:not-sr-only">Salir</span>
-              </button>
-            </form>
-          </div>
-        </div>
+      <aside
+        aria-label="Menú principal"
+        className="hidden w-64 flex-shrink-0 flex-col border-r border-line bg-panel lg:flex"
+        id="app-sidebar"
+      >
+        <SidebarContent
+          activeHref={activeHref}
+          dark={dark}
+          displayName={displayName}
+          items={items}
+          onToggleDark={toggleDark}
+          roleLabel={roleLabel}
+          signOutAction={signOutAction}
+        />
       </aside>
 
-      {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-hidden min-h-0">
-        {/* Mobile header */}
-        <header className="flex items-center justify-between border-b border-line bg-panel px-4 py-3 lg:hidden">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-brand text-primary-foreground">
+      <div
+        aria-hidden={mobileOpen ? true : undefined}
+        className="flex flex-1 flex-col overflow-hidden min-h-0"
+        inert={mobileOpen ? true : undefined}
+      >
+        <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-line bg-panel/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-panel/80 lg:hidden">
+          <Link
+            aria-label="Ir al inicio"
+            className="flex min-h-11 min-w-0 items-center gap-3"
+            href="/dashboard"
+            onClick={closeMobile}
+          >
+            <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-brand text-primary-foreground">
               <GraduationCap aria-hidden className="h-5 w-5" />
-            </div>
-            <span className="font-semibold text-ink">Coordinación Académica</span>
-          </div>
+            </span>
+            <span className="truncate font-semibold text-ink">Coordinación Académica</span>
+          </Link>
           <button
-            aria-controls="sidebar"
+            aria-controls="app-sidebar"
             aria-expanded={mobileOpen}
-            aria-label="Abrir menú"
-            className="focus-ring rounded-md border border-line p-2 text-ink"
-            onClick={() => setMobileOpen(true)}
+            aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
+            className="focus-ring inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md border border-line text-ink transition hover:bg-accent"
+            onClick={() => setMobileOpen((current) => !current)}
             type="button"
           >
-            <LayoutGrid aria-hidden className="h-5 w-5" />
+            {mobileOpen ? (
+              <span aria-hidden className="text-base font-semibold">
+                ×
+              </span>
+            ) : (
+              <LayoutGrid aria-hidden className="h-5 w-5" />
+            )}
           </button>
         </header>
 
-        <main className="flex-1 overflow-y-auto min-h-0">
+        {breadcrumbs ? (
+          <div className="hidden border-b border-line bg-panel px-4 py-2 lg:block">
+            <div className="mx-auto w-full max-w-6xl">{breadcrumbs}</div>
+          </div>
+        ) : null}
+
+        <main className="flex-1 overflow-y-auto min-h-0" id="main-content" tabIndex={-1}>
           <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-8">{children}</div>
         </main>
       </div>

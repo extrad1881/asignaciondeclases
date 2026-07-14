@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuthenticatedProfile } from "@/lib/supabase/auth-helpers";
 import { timeToMinutes } from "@/app/(dashboard)/actions/utils";
+import { requireEditableGroup } from "@/app/(dashboard)/actions/group-guards";
 import { WEEKDAYS } from "@/lib/constants";
 
 const customScheduleBlockSchema = z.object({
@@ -30,6 +31,8 @@ export async function createCustomScheduleBlockAction(formData: FormData) {
   if (profile.role_code !== "admin" && profile.role_code !== "coordinator") {
     throw new Error("No tienes permiso para crear bloques personalizados.");
   }
+
+  await requireEditableGroup(supabase, parsed.data.group_id);
 
   const startsAt = parsed.data.starts_at;
   const endsAt = parsed.data.ends_at;

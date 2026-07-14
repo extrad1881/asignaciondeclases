@@ -14,6 +14,7 @@ import { SectionHeader } from "@/components/section-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { LinkCard } from "@/components/ui/link-card";
 import { MetricCard } from "@/components/ui/metric-card";
 import { createClient } from "@/lib/supabase/server";
 import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
@@ -37,6 +38,7 @@ export default async function DashboardPage() {
 
   const incomplete = isAdmin(profile?.role_code) ? await getIncompleteData() : null;
   const incompleteTotal = incomplete?.issues.length ?? 0;
+  const incompleteLabel = incompleteTotal === 1 ? "pendiente" : "pendientes";
   const assignmentCoverage =
     counts.groups > 0 ? Math.round((Math.min(counts.assignments, counts.groups) / counts.groups) * 100) : 0;
 
@@ -58,12 +60,12 @@ export default async function DashboardPage() {
           className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-primary-foreground shadow-subtle transition hover:bg-brandDeep"
           href="/grupos/nuevo"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-4 w-4" aria-hidden />
           Crear grupo
         </Link>
       </SectionHeader>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <section aria-label="Resumen del sistema" className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <MetricCard description="Carreras activas o registradas" icon={GraduationCap} label="Carreras" tone="brand" value={counts.careers} />
         <MetricCard description="Docentes en catálogo" icon={Users} label="Docentes" tone="info" value={counts.teachers} />
         <MetricCard description="Materias disponibles" icon={BookOpen} label="Materias" tone="warning" value={counts.subjects} />
@@ -71,84 +73,85 @@ export default async function DashboardPage() {
         <MetricCard description={`${assignmentCoverage}% de referencia operativa`} icon={CalendarDays} label="Asignaciones" value={counts.assignments} />
       </section>
 
-      <section className="mt-6 grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
+      {isAdmin(profile?.role_code) && incompleteTotal > 0 ? (
+        <div className="mt-5">
+          <EmptyState
+            action={
+              <Link href="/datos-incompletos">
+                <Button type="button" variant="primary">
+                  Corregir datos
+                </Button>
+              </Link>
+            }
+            description="Corrige estos datos antes de iniciar asignaciones masivas."
+            icon={CircleAlert}
+            title={`${incompleteTotal} ${incompleteLabel} de datos incompletos`}
+          />
+        </div>
+      ) : null}
+
+      <section className="mt-5 grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
         <div className="rounded-md border border-line bg-card p-4 shadow-subtle">
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-ink">Grupos recientes</h2>
               <p className="text-sm text-muted">Últimos grupos activos o en preparación.</p>
             </div>
-            <Link className="text-sm font-semibold text-brand hover:text-brandDeep" href="/grupos">
+            <Link className="text-sm font-semibold text-brand hover:text-brandDeep focus-ring rounded-sm" href="/grupos">
               Ver todos
             </Link>
           </div>
           {(groups ?? []).length === 0 ? (
             <EmptyState
               action={
-                <Link
-                  className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-primary-foreground shadow-subtle transition hover:bg-brandDeep"
-                  href="/grupos/nuevo"
-                >
-                  Crear primer grupo
+                <Link href="/grupos/nuevo">
+                  <Button type="button" variant="primary">
+                    Crear primer grupo
+                  </Button>
                 </Link>
               }
               description="Crea un grupo para empezar a asignar materias, docentes y bloques de horario."
               title="No hay grupos activos para este ciclo."
             />
           ) : (
-            <div className="grid gap-3 md:grid-cols-2">
+            <ul className="grid gap-3 md:grid-cols-2">
               {(groups ?? []).map((group: any) => (
-                <Link
-                  className="rounded-md border border-line bg-panel p-3 transition hover:border-brand hover:bg-brandSoft/50"
-                  href={`/grupos/${group.id}`}
-                  key={group.id}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-ink">{group.name}</p>
-                      <p className="mt-1 text-sm text-muted">
-                        {group.careers?.code ?? "Sin carrera"} · {group.academic_cycles?.code ?? "Sin ciclo"}
-                      </p>
-                    </div>
-                    <Badge tone="info">
-                      {group.shift === "matutino" ? "MAT" : "VES"} {group.quarter}
-                    </Badge>
-                  </div>
-                </Link>
+                <li key={group.id}>
+                  <LinkCard
+                    ariaLabel={`Abrir grupo ${group.name}`}
+                    badge={
+                      <Badge tone="info">
+                        {group.shift === "matutino" ? "MAT" : "VES"} {group.quarter}
+                      </Badge>
+                    }
+                    description={`${group.careers?.code ?? "Sin carrera"} · ${group.academic_cycles?.code ?? "Sin ciclo"}`}
+                    href={`/grupos/${group.id}`}
+                    title={group.name}
+                  />
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
 
         <div className="rounded-md border border-line bg-card p-4 shadow-subtle">
           <h2 className="text-lg font-semibold text-ink">Próximos pasos</h2>
           <p className="mt-1 text-sm text-muted">Acciones frecuentes para mantener el sistema listo.</p>
-          <div className="mt-4 grid gap-2">
+          <ul className="mt-4 grid gap-2">
             {quickLinks.map((item) => {
-              const Icon = item.icon;
               return (
-                <Link
-                  className="flex items-start gap-3 rounded-md border border-line bg-panel p-3 transition hover:border-brand hover:bg-brandSoft/50"
-                  href={item.href}
-                  key={item.href}
-                >
-                  <span className="rounded-md bg-card p-2 text-brand shadow-subtle">
-                    <Icon className="h-4 w-4" aria-hidden />
-                  </span>
-                  <span>
-                    <span className="block font-semibold text-ink">{item.label}</span>
-                    <span className="mt-0.5 block text-sm text-muted">{item.description}</span>
-                  </span>
-                </Link>
+                <li key={item.href}>
+                  <LinkCard
+                    ariaLabel={item.label}
+                    description={item.description}
+                    href={item.href}
+                    icon={item.icon}
+                    title={item.label}
+                  />
+                </li>
               );
             })}
-          </div>
-          {isAdmin(profile?.role_code) ? (
-            <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-              <p className="font-semibold">{incompleteTotal} pendiente(s) de datos incompletos</p>
-              <p className="mt-1">Corrige estos datos antes de iniciar asignaciones masivas.</p>
-            </div>
-          ) : null}
+          </ul>
         </div>
       </section>
     </>

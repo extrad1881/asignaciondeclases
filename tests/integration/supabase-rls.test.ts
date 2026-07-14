@@ -31,7 +31,7 @@ describe("Supabase RLS", () => {
     coordinatorId = coordinator.id;
 
     const cycle = await requireSingle<{ id: string }>(
-      service.from("academic_cycles").select("id").eq("active", true).limit(1).single()
+      service.from("academic_cycles").select("id").eq("status", "active").limit(1).single()
     );
     const classroom = await requireSingle<{ id: string }>(
       service.from("classrooms").select("id").eq("active", true).limit(1).single()

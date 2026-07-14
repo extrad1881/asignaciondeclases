@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { CalendarDays, FileDown, FileText, LayoutGrid } from "lucide-react";
 import { SectionHeader } from "@/components/section-header";
+import { ReportCard } from "@/components/reportes/report-card";
 import { Button } from "@/components/ui/button";
+import { DataTableAdvanced, type DataTableAdvancedRow } from "@/components/ui/data-table-advanced";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MetricCard } from "@/components/ui/metric-card";
-import { DataTableAdvanced, type DataTableAdvancedRow } from "@/components/ui/data-table-advanced";
-import { getReportData, getGroupsForReport } from "@/lib/supabase/reports";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
+import { getReportData, getGroupsForReport, type ReportRow } from "@/lib/supabase/reports";
 
 export const dynamic = "force-dynamic";
 
@@ -47,12 +49,12 @@ export default async function ReportsPage() {
           className="focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-primary-foreground shadow-subtle transition hover:bg-brandDeep"
           href="/api/reportes/csv"
         >
-          <FileDown className="h-4 w-4" />
+          <FileDown className="h-4 w-4" aria-hidden />
           Exportar CSV completo
         </a>
       </SectionHeader>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <MetricCard description="Filas disponibles para exportación" icon={CalendarDays} label="Asignaciones" tone="brand" value={rows.length} />
         <MetricCard description="Grupos con información exportable" icon={LayoutGrid} label="Grupos activos" tone="info" value={groups.length} />
         <MetricCard description="Formato compatible con hojas de cálculo" icon={FileText} label="Formato" tone="success" value="CSV" />
@@ -77,7 +79,7 @@ export default async function ReportsPage() {
                 href={`/api/reportes/csv?group_id=${group.id}`}
                 key={group.id}
               >
-                <FileText className="h-4 w-4 text-brand" />
+                <FileText className="h-4 w-4 text-brand" aria-hidden />
                 {group.name}
               </a>
             ))}
@@ -86,29 +88,49 @@ export default async function ReportsPage() {
       </section>
 
       <section className="mt-6">
-        <DataTableAdvanced
-          emptyDescription="Cuando existan asignaciones activas, aparecerán aquí para revisión y exportación."
-          emptyLabel="No hay asignaciones para reportar."
-          filters={[
-            { key: "ciclo", label: "Ciclo" },
-            { key: "carrera", label: "Carrera" },
-            { key: "grupo", label: "Grupo" },
-            { key: "modalidad", label: "Modalidad" },
-            { key: "docente", label: "Docente" }
-          ]}
-          headers={[
-            "Ciclo",
-            "Carrera",
-            "Grupo",
-            "Modalidad",
-            "Turno",
-            "Materia",
-            "Docente",
-            "Día",
-            "Hora",
-            "Aula"
-          ]}
-          rows={tableRows}
+        <ResponsiveTable
+          cards={
+            rows.length === 0 ? (
+              <EmptyState
+                description="Cuando existan asignaciones activas, aparecerán aquí en formato tarjeta para consulta rápida en móvil."
+                title="No hay asignaciones para reportar."
+              />
+            ) : (
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {rows.map((row: ReportRow, index: number) => (
+                  <li key={`${row.ciclo}-${row.grupo}-${row.materia}-${row.dia}-${row.hora}-${index}`}>
+                    <ReportCard row={row} />
+                  </li>
+                ))}
+              </ul>
+            )
+          }
+          table={
+            <DataTableAdvanced
+              emptyDescription="Cuando existan asignaciones activas, aparecerán aquí para revisión y exportación."
+              emptyLabel="No hay asignaciones para reportar."
+              filters={[
+                { key: "ciclo", label: "Ciclo" },
+                { key: "carrera", label: "Carrera" },
+                { key: "grupo", label: "Grupo" },
+                { key: "modalidad", label: "Modalidad" },
+                { key: "docente", label: "Docente" }
+              ]}
+              headers={[
+                "Ciclo",
+                "Carrera",
+                "Grupo",
+                "Modalidad",
+                "Turno",
+                "Materia",
+                "Docente",
+                "Día",
+                "Hora",
+                "Aula"
+              ]}
+              rows={tableRows}
+            />
+          }
         />
       </section>
     </>

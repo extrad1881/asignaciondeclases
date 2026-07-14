@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuthenticatedProfile } from "@/lib/supabase/auth-helpers";
 import { actionFailure, actionSuccess, type ActionState } from "@/lib/actions/action-state";
+import { requireEditableGroupForSubject } from "@/app/(dashboard)/actions/group-guards";
 
 const assignmentSchema = z.object({
   group_subject_id: z.string().uuid(),
@@ -47,6 +48,7 @@ export async function createAssignmentAction(formData: FormData) {
   }
 
   await requireAssignmentPermission(supabase, profile, parsed.data.group_subject_id, parsed.data.teacher_id);
+  await requireEditableGroupForSubject(supabase, parsed.data.group_subject_id);
 
   const { error } = await supabase.from("assignments").insert({
     ...parsed.data,
@@ -108,6 +110,7 @@ export async function updateAssignmentAction(formData: FormData) {
     currentAssignment.group_subject_id,
     currentAssignment.teacher_id
   );
+  await requireEditableGroupForSubject(supabase, currentAssignment.group_subject_id);
 
   const { error } = await supabase
     .from("assignments")
@@ -158,8 +161,9 @@ export async function deleteAssignmentAction(formData: FormData) {
     currentAssignment.group_subject_id,
     currentAssignment.teacher_id
   );
+  await requireEditableGroupForSubject(supabase, currentAssignment.group_subject_id);
 
-  const { error } = await supabase.from("assignments").update({ status: "inactive" }).eq("id", parsed.data.assignment_id);
+  const { error } = await supabase.from("assignments").update({ status: "cancelled" }).eq("id", parsed.data.assignment_id);
   if (error) throw new Error(error.message);
 
   revalidatePath("/grupos");
@@ -171,7 +175,7 @@ export async function deleteAssignmentAction(formData: FormData) {
 export async function deleteAssignmentActionState(_previousState: ActionState, formData: FormData): Promise<ActionState> {
   try {
     await deleteAssignmentAction(formData);
-    return actionSuccess("Asignación eliminada correctamente.");
+    return actionSuccess("Asignación cancelada correctamente.");
   } catch (error) {
     return actionFailure(error, "No se pudo eliminar la asignación.");
   }

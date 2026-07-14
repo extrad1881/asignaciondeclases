@@ -4,19 +4,19 @@ import { LoginForm } from "@/app/(auth)/login/login-form";
 export default function LoginPage() {
   return (
     <main className="grid min-h-screen bg-[radial-gradient(circle_at_top_left,var(--brand-soft),transparent_30rem),var(--panel)] px-4 py-8 lg:grid-cols-[1.05fr_0.95fr]">
-      <section className="hidden flex-col justify-between border-r border-line px-10 py-8 lg:flex">
+      <section aria-hidden="true" className="hidden flex-col justify-between border-r border-line px-10 py-8 lg:flex">
         <div className="flex items-center gap-4">
           <Image alt="Logo institucional" className="h-16 w-16 rounded-md object-contain" height={64} src="/logos/logo-color.png" width={64} />
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-brand">Coordinación académica</p>
-            <h1 className="mt-1 text-3xl font-semibold text-ink">Asignación de clases</h1>
+            <p className="mt-1 text-3xl font-semibold text-ink">Asignación de clases</p>
           </div>
         </div>
         <div className="max-w-xl">
           <p className="text-sm font-semibold uppercase tracking-wide text-brand">Sistema administrativo académico</p>
-          <h2 className="mt-3 text-4xl font-semibold leading-tight text-ink">
+          <p className="mt-3 text-4xl font-semibold leading-tight text-ink">
             Control confiable para grupos, docentes, materias y horarios.
-          </h2>
+          </p>
           <p className="mt-4 text-base leading-7 text-muted">
             Accede con tu cuenta institucional para revisar datos, corregir pendientes y gestionar asignaciones con trazabilidad.
           </p>

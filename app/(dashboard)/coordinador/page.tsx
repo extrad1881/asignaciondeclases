@@ -16,6 +16,8 @@ import {
 import { AssignmentForm } from "@/components/forms/assignment-form";
 import { ProfileCheckboxGroup } from "@/components/forms/profile-checkbox-group";
 import { GroupForm } from "@/components/groups/group-form";
+import { AssignmentCard } from "@/components/grupos/assignment-card";
+import { SubjectHoursCard } from "@/components/grupos/subject-hours-card";
 import { SectionHeader } from "@/components/section-header";
 import { GroupScheduleBoard } from "@/components/schedule/group-schedule-board";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +27,7 @@ import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
 import { DataTable } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
 import { MetricCard } from "@/components/ui/metric-card";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { Select } from "@/components/ui/select";
 import { MODALITIES, SHIFTS, WEEKDAYS } from "@/lib/constants";
 import { isValidProfileCode } from "@/lib/profiles";
@@ -67,7 +70,7 @@ export default async function CoordinatorPage() {
     { data: scheduleBlocks = [] }
   ] = await Promise.all([
     supabase.from("coordinators").select("id, name").eq("profile_id", profile.id).maybeSingle(),
-    supabase.from("academic_cycles").select("id, code, name").eq("active", true).order("code"),
+    supabase.from("academic_cycles").select("id, code, name").eq("status", "active").order("code"),
     supabase.from("careers").select("id, code, name").eq("active", true).order("code"),
     supabase.from("classrooms").select("id, name").eq("active", true).order("name"),
     supabase
@@ -290,6 +293,19 @@ export default async function CoordinatorPage() {
                 endsAt: block.ends_at,
                 isCustom: block.is_custom
               }));
+            const groupBlockOptions = groupBlocks.map((block) => ({ id: block.id, label: block.label }));
+            const classroomOptions = (classrooms as any[]).map((classroom) => ({ id: classroom.id, name: classroom.name }));
+            const groupAssignmentItems = groupAssignments.map((assignment) => ({
+              id: assignment.id,
+              group_id: group.id,
+              schedule_block_id: assignment.schedule_block_id ?? "",
+              duration_hours: assignment.duration_hours ?? 0,
+              subject_name: assignment.group_subjects?.subjects?.name ?? "Sin materia",
+              teacher_name: assignment.teachers?.name ?? "Sin docente",
+              block_label: groupBlocks.find((block) => block.id === assignment.schedule_block_id)?.label ?? "Sin bloque",
+              classroom_id: assignment.classrooms?.id ?? null,
+              classroom_name: assignment.classrooms?.name ?? null
+            }));
             const assetPath = ((scheduleBlocks ?? []) as any[]).find(
               (block) => block.schedule_templates?.modality === group.modality && block.schedule_templates?.shift === group.shift
             )?.schedule_templates?.asset_path;
@@ -341,128 +357,157 @@ export default async function CoordinatorPage() {
                     />
 
                     <div className="mt-4 rounded-md border border-line bg-card p-4 shadow-subtle">
-                      <h4 className="mb-2 text-sm font-semibold text-ink">Limites por materia</h4>
-                      <DataTable
-                        emptyLabel="No hay materias en este grupo."
-                        headers={["Materia", "Limite", "Asignadas", "Estado", "Editar limite"]}
-                        rows={groupHoursStatus.map((item: any) => {
-                          return [
-                            item.subject_name,
-                            `${item.hours_per_week} h/semana`,
-                            `${item.assigned_hours} h`,
-                            <Badge
-                              key="status"
-                              tone={
-                                item.status === "completa" ? "success" :
-                                item.status === "excedida" ? "danger" :
-                                item.status === "incompleta" ? "warning" : "neutral"
-                              }
-                            >
-                              {item.status === "completa" ? "Completa" :
-                               item.status === "excedida" ? "Excedida" :
-                               item.status === "incompleta" ? `Faltan ${item.remaining} h` : "Sin asignar"}
-                            </Badge>,
-                            <ActionStateForm
-                              action={updateGroupSubjectHoursAction}
-                              className="grid gap-2 md:grid-cols-[100px_auto]"
-                              key={`edit-${item.group_subject_id}`}
-                            >
-                              <input name="group_subject_id" type="hidden" value={item.group_subject_id} />
-                              <input name="group_id" type="hidden" value={group.id} />
-                              <Input
-                                className="h-8"
-                                defaultValue={item.hours_per_week}
-                                max={99}
-                                min={0.5}
-                                name="hours_per_week"
-                                required
-                                step={0.5}
-                                type="number"
-                              />
-                              <ConfirmActionButton
-                                affectedName={item.subject_name}
-                                className="h-8 px-3 text-xs"
-                                confirmLabel="Actualizar limite"
-                                description={`Se cambiara el limite semanal de ${item.subject_name} de ${item.hours_per_week} h a otro valor.`}
-                                title="Modificar limite de horas"
-                                variant="secondary"
-                              >
-                                <Save className="h-3 w-3" />
-                                Guardar
-                              </ConfirmActionButton>
-                            </ActionStateForm>
-                          ];
-                        })}
+                      <h4 className="mb-2 text-sm font-semibold text-ink">Límites por materia</h4>
+                      <ResponsiveTable
+                        cards={
+                          <ul className="grid gap-3 sm:grid-cols-2">
+                            {groupHoursStatus.map((item: any) => (
+                              <li key={item.group_subject_id}>
+                                <SubjectHoursCard groupId={group.id} item={item} />
+                              </li>
+                            ))}
+                          </ul>
+                        }
+                        table={
+                          <DataTable
+                            emptyLabel="No hay materias en este grupo."
+                            headers={["Materia", "Límite", "Asignadas", "Estado", "Editar límite"]}
+                            rows={groupHoursStatus.map((item: any) => {
+                              return [
+                                item.subject_name,
+                                `${item.hours_per_week} h/semana`,
+                                `${item.assigned_hours} h`,
+                                <Badge
+                                  key="status"
+                                  tone={
+                                    item.status === "completa" ? "success" :
+                                    item.status === "excedida" ? "danger" :
+                                    item.status === "incompleta" ? "warning" : "neutral"
+                                  }
+                                >
+                                  {item.status === "completa" ? "Completa" :
+                                   item.status === "excedida" ? "Excedida" :
+                                   item.status === "incompleta" ? `Faltan ${item.remaining} h` : "Sin asignar"}
+                                </Badge>,
+                                <ActionStateForm
+                                  action={updateGroupSubjectHoursAction}
+                                  className="grid gap-2 md:grid-cols-[100px_auto]"
+                                  key={`edit-${item.group_subject_id}`}
+                                >
+                                  <input name="group_subject_id" type="hidden" value={item.group_subject_id} />
+                                  <input name="group_id" type="hidden" value={group.id} />
+                                  <Input
+                                    className="h-8"
+                                    defaultValue={item.hours_per_week}
+                                    max={99}
+                                    min={0.5}
+                                    name="hours_per_week"
+                                    required
+                                    step={0.5}
+                                    type="number"
+                                  />
+                                  <ConfirmActionButton
+                                    affectedName={item.subject_name}
+                                    className="h-8 px-3 text-xs"
+                                    confirmLabel="Actualizar límite"
+                                    description={`Se cambiará el límite semanal de ${item.subject_name} de ${item.hours_per_week} h a otro valor.`}
+                                    title="Modificar límite de horas"
+                                    variant="secondary"
+                                  >
+                                    Guardar
+                                  </ConfirmActionButton>
+                                </ActionStateForm>
+                              ];
+                            })}
+                          />
+                        }
                       />
                     </div>
 
                     <div className="mt-4">
                       <h3 className="mb-2 text-base font-semibold text-ink">Asignaciones activas</h3>
-                      <DataTable
-                        emptyLabel="Todavía no hay asignaciones en este grupo."
-                        headers={["Materia", "Docente", "Bloque", "Horas", "Cambiar", "Eliminar"]}
-                        rows={groupAssignments.map((assignment) => [
-                          assignment.group_subjects?.subjects?.name,
-                          assignment.teachers?.name,
-                          groupBlocks.find((block) => block.id === assignment.schedule_block_id)?.label ?? "Sin bloque",
-                          `${assignment.duration_hours ?? 0} h`,
-                          <form action={updateAssignmentAction} className="grid min-w-[520px] gap-2 md:grid-cols-[1fr_110px_150px_auto]" key="update">
-                            <input name="assignment_id" type="hidden" value={assignment.id} />
-                            <input name="group_id" type="hidden" value={group.id} />
-                            <Select defaultValue={assignment.schedule_block_id ?? ""} name="schedule_block_id" required>
-                              {groupBlocks.map((block) => (
-                                <option key={block.id} value={block.id}>
-                                  {block.label}
-                                </option>
-                              ))}
-                            </Select>
-                            <Input
-                              defaultValue={assignment.duration_hours ?? 1.5}
-                              max={99}
-                              min={0.5}
-                              name="duration_hours"
-                              required
-                              step={0.5}
-                              type="number"
-                            />
-                            <Select defaultValue={assignment.classrooms?.id ?? ""} name="classroom_id">
-                              <option value="">Aula del grupo</option>
-                              {(classrooms as any[]).map((classroom) => (
-                                <option key={classroom.id} value={classroom.id}>
-                                  {classroom.name}
-                                </option>
-                              ))}
-                            </Select>
-                            <ConfirmActionButton
-                              action={updateAssignmentFeedbackAction}
-                              affectedName={`${assignment.group_subjects?.subjects?.name ?? "Asignación"} - ${assignment.teachers?.name ?? "Docente"}`}
-                              className="h-10 px-3"
-                              confirmLabel="Guardar cambio"
-                              description="Se modificara el horario, aula y horas de esta asignacion activa."
-                              title="Modificar asignacion"
-                              variant="secondary"
-                            >
-                              <Save className="h-4 w-4" />
-                              Guardar
-                            </ConfirmActionButton>
-                          </form>,
-                          <form action={deleteAssignmentAction} key="delete">
-                            <input name="assignment_id" type="hidden" value={assignment.id} />
-                            <input name="group_id" type="hidden" value={group.id} />
-                            <ConfirmActionButton
-                              action={deleteAssignmentFeedbackAction}
-                              affectedName={`${assignment.group_subjects?.subjects?.name ?? "Asignación"} - ${assignment.teachers?.name ?? "Docente"}`}
-                              className="h-10 px-3"
-                              confirmLabel="Eliminar asignacion"
-                              danger
-                              description="La asignacion se eliminara y el docente liberara esas horas."
-                              title="Eliminar asignacion"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              Eliminar
-                            </ConfirmActionButton>
-                          </form>
-                        ])}
+                      <ResponsiveTable
+                        cards={
+                          <ul className="grid gap-3 sm:grid-cols-2">
+                            {groupAssignmentItems.map((item) => (
+                              <li key={item.id}>
+                                <AssignmentCard
+                                  blocks={groupBlockOptions}
+                                  classrooms={classroomOptions}
+                                  hasHistory={false}
+                                  item={item}
+                                />
+                              </li>
+                            ))}
+                          </ul>
+                        }
+                        table={
+                          <DataTable
+                            emptyLabel="Todavía no hay asignaciones en este grupo."
+                            headers={["Materia", "Docente", "Bloque", "Horas", "Cambiar", "Eliminar"]}
+                            rows={groupAssignments.map((assignment) => [
+                              assignment.group_subjects?.subjects?.name,
+                              assignment.teachers?.name,
+                              groupBlocks.find((block) => block.id === assignment.schedule_block_id)?.label ?? "Sin bloque",
+                              `${assignment.duration_hours ?? 0} h`,
+                              <form action={updateAssignmentAction} className="grid min-w-[520px] gap-2 md:grid-cols-[1fr_110px_150px_auto]" key="update">
+                                <input name="assignment_id" type="hidden" value={assignment.id} />
+                                <input name="group_id" type="hidden" value={group.id} />
+                                <Select defaultValue={assignment.schedule_block_id ?? ""} name="schedule_block_id" required>
+                                  {groupBlocks.map((block) => (
+                                    <option key={block.id} value={block.id}>
+                                      {block.label}
+                                    </option>
+                                  ))}
+                                </Select>
+                                <Input
+                                  defaultValue={assignment.duration_hours ?? 1.5}
+                                  max={99}
+                                  min={0.5}
+                                  name="duration_hours"
+                                  required
+                                  step={0.5}
+                                  type="number"
+                                />
+                                <Select defaultValue={assignment.classrooms?.id ?? ""} name="classroom_id">
+                                  <option value="">Aula del grupo</option>
+                                  {(classrooms as any[]).map((classroom) => (
+                                    <option key={classroom.id} value={classroom.id}>
+                                      {classroom.name}
+                                    </option>
+                                  ))}
+                                </Select>
+                                <ConfirmActionButton
+                                  action={updateAssignmentFeedbackAction}
+                                  affectedName={`${assignment.group_subjects?.subjects?.name ?? "Asignación"} - ${assignment.teachers?.name ?? "Docente"}`}
+                                  className="h-10 px-3"
+                                  confirmLabel="Guardar cambio"
+                                  description="Se modificará el horario, aula y horas de esta asignación activa."
+                                  title="Modificar asignación"
+                                  variant="secondary"
+                                >
+                                  Guardar
+                                </ConfirmActionButton>
+                              </form>,
+                              <form action={deleteAssignmentAction} key="delete">
+                                <input name="assignment_id" type="hidden" value={assignment.id} />
+                                <input name="group_id" type="hidden" value={group.id} />
+                                <ConfirmActionButton
+                                  action={deleteAssignmentFeedbackAction}
+                                  affectedName={`${assignment.group_subjects?.subjects?.name ?? "Asignación"} - ${assignment.teachers?.name ?? "Docente"}`}
+                                  className="h-10 px-3"
+                                  confirmLabel="Eliminar asignación"
+                                  danger
+                                  description="La asignación se eliminará y el docente liberará esas horas."
+                                  title="Eliminar asignación"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  Eliminar
+                                </ConfirmActionButton>
+                              </form>
+                            ])}
+                          />
+                        }
                       />
                     </div>
                   </div>

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { validateAssignmentDraft } from "../lib/validations/assignments";
+import { findScheduleTemplate } from "../lib/schedule/templates";
+import { groupSchema } from "../lib/validations/groups";
 
 const validDraft = {
   teacherId: "teacher-1",
@@ -56,5 +58,31 @@ describe("validateAssignmentDraft", () => {
         hasClassroomCollision: true
       })
     ).toContain("El aula ya tiene una clase asignada en este horario.");
+  });
+});
+
+describe("sabatino schedule support", () => {
+  it("exposes canonical sabatino templates with Saturday modules", () => {
+    const matutino = findScheduleTemplate("sabatino", "matutino");
+    const vespertino = findScheduleTemplate("sabatino", "vespertino");
+
+    expect(matutino?.code).toBe("sabatino-matutino");
+    expect(vespertino?.code).toBe("sabatino-vespertino");
+    expect(matutino?.blocks.every((block) => block.dayOfWeek === 6 && block.module)).toBe(true);
+    expect(vespertino?.blocks.every((block) => block.dayOfWeek === 6 && block.module)).toBe(true);
+  });
+
+  it("accepts sabatino groups in matutino and vespertino shifts", () => {
+    const baseGroup = {
+      academic_cycle_id: "84fd66f3-0a36-4619-8670-743d34dd4c23",
+      career_id: "44c55824-e320-4942-9232-5e8fe99f1abc",
+      quarter: 1,
+      modality: "sabatino",
+      name: "Sabatino 1A",
+      classroom_id: ""
+    };
+
+    expect(groupSchema.safeParse({ ...baseGroup, shift: "matutino" }).success).toBe(true);
+    expect(groupSchema.safeParse({ ...baseGroup, shift: "vespertino" }).success).toBe(true);
   });
 });

@@ -1,3 +1,5 @@
+begin;
+
 alter table "public"."groups" drop constraint "groups_modality_check";
 
 alter table "public"."schedule_templates" drop constraint "schedule_templates_modality_check";
@@ -14,4 +16,4 @@ alter table "public"."schedule_templates" add constraint "schedule_templates_mod
 
 alter table "public"."schedule_templates" validate constraint "schedule_templates_modality_check";
 
-
+commit;

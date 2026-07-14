@@ -7,7 +7,9 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAuthenticatedProfile } from "@/lib/supabase/auth-helpers";
 import { actionFailure, actionSuccess, type ActionState } from "@/lib/actions/action-state";
 import { getSafeErrorMessage } from "@/lib/supabase/error-utils";
+import { checkGroupSubjectHours } from "@/lib/supabase/queries";
 import { cleanString, getStringList, normalizeKey } from "@/app/(dashboard)/actions/utils";
+import { requireEditableGroup } from "@/app/(dashboard)/actions/group-guards";
 import { isValidProfileCode, normalizeProfileCode } from "@/lib/profiles";
 import { groupSchema } from "@/lib/validations/groups";
 
@@ -114,6 +116,17 @@ async function createGroupFromFormData(formData: FormData) {
     }
   }
 
+  const { data: activeCycle, error: cycleError } = await supabase
+    .from("academic_cycles")
+    .select("id")
+    .eq("id", parsed.data.academic_cycle_id)
+    .eq("status", "active")
+    .maybeSingle();
+  if (cycleError) throw new Error(cycleError.message);
+  if (!activeCycle) {
+    throw new Error("Selecciona un ciclo escolar activo.");
+  }
+
   const subjectIds = getStringList(formData, "subject_ids");
   const externalSubjects = getExternalSubjects(formData, parsed.data.quarter);
 
@@ -201,14 +214,77 @@ const statusTransitionSchema = z.object({
   group_id: z.string().uuid()
 });
 
+const allowedGroupTransitions: Record<string, string[]> = {
+  active: ["review", "final", "archived"],
+  draft: ["review"],
+  review: ["draft", "final"],
+  final: ["archived"],
+  archived: []
+};
+
+async function validateGroupReadyForFinal(group: {
+  id: string;
+  modality: string | null;
+  classroom_id: string | null;
+}) {
+  if (group.modality !== "virtual_modular" && !group.classroom_id) {
+    throw new Error("No se puede finalizar un grupo sin aula asignada.");
+  }
+
+  const subjectHours = await checkGroupSubjectHours(group.id);
+  if (subjectHours.length === 0) {
+    throw new Error("No se puede finalizar un grupo sin materias.");
+  }
+
+  const incompleteSubjects = subjectHours.filter((item) => item.status !== "completa");
+  if (incompleteSubjects.length > 0) {
+    const subjectList = incompleteSubjects.slice(0, 3).map((item) => item.subject_name).join(", ");
+    throw new Error(`No se puede finalizar el grupo: hay materias incompletas o excedidas (${subjectList}).`);
+  }
+}
+
 async function transitionGroupStatus(formData: FormData, newStatus: string) {
-  const { supabase } = await requireAuthenticatedProfile();
+  const { supabase, profile } = await requireAuthenticatedProfile();
   const parsed = statusTransitionSchema.safeParse({
     group_id: formData.get("group_id")
   });
 
   if (!parsed.success) {
-    throw new Error("Selecciona un grupo valido.");
+    throw new Error("Selecciona un grupo válido.");
+  }
+
+  const { data: group, error: groupError } = await supabase
+    .from("groups")
+    .select("id, career_id, status, modality, classroom_id")
+    .eq("id", parsed.data.group_id)
+    .maybeSingle();
+
+  if (groupError) throw new Error(groupError.message);
+  if (!group) throw new Error("Grupo no encontrado.");
+
+  const allowedTargets = allowedGroupTransitions[group.status] ?? [];
+  if (!allowedTargets.includes(newStatus)) {
+    throw new Error("La transición de estado solicitada no está permitida.");
+  }
+
+  if (profile.role_code !== "admin") {
+    if (!((group.status === "draft" && newStatus === "review") || (group.status === "review" && newStatus === "draft"))) {
+      throw new Error("Solo el administrador puede finalizar o archivar grupos.");
+    }
+
+    const { data: allowed, error: scopeError } = await supabase.rpc("can_access_career", {
+      target_career_id: group.career_id
+    });
+    if (scopeError || !allowed) {
+      throw new Error("No tienes permiso para modificar este grupo.");
+    }
+  }
+
+  if (newStatus === "final") {
+    if (profile.role_code !== "admin") {
+      throw new Error("Solo el administrador puede finalizar grupos.");
+    }
+    await validateGroupReadyForFinal(group);
   }
 
   const { error } = await supabase
@@ -295,6 +371,7 @@ export async function updateGroupSubjectHoursAction(
     }
 
     const { supabase, profile } = await requireAuthenticatedProfile();
+    await requireEditableGroup(supabase, parsed.data.group_id);
 
     if (profile.role_code !== "admin") {
       const { data: group } = await supabase

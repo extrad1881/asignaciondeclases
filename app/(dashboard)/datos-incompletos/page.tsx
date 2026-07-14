@@ -2,11 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { BookOpen, CalendarDays, CircleAlert, LayoutGrid, Users } from "lucide-react";
 import { SectionHeader } from "@/components/section-header";
+import { IssueCard } from "@/components/datos-incompletos/issue-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { MetricCard } from "@/components/ui/metric-card";
 import { DataTableAdvanced, type DataTableAdvancedRow } from "@/components/ui/data-table-advanced";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
 import { getIncompleteData, type IncompleteCategory, type IncompleteIssue } from "@/lib/supabase/incomplete-data";
 import { isAdmin } from "@/lib/permissions";
@@ -127,7 +129,7 @@ export default async function IncompleteDataPage() {
         description="Corrige estos pendientes antes de iniciar asignaciones masivas. La prioridad indica el riesgo operativo para grupos, docentes y horarios."
       />
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {(Object.keys(categoryLabels) as IncompleteCategory[]).map((category) => (
           <MetricCard
             description={categoryDescriptions[category]}
@@ -150,20 +152,33 @@ export default async function IncompleteDataPage() {
         </div>
       ) : (
         <div className="mt-5">
-          <DataTableAdvanced
-            emptyDescription="Ajusta los filtros para encontrar otros pendientes o vuelve a la vista general."
-            emptyLabel="No hay problemas con esos filtros."
-            filters={[
-              { key: "category", label: "Categoría" },
-              { key: "severity", label: "Severidad" },
-              { key: "career", label: "Carrera", options: uniqueOptions(issues, "careerLabel") },
-              { key: "coordinator", label: "Coordinador", options: uniqueOptions(issues, "coordinatorLabel") },
-              { key: "group", label: "Grupo", options: uniqueOptions(issues, "groupLabel") },
-              { key: "quarter", label: "Cuatrimestre" },
-              { key: "type", label: "Tipo de problema" }
-            ]}
-            headers={["Categoría", "Severidad", "Problema", "Elemento", "Coordinador", "Acción"]}
-            rows={rows}
+          <ResponsiveTable
+            cards={
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {issues.map((issue) => (
+                  <li key={issue.id}>
+                    <IssueCard issue={issue} />
+                  </li>
+                ))}
+              </ul>
+            }
+            table={
+              <DataTableAdvanced
+                emptyDescription="Ajusta los filtros para encontrar otros pendientes o vuelve a la vista general."
+                emptyLabel="No hay problemas con esos filtros."
+                filters={[
+                  { key: "category", label: "Categoría" },
+                  { key: "severity", label: "Severidad" },
+                  { key: "career", label: "Carrera", options: uniqueOptions(issues, "careerLabel") },
+                  { key: "coordinator", label: "Coordinador", options: uniqueOptions(issues, "coordinatorLabel") },
+                  { key: "group", label: "Grupo", options: uniqueOptions(issues, "groupLabel") },
+                  { key: "quarter", label: "Cuatrimestre" },
+                  { key: "type", label: "Tipo de problema" }
+                ]}
+                headers={["Categoría", "Severidad", "Problema", "Elemento", "Coordinador", "Acción"]}
+                rows={rows}
+              />
+            }
           />
         </div>
       )}

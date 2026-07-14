@@ -118,7 +118,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ i
       ) : null}
 
       <section className="mb-5">
-        <h3 className="mb-3 text-sm font-semibold text-ink">Grupos de esta cohorte</h3>
+        <h2 className="mb-3 text-sm font-semibold text-ink">Grupos de esta cohorte</h2>
         <DataTable
           emptyLabel="No hay grupos vinculados a esta cohorte."
           headers={["Cuatrimestre", "Grupo", "Ciclo", "Estado"]}
@@ -141,13 +141,13 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ i
       </section>
 
       <section>
-        <h3 className="mb-3 text-sm font-semibold text-ink">Historial de materias cursadas</h3>
+        <h2 className="mb-3 text-sm font-semibold text-ink">Historial de materias cursadas</h2>
         {Array.from({ length: maxQuarter }, (_, i) => i + 1).map((quarter) => {
           const qHistory = historyByQuarter.get(quarter) ?? [];
           if (qHistory.length === 0) return null;
           return (
             <div className="mb-4" key={quarter}>
-              <h4 className="mb-2 text-xs font-semibold uppercase text-muted">Cuatrimestre {quarter}</h4>
+              <h3 className="mb-2 text-xs font-semibold uppercase text-muted">Cuatrimestre {quarter}</h3>
               <DataTable
                 emptyLabel="Sin materias registradas."
                 headers={["Materia", "Grupo origen"]}

@@ -36,10 +36,13 @@ export async function createCycleAction(
       return actionFailure(new Error(parsed.error.issues.map((i) => i.message).join(" ")));
     }
 
+    const status = parsed.data.status ?? "draft";
+
     const { error } = await supabase.from("academic_cycles").insert({
       code: parsed.data.code,
       name: parsed.data.name,
-      status: parsed.data.status ?? "draft",
+      status,
+      active: status === "active",
       starts_at: parsed.data.starts_at || null,
       ends_at: parsed.data.ends_at || null
     });
@@ -91,13 +94,13 @@ async function activateCycle(formData: FormData) {
 
   const { error: deactivateError } = await supabase
     .from("academic_cycles")
-    .update({ status: "finalized" })
+    .update({ status: "finalized", active: false })
     .eq("status", "active");
   if (deactivateError) throw new Error(getSafeErrorMessage(deactivateError));
 
   const { error } = await supabase
     .from("academic_cycles")
-    .update({ status: "active" })
+    .update({ status: "active", active: true })
     .eq("id", parsed.data.cycle_id);
   if (error) throw new Error(getSafeErrorMessage(error));
 }
@@ -123,7 +126,7 @@ async function finalizeCycle(formData: FormData) {
 
   const { error } = await supabase
     .from("academic_cycles")
-    .update({ status: "finalized" })
+    .update({ status: "finalized", active: false })
     .eq("id", parsed.data.cycle_id);
   if (error) throw new Error(getSafeErrorMessage(error));
 }
@@ -149,7 +152,7 @@ async function archiveCycle(formData: FormData) {
 
   const { error } = await supabase
     .from("academic_cycles")
-    .update({ status: "archived" })
+    .update({ status: "archived", active: false })
     .eq("id", parsed.data.cycle_id);
   if (error) throw new Error(getSafeErrorMessage(error));
 }

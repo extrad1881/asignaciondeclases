@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { canUseShift } from "@/lib/permissions";
+import { canUseShift } from "../permissions";
 
 export const groupSchema = z
   .object({

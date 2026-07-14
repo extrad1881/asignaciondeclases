@@ -35,7 +35,7 @@ async function signOut() {
   redirect("/login");
 }
 
-export async function AppShell({ children }: { children: React.ReactNode }) {
+export async function AppShell({ children, breadcrumbs }: { children: React.ReactNode; breadcrumbs?: React.ReactNode }) {
   const profile = await requireActiveProfileOrRedirect();
 
   const visibleNavItems: Array<{ href: string; label: string; icon: string }> = navItems
@@ -51,6 +51,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <ComicShell
+      breadcrumbs={breadcrumbs}
       displayName={displayName}
       navItems={visibleNavItems}
       roleLabel={roleLabel}

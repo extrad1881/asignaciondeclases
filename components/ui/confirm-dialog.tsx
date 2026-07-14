@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -32,11 +32,12 @@ export function ConfirmDialog({
   const dialogRef = useRef<HTMLDivElement>(null);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const titleId = useId();
+  const descriptionId = useId();
 
   useEffect(() => {
     if (open) {
       previousFocusRef.current = document.activeElement as HTMLElement | null;
-      // Focus the cancel button when opening
       setTimeout(() => cancelButtonRef.current?.focus(), 0);
     } else if (previousFocusRef.current) {
       previousFocusRef.current.focus();
@@ -58,7 +59,7 @@ export function ConfirmDialog({
         const container = dialogRef.current;
         if (!container) return;
         const focusable = container.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
         );
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
@@ -68,7 +69,7 @@ export function ConfirmDialog({
           last?.focus();
         } else if (!event.shiftKey && document.activeElement === last) {
           event.preventDefault();
-          first?.focus();
+          first.focus();
         }
       }
     }
@@ -81,21 +82,31 @@ export function ConfirmDialog({
 
   return (
     <div
+      aria-describedby={descriptionId}
+      aria-labelledby={titleId}
       aria-modal="true"
       className="fixed inset-0 z-50 grid place-items-center bg-ink/45 px-4"
       ref={dialogRef}
       role="dialog"
     >
       <div className="w-full max-w-md rounded-md border border-line bg-card p-5 text-card-foreground shadow-lg">
-        <h2 className="text-lg font-semibold text-ink">{title}</h2>
-        <p className="mt-2 text-sm leading-6 text-muted">{description}</p>
+        <h2 className="text-lg font-semibold text-ink" id={titleId}>
+          {title}
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-muted" id={descriptionId}>
+          {description}
+        </p>
         {affectedName ? (
           <div className="mt-4 rounded-md border border-line bg-panel px-3 py-2 text-sm font-medium text-ink">
             {affectedName}
           </div>
         ) : null}
         {error ? (
-          <div className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200" role="alert">
+          <div
+            aria-live="polite"
+            className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
+            role="alert"
+          >
             {error}
           </div>
         ) : null}

@@ -19,7 +19,7 @@ export default async function NewGroupPage() {
   ] =
     await Promise.all([
       requireActiveProfileOrRedirect(),
-      supabase.from("academic_cycles").select("id, code, name").eq("active", true).order("code"),
+      supabase.from("academic_cycles").select("id, code, name").eq("status", "active").order("code"),
       supabase.from("careers").select("id, code, name").eq("active", true).order("code"),
       supabase.from("classrooms").select("id, name").eq("active", true).order("name"),
       supabase

@@ -255,10 +255,10 @@ INSERT INTO "auth"."refresh_tokens" ("instance_id", "id", "token", "user_id", "r
 -- Data for Name: academic_cycles; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-INSERT INTO "public"."academic_cycles" ("id", "code", "name", "starts_at", "ends_at", "active", "created_at", "updated_at") VALUES
-	('84fd66f3-0a36-4619-8670-743d34dd4c23', '26-1', 'Ciclo escolar 26-1', NULL, NULL, true, '2026-06-05 16:47:09.269655+00', '2026-06-05 16:47:09.269655+00'),
-	('51bf88fb-796e-4ac1-96b9-785182d889f6', '26-2', 'Ciclo escolar 26-2', NULL, NULL, false, '2026-06-05 16:47:09.269655+00', '2026-06-05 16:47:09.269655+00'),
-	('a234a880-c20f-4997-8101-b7e10ae47d95', '26-3', 'Ciclo escolar 26-3', NULL, NULL, false, '2026-06-05 16:47:09.269655+00', '2026-06-05 16:47:09.269655+00');
+INSERT INTO "public"."academic_cycles" ("id", "code", "name", "starts_at", "ends_at", "active", "status", "created_at", "updated_at") VALUES
+	('84fd66f3-0a36-4619-8670-743d34dd4c23', '26-1', 'Ciclo escolar 26-1', NULL, NULL, true, 'active', '2026-06-05 16:47:09.269655+00', '2026-06-05 16:47:09.269655+00'),
+	('51bf88fb-796e-4ac1-96b9-785182d889f6', '26-2', 'Ciclo escolar 26-2', NULL, NULL, false, 'archived', '2026-06-05 16:47:09.269655+00', '2026-06-05 16:47:09.269655+00'),
+	('a234a880-c20f-4997-8101-b7e10ae47d95', '26-3', 'Ciclo escolar 26-3', NULL, NULL, false, 'archived', '2026-06-05 16:47:09.269655+00', '2026-06-05 16:47:09.269655+00');
 
 
 --
@@ -399,6 +399,7 @@ INSERT INTO "public"."users_profile" ("id", "email", "display_name", "role_code"
 --
 
 INSERT INTO "public"."coordinators" ("id", "profile_id", "name", "active", "created_at", "updated_at") VALUES
+	('00000000-0000-4000-8000-000000000102', '00000000-0000-4000-8000-000000000002', 'Coordinador Local', true, '2026-06-05 16:47:09.269655+00', '2026-06-05 16:47:09.269655+00'),
 	('d48fb7e1-a6ee-4a6c-8a15-8ae75264a53d', '00c1eed7-3412-4e45-acea-2e4bd5576538', 'ZULMA MARTINEZ', true, '2026-06-17 02:20:12.27817+00', '2026-06-17 02:20:12.27817+00'),
 	('bb628fe9-8bc1-41f1-8123-b88cb9d44166', 'ba8079b0-4d0a-4e22-9a63-cf009dd2fdcd', 'MERIT BAZAN', true, '2026-06-17 02:24:26.399325+00', '2026-06-17 02:24:26.399325+00'),
 	('d4d1e576-0f65-47ce-83ab-32b5945607a8', 'ff4f2925-2390-4a28-acf0-f5ca61acdcc6', 'ESLIVET AGUILAR', true, '2026-06-17 02:25:13.436532+00', '2026-06-17 02:25:13.436532+00'),
@@ -4074,9 +4075,11 @@ INSERT INTO "public"."schedule_templates" ("id", "code", "label", "modality", "s
 	('c4be1c75-17d6-4f92-b724-c1641c4c9fde', 'escolarizado-matutino', 'Escolarizado matutino', 'escolarizado', 'matutino', '08:00:00', '13:00:00', '/schedule-assets/CUADRO ESCOLARIZADO.png', true, '2026-06-05 16:47:09.269655+00', '2026-06-05 16:47:09.269655+00'),
 	('1c65a393-903f-4b5d-a407-bc7b72d10878', 'escolarizado-vespertino', 'Escolarizado vespertino', 'escolarizado', 'vespertino', '15:00:00', '20:00:00', '/schedule-assets/CUADRO ESCOLARIZADO VESPERTINO.png', true, '2026-06-05 16:47:09.269655+00', '2026-06-05 16:47:09.269655+00'),
 	('cb89f4c4-a7f1-412b-9b85-a7050cd8df25', 'maestrias-vespertino', 'Maestrías', 'maestrias', 'vespertino', '14:30:00', '19:00:00', '/schedule-assets/CUADRO MAESTRIAS.png', true, '2026-06-05 16:47:09.269655+00', '2026-06-05 16:47:09.269655+00'),
-	('d6299cb4-8a71-4704-9c03-a8236091c54b', 'virtual-modular-matutino', 'Virtual sabatino matutino', 'virtual_modular', 'matutino', '08:00:00', '13:00:00', '/schedule-assets/CUADRO MODULAR VIRTUAL.png', true, '2026-06-05 16:47:09.269655+00', '2026-06-16 17:08:21.612574+00'),
-	('20b0f36e-2641-45d5-96d4-9e1d57876fdf', 'modular-vespertino', 'sabatino vespertino', 'sabatino', 'vespertino', '14:00:00', '19:00:00', '/schedule-assets/CUADRO MODULAR VESPERTINO.png', true, '2026-06-05 16:47:09.269655+00', '2026-06-16 17:24:51.406527+00'),
-	('ee6de5d9-384d-4f13-8469-e49c546dfc3d', 'modular-matutino', 'sabatino matutino', 'sabatino', 'matutino', '08:00:00', '13:00:00', '/schedule-assets/CUADRO MODULAR.png', true, '2026-06-05 16:47:09.269655+00', '2026-06-16 17:24:59.23511+00');
+	('d6299cb4-8a71-4704-9c03-a8236091c54b', 'virtual-modular-matutino', 'Virtual modular matutino', 'virtual_modular', 'matutino', '08:00:00', '13:00:00', '/schedule-assets/CUADRO MODULAR VIRTUAL.png', true, '2026-06-05 16:47:09.269655+00', '2026-06-16 17:08:21.612574+00'),
+	('20b0f36e-2641-45d5-96d4-9e1d57876fdf', 'sabatino-vespertino', 'Sabatino vespertino', 'sabatino', 'vespertino', '14:00:00', '19:00:00', '/schedule-assets/CUADRO MODULAR VESPERTINO.png', true, '2026-06-05 16:47:09.269655+00', '2026-06-16 17:24:51.406527+00'),
+	('ee6de5d9-384d-4f13-8469-e49c546dfc3d', 'sabatino-matutino', 'Sabatino matutino', 'sabatino', 'matutino', '08:00:00', '13:00:00', '/schedule-assets/CUADRO MODULAR.png', true, '2026-06-05 16:47:09.269655+00', '2026-06-16 17:24:59.23511+00'),
+	('f815bbf0-fcf7-4cc0-a292-2f9bff3df528', 'modular-matutino', 'Modular matutino', 'modular', 'matutino', '08:00:00', '13:00:00', '/schedule-assets/CUADRO MODULAR.png', true, '2026-06-05 16:47:09.269655+00', '2026-06-16 17:24:59.23511+00'),
+	('bd5fc9fa-3f9d-4e10-a982-bddf0497d750', 'modular-vespertino', 'Modular vespertino', 'modular', 'vespertino', '14:00:00', '19:00:00', '/schedule-assets/CUADRO MODULAR VESPERTINO.png', true, '2026-06-05 16:47:09.269655+00', '2026-06-16 17:24:51.406527+00');
 
 
 --
@@ -4145,6 +4148,38 @@ INSERT INTO "public"."schedule_blocks" ("id", "template_id", "day_of_week", "sta
 	('1573cc38-68b4-4f89-867e-fec4cefc651f', '20b0f36e-2641-45d5-96d4-9e1d57876fdf', 6, '14:00:00', '15:30:00', 'SAB M2 14:00-15:30', 0, true, '2026-06-16 17:33:07.783661+00', '2026-06-16 17:33:07.783661+00', false, NULL, 2),
 	('bc8c8a38-fd48-48d0-a633-0ecd86776370', '20b0f36e-2641-45d5-96d4-9e1d57876fdf', 6, '16:00:00', '17:30:00', 'SAB M2 16:00-17:30', 0, true, '2026-06-16 17:33:07.783661+00', '2026-06-16 17:33:07.783661+00', false, NULL, 2),
 	('2d91e5f7-c585-4820-84ad-5a77e9103970', '20b0f36e-2641-45d5-96d4-9e1d57876fdf', 6, '17:30:00', '19:00:00', 'SAB M2 17:30-19:00', 0, true, '2026-06-16 17:33:07.783661+00', '2026-06-16 17:33:07.783661+00', false, NULL, 2);
+
+WITH days(day_of_week, day_label) AS (
+  VALUES (1, 'LUN'), (2, 'MAR'), (3, 'MIE'), (4, 'JUE'), (5, 'VIE')
+),
+blocks(template_code, starts_at, ends_at, position) AS (
+  VALUES
+    ('modular-matutino', '08:00:00'::time, '09:30:00'::time, 1),
+    ('modular-matutino', '10:00:00'::time, '11:30:00'::time, 2),
+    ('modular-matutino', '11:30:00'::time, '13:00:00'::time, 3),
+    ('modular-vespertino', '14:00:00'::time, '15:30:00'::time, 1),
+    ('modular-vespertino', '16:00:00'::time, '17:30:00'::time, 2),
+    ('modular-vespertino', '17:30:00'::time, '19:00:00'::time, 3)
+)
+INSERT INTO "public"."schedule_blocks" ("template_id", "day_of_week", "starts_at", "ends_at", "label", "position", "active", "is_custom", "module")
+SELECT
+  st.id,
+  days.day_of_week,
+  blocks.starts_at,
+  blocks.ends_at,
+  days.day_label || ' ' || to_char(blocks.starts_at, 'HH24:MI') || '-' || to_char(blocks.ends_at, 'HH24:MI'),
+  blocks.position,
+  true,
+  false,
+  0
+FROM blocks
+JOIN "public"."schedule_templates" st ON st.code = blocks.template_code
+CROSS JOIN days
+ON CONFLICT ON CONSTRAINT "schedule_blocks_unique_times_per_module" DO UPDATE
+SET "label" = EXCLUDED."label",
+    "position" = EXCLUDED."position",
+    "active" = true,
+    "is_custom" = false;
 
 
 --

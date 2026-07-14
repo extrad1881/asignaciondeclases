@@ -40,6 +40,7 @@ describe("Supabase audit triggers and assignment validations", () => {
       alternateTeacherId,
       incompatibleTeacherId,
       lowHoursTeacherId,
+      classroomId,
       groupId,
       otherGroupId,
       groupSubjectId,
@@ -48,16 +49,26 @@ describe("Supabase audit triggers and assignment validations", () => {
       assignmentId
     ].filter(Boolean);
 
+  function auditValueHasStatus(value: unknown, status: string) {
+    return typeof value === "object" && value !== null && "status" in value && value.status === status;
+  }
+
   beforeAll(async () => {
     adminClient = await createAuthenticatedTestClient("admin@local.test", "Admin123!");
 
     const cycle = await requireSingle<{ id: string }>(
-      service.from("academic_cycles").select("id").eq("active", true).limit(1).single()
-    );
-    const classroom = await requireSingle<{ id: string }>(
-      service.from("classrooms").select("id").eq("active", true).limit(1).single()
+      service.from("academic_cycles").select("id").eq("status", "active").limit(1).single()
     );
     cycleId = cycle.id;
+
+    const { data: classroom, error: classroomError } = await service
+      .from("classrooms")
+      .insert({ name: `${prefix} Aula`, kind: "Aula", active: true })
+      .select("id")
+      .single();
+    if (classroomError || !classroom) {
+      throw new Error(classroomError?.message ?? "No se pudo crear el aula temporal.");
+    }
     classroomId = classroom.id;
 
     const { data: blocks, error: blocksError } = await service
@@ -254,6 +265,7 @@ describe("Supabase audit triggers and assignment validations", () => {
     await deleteByIds(service, "assignments", [assignmentId]);
     await deleteByIds(service, "group_subjects", [groupSubjectId, secondGroupSubjectId, otherGroupSubjectId]);
     await deleteByIds(service, "groups", [groupId, otherGroupId]);
+    await deleteByIds(service, "classrooms", [classroomId]);
     await service.from("teacher_available_profiles").delete().in("teacher_id", [teacherId, alternateTeacherId, incompatibleTeacherId, lowHoursTeacherId]);
     await service.from("class_requirements").delete().in("subject_id", [subjectId, secondSubjectId]);
     await deleteByIds(service, "teachers", [teacherId, alternateTeacherId, incompatibleTeacherId, lowHoursTeacherId]);
@@ -302,6 +314,88 @@ describe("Supabase audit triggers and assignment validations", () => {
     expect(actions.has("insert")).toBe(true);
     expect(actions.has("update")).toBe(true);
     expect(actions.has("delete")).toBe(true);
+  });
+
+  it("permite cancelar asignaciones logicamente y audita el cambio", async () => {
+    const { data: assignment, error: assignmentError } = await adminClient
+      .from("assignments")
+      .insert({ group_subject_id: groupSubjectId, teacher_id: teacherId, schedule_block_id: blockA, classroom_id: classroomId })
+      .select("id")
+      .single();
+    expect(assignmentError).toBeNull();
+
+    const assignmentToCancelId = assignment?.id ?? "";
+    const { error: cancelError } = await adminClient
+      .from("assignments")
+      .update({ status: "cancelled" })
+      .eq("id", assignmentToCancelId);
+    expect(cancelError).toBeNull();
+
+    const { data: cancelledAssignment, error: cancelledError } = await service
+      .from("assignments")
+      .select("status")
+      .eq("id", assignmentToCancelId)
+      .single();
+    expect(cancelledError).toBeNull();
+    expect(cancelledAssignment?.status).toBe("cancelled");
+
+    const { data: logs, error: logsError } = await service
+      .from("audit_logs")
+      .select("action_type, new_value")
+      .eq("table_name", "assignments")
+      .eq("record_id", assignmentToCancelId);
+    expect(logsError).toBeNull();
+    expect(logs?.some((log) => log.action_type === "update" && auditValueHasStatus(log.new_value, "cancelled"))).toBe(true);
+
+    await service.from("audit_logs").delete().eq("record_id", assignmentToCancelId);
+    await service.from("assignments").delete().eq("id", assignmentToCancelId);
+  });
+
+  it("bloquea mutaciones académicas cuando el grupo está finalizado", async () => {
+    const { data: closedGroup, error: groupError } = await service
+      .from("groups")
+      .insert({
+        academic_cycle_id: cycleId,
+        career_id: careerId,
+        quarter: 1,
+        modality: "escolarizado",
+        shift: "matutino",
+        name: `${prefix} Grupo Cerrado`,
+        classroom_id: classroomId,
+        status: "draft"
+      })
+      .select("id")
+      .single();
+    expect(groupError).toBeNull();
+
+    const { data: closedGroupSubject, error: groupSubjectError } = await service
+      .from("group_subjects")
+      .insert({ group_id: closedGroup?.id, subject_id: subjectId, hours_per_week: 5, required_profile_code: "ADEM" })
+      .select("id")
+      .single();
+    expect(groupSubjectError).toBeNull();
+
+    await service.from("groups").update({ status: "final" }).eq("id", closedGroup?.id);
+
+    const { error: assignmentError } = await adminClient
+      .from("assignments")
+      .insert({
+        group_subject_id: closedGroupSubject?.id,
+        teacher_id: teacherId,
+        schedule_block_id: blockA,
+        classroom_id: classroomId
+      });
+    expect(assignmentError?.message).toContain("solo lectura");
+
+    const { error: subjectUpdateError } = await adminClient
+      .from("group_subjects")
+      .update({ hours_per_week: 6 })
+      .eq("id", closedGroupSubject?.id);
+    expect(subjectUpdateError?.message).toContain("solo lectura");
+
+    await service.from("groups").update({ status: "draft" }).eq("id", closedGroup?.id);
+    await deleteByIds(service, "group_subjects", [closedGroupSubject?.id ?? ""]);
+    await deleteByIds(service, "groups", [closedGroup?.id ?? ""]);
   });
 
   it("no permite asignacion con choque de horario del docente", async () => {
