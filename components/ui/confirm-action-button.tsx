@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -33,18 +34,17 @@ export function ConfirmActionButton({
   ...buttonProps
 }: ConfirmActionButtonProps) {
   const [open, setOpen] = useState(false);
-  const [fallbackPending, setFallbackPending] = useState(false);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const { pending: formPending } = useFormStatus();
   const router = useRouter();
   const submitRef = useRef<HTMLButtonElement>(null);
-  const pending = fallbackPending || isPending;
+  const pending = formPending || isPending;
 
   function handleConfirm() {
     setError("");
 
     if (!action) {
-      setFallbackPending(true);
       submitRef.current?.form?.requestSubmit(submitRef.current);
       return;
     }

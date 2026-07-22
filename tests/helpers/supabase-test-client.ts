@@ -1,10 +1,9 @@
 import { execFileSync } from "node:child_process";
 import { config } from "dotenv";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import ws from "ws"; // Importación de la librería ws para Node 20
 
-config({ path: ".env.local" });
-config();
+config({ path: ".env.local", quiet: true });
+config({ quiet: true });
 
 export const ADMIN_USER_ID = "00000000-0000-4000-8000-000000000001";
 export const COORDINATOR_USER_ID = "00000000-0000-4000-8000-000000000002";
@@ -27,14 +26,19 @@ function supabaseStatusEnv() {
 }
 
 export function getSupabaseTestEnv() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://127.0.0.1:54321";
-  const statusEnv = supabaseStatusEnv();
   const configuredAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const configuredServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const needsLocalStatus =
+    !configuredAnonKey ||
+    configuredAnonKey.startsWith("postgresql://") ||
+    !configuredServiceRoleKey;
+  const statusEnv = needsLocalStatus ? supabaseStatusEnv() : {};
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || statusEnv.API_URL || "http://127.0.0.1:54321";
   const anonKey =
     configuredAnonKey && !configuredAnonKey.startsWith("postgresql://")
       ? configuredAnonKey
       : statusEnv.PUBLISHABLE_KEY || statusEnv.ANON_KEY || DEFAULT_LOCAL_ANON_KEY;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || statusEnv.SECRET_KEY || statusEnv.SERVICE_ROLE_KEY;
+  const serviceRoleKey = configuredServiceRoleKey || statusEnv.SECRET_KEY || statusEnv.SERVICE_ROLE_KEY;
 
   if (!anonKey) throw new Error("No se encontro NEXT_PUBLIC_SUPABASE_ANON_KEY ni Publishable key local.");
   if (!serviceRoleKey) throw new Error("No se encontro SUPABASE_SERVICE_ROLE_KEY ni Secret key local.");
@@ -42,16 +46,29 @@ export function getSupabaseTestEnv() {
   return { url, anonKey, serviceRoleKey };
 }
 
-export function createServiceTestClient() {
+export function createServiceTestClient(auditUserId?: string) {
   const { url, serviceRoleKey } = getSupabaseTestEnv();
   return createClient(url, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
     },
-    // Inyección del transporte de WebSockets
-    realtime: {
-      transport: ws as any
+    global: auditUserId
+      ? {
+          headers: {
+            "x-audit-user-id": auditUserId
+          }
+        }
+      : undefined
+  });
+}
+
+export function createAnonymousTestClient() {
+  const { url, anonKey } = getSupabaseTestEnv();
+  return createClient(url, anonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
     }
   });
 }
@@ -62,10 +79,6 @@ export async function createAuthenticatedTestClient(email: string, password: str
     auth: {
       autoRefreshToken: false,
       persistSession: false
-    },
-    // Inyección del transporte de WebSockets
-    realtime: {
-      transport: ws as any
     }
   });
 

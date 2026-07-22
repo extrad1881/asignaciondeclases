@@ -347,8 +347,66 @@ describe("Supabase audit triggers and assignment validations", () => {
     expect(logsError).toBeNull();
     expect(logs?.some((log) => log.action_type === "update" && auditValueHasStatus(log.new_value, "cancelled"))).toBe(true);
 
-    await service.from("audit_logs").delete().eq("record_id", assignmentToCancelId);
+    const { data: replacement, error: replacementError } = await adminClient
+      .from("assignments")
+      .insert({
+        group_subject_id: groupSubjectId,
+        teacher_id: teacherId,
+        schedule_block_id: blockA,
+        classroom_id: classroomId
+      })
+      .select("id")
+      .single();
+    expect(replacementError).toBeNull();
+    expect(replacement?.id).toBeTruthy();
+
+    if (replacement?.id) await service.from("assignments").delete().eq("id", replacement.id);
     await service.from("assignments").delete().eq("id", assignmentToCancelId);
+    await service
+      .from("audit_logs")
+      .delete()
+      .in("record_id", [assignmentToCancelId, replacement?.id ?? ""]);
+  });
+
+  it("serializa asignaciones concurrentes que compiten por el mismo horario", async () => {
+    const attempts = await Promise.all([
+      adminClient
+        .from("assignments")
+        .insert({
+          group_subject_id: groupSubjectId,
+          teacher_id: teacherId,
+          schedule_block_id: blockA,
+          classroom_id: classroomId,
+          duration_hours: 1.5
+        })
+        .select("id")
+        .single(),
+      adminClient
+        .from("assignments")
+        .insert({
+          group_subject_id: otherGroupSubjectId,
+          teacher_id: teacherId,
+          schedule_block_id: blockA,
+          classroom_id: classroomId,
+          duration_hours: 1.5
+        })
+        .select("id")
+        .single()
+    ]);
+
+    const successful = attempts.filter((attempt) => !attempt.error && attempt.data);
+    const rejected = attempts.filter((attempt) => attempt.error);
+    expect(successful).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]?.error?.message).toMatch(/docente|aula/i);
+
+    const createdIds = successful
+      .map((attempt) => attempt.data?.id)
+      .filter((id): id is string => Boolean(id));
+    if (createdIds.length > 0) {
+      await service.from("assignments").delete().in("id", createdIds);
+      await service.from("audit_logs").delete().in("record_id", createdIds);
+    }
   });
 
   it("bloquea mutaciones académicas cuando el grupo está finalizado", async () => {
@@ -466,11 +524,68 @@ describe("Supabase audit triggers and assignment validations", () => {
     if (activeAssignment?.id) await service.from("assignments").delete().eq("id", activeAssignment.id);
   });
 
+  it("conserva la decisión de permitir un límite menor que las horas asignadas", async () => {
+    const { data: activeAssignment, error: assignmentError } = await adminClient
+      .from("assignments")
+      .insert({
+        group_subject_id: groupSubjectId,
+        teacher_id: teacherId,
+        schedule_block_id: blockA,
+        classroom_id: classroomId,
+        duration_hours: 1.5
+      })
+      .select("id")
+      .single();
+    expect(assignmentError).toBeNull();
+
+    const { error: updateError } = await adminClient
+      .from("group_subjects")
+      .update({ hours_per_week: 1 })
+      .eq("id", groupSubjectId);
+    expect(updateError).toBeNull();
+
+    const updated = await requireSingle<{ hours_per_week: number }>(
+      service.from("group_subjects").select("hours_per_week").eq("id", groupSubjectId).single()
+    );
+    expect(Number(updated.hours_per_week)).toBe(1);
+
+    if (activeAssignment?.id) await service.from("assignments").delete().eq("id", activeAssignment.id);
+    await service.from("group_subjects").update({ hours_per_week: 5 }).eq("id", groupSubjectId);
+  });
+
+  it("conserva disponible el borrado físico de grupos para administradores", async () => {
+    const { data: disposableGroup, error: insertError } = await adminClient
+      .from("groups")
+      .insert({
+        academic_cycle_id: cycleId,
+        career_id: careerId,
+        quarter: 1,
+        modality: "escolarizado",
+        shift: "matutino",
+        name: `${prefix} Grupo Eliminable`,
+        classroom_id: classroomId,
+        status: "draft"
+      })
+      .select("id")
+      .single();
+    expect(insertError).toBeNull();
+
+    const { error: deleteError } = await adminClient.from("groups").delete().eq("id", disposableGroup?.id ?? "");
+    expect(deleteError).toBeNull();
+
+    const { data: deleted } = await service
+      .from("groups")
+      .select("id")
+      .eq("id", disposableGroup?.id ?? "")
+      .maybeSingle();
+    expect(deleted).toBeNull();
+  });
+
   it("crea grupos de forma transaccional sin dejar registros parciales si falla una materia", async () => {
     const rollbackGroupName = `${prefix} Grupo Rollback`;
     const rollbackSubjectName = `${prefix} Externa Fallida`;
 
-    const { error } = await (adminClient as any).rpc("create_group_with_subjects", {
+    const { error } = await adminClient.rpc("create_group_with_subjects", {
       p_academic_cycle_id: cycleId,
       p_career_id: careerId,
       p_quarter: 1,
@@ -495,6 +610,44 @@ describe("Supabase audit triggers and assignment validations", () => {
     const { data: partialSubject } = await service.from("subjects").select("id").eq("name", rollbackSubjectName).maybeSingle();
     expect(partialGroup).toBeNull();
     expect(partialSubject).toBeNull();
+  });
+
+  it("crea una materia externa sin ambigüedad y vincula el grupo", async () => {
+    const externalSubjectName = `${prefix} Externa Válida`;
+    const { data: createdGroupId, error } = await adminClient.rpc("create_group_with_subjects", {
+      p_academic_cycle_id: cycleId,
+      p_career_id: careerId,
+      p_quarter: 1,
+      p_modality: "escolarizado",
+      p_shift: "matutino",
+      p_name: `${prefix} Grupo Externo`,
+      p_classroom_id: classroomId,
+      p_subjects: [
+        {
+          name: externalSubjectName,
+          quarter: 1,
+          hours_per_week: 4,
+          required_profile_code: "ADEM"
+        }
+      ]
+    });
+    expect(error).toBeNull();
+    expect(createdGroupId).toBeTruthy();
+
+    const externalSubject = await requireSingle<{ id: string }>(
+      service.from("subjects").select("id").eq("name", externalSubjectName).single()
+    );
+    const relation = await requireSingle<{ profile_code: string }>(
+      service
+        .from("class_requirements")
+        .select("profile_code")
+        .eq("subject_id", externalSubject.id)
+        .single()
+    );
+    expect(relation.profile_code).toBe("ADEM");
+
+    if (createdGroupId) await service.from("groups").delete().eq("id", createdGroupId);
+    await service.from("subjects").delete().eq("id", externalSubject.id);
   });
 
   it("no permite asignacion si el docente no cumple el perfil", async () => {

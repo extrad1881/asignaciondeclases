@@ -40,7 +40,7 @@ export default async function AdminPage() {
     supabase.from("teachers").select("id, name").eq("active", true).order("name").limit(300)
   ]);
 
-  const users: AdminUser[] = (profiles ?? []).map((u: any) => ({
+  const users: AdminUser[] = (profiles ?? []).map((u) => ({
     id: u.id,
     email: u.email ?? "",
     display_name: u.display_name ?? "",
@@ -79,12 +79,12 @@ export default async function AdminPage() {
         <form action={assignCoordinatorCareerAction} className="grid gap-3 rounded-md border border-line bg-card p-4 shadow-subtle">
           <h2 className="text-lg font-semibold text-ink">Asignar carrera</h2>
           <Select name="coordinator_id" required>
-            {(coordinators ?? []).map((coordinator: any) => (
+            {(coordinators ?? []).map((coordinator) => (
               <option key={coordinator.id} value={coordinator.id}>{coordinator.name}</option>
             ))}
           </Select>
           <Select name="career_id" required>
-            {(careers ?? []).map((career: any) => (
+            {(careers ?? []).map((career) => (
               <option key={career.id} value={career.id}>{career.code} · {career.name}</option>
             ))}
           </Select>
@@ -101,12 +101,12 @@ export default async function AdminPage() {
         <form action={assignCoordinatorTeacherAction} className="grid gap-3 rounded-md border border-line bg-card p-4 shadow-subtle">
           <h2 className="text-lg font-semibold text-ink">Asignar docente</h2>
           <Select name="coordinator_id" required>
-            {(coordinators ?? []).map((coordinator: any) => (
+            {(coordinators ?? []).map((coordinator) => (
               <option key={coordinator.id} value={coordinator.id}>{coordinator.name}</option>
             ))}
           </Select>
           <Select name="teacher_id" required>
-            {(teachers ?? []).map((teacher: any) => (
+            {(teachers ?? []).map((teacher) => (
               <option key={teacher.id} value={teacher.id}>{teacher.name}</option>
             ))}
           </Select>
@@ -186,7 +186,7 @@ export default async function AdminPage() {
         <h2 className="mb-3 text-lg font-semibold text-ink">Auditoría reciente</h2>
         <DataTable
           headers={["Fecha", "Usuario", "Acción", "Tabla", "Registro"]}
-          rows={(logs as any[]).map((log) => [
+          rows={(logs ?? []).map((log) => [
             new Date(log.created_at).toLocaleString("es-MX"),
             log.users_profile?.email ?? "Sistema",
             log.action_type,

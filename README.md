@@ -15,12 +15,12 @@ Proyecto Next.js + Supabase para coordinación académica: grupos, materias, doc
 
 ```bash
 npm install
-copy .env.local.example .env.local
 supabase start
 supabase db reset
+npm run env:local
 ```
 
-Copia las llaves que muestra `supabase status` en `.env.local`:
+El comando anterior copia sin imprimir las llaves que muestra `supabase status` en `.env.local`:
 
 ```text
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321

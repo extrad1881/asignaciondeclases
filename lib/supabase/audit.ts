@@ -85,7 +85,7 @@ export async function getGroupAuditHistory(groupId: string) {
   if (!group) return [];
 
   const { data: groupSubjects = [] } = await supabase.from("group_subjects").select("id").eq("group_id", groupId);
-  const groupSubjectIds = new Set((groupSubjects ?? []).map((item: any) => String(item.id)));
+  const groupSubjectIds = new Set((groupSubjects ?? []).map((item) => String(item.id)));
 
   const { data: assignments = [] } =
     groupSubjectIds.size > 0
@@ -95,7 +95,7 @@ export async function getGroupAuditHistory(groupId: string) {
           .in("group_subject_id", Array.from(groupSubjectIds))
       : { data: [] };
 
-  const assignmentIds = new Set((assignments ?? []).map((item: any) => String(item.id)));
+  const assignmentIds = new Set((assignments ?? []).map((item) => String(item.id)));
   const recordIds = Array.from(new Set([groupId, ...Array.from(groupSubjectIds), ...Array.from(assignmentIds)]));
   const directLogs = await fetchAuditLogsByRecordIds(recordIds);
 

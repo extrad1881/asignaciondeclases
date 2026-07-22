@@ -15,22 +15,11 @@ const teacherSchema = z.object({
 
 async function replaceTeacherProfiles(supabase: Awaited<ReturnType<typeof createClient>>, teacherId: string, profileCodes: string[]) {
   const uniqueProfiles = uniqueValidProfileCodes(profileCodes);
-
-  const { error: deleteError } = await supabase
-    .from("teacher_available_profiles")
-    .delete()
-    .eq("teacher_id", teacherId);
-  if (deleteError) throw new Error(deleteError.message);
-
-  if (uniqueProfiles.length === 0) return;
-
-  const { error: insertError } = await supabase.from("teacher_available_profiles").insert(
-    uniqueProfiles.map((profileCode) => ({
-      teacher_id: teacherId,
-      profile_code: profileCode
-    }))
-  );
-  if (insertError) throw new Error(insertError.message);
+  const { error } = await supabase.rpc("replace_teacher_profiles", {
+    p_teacher_id: teacherId,
+    p_profile_codes: uniqueProfiles
+  });
+  if (error) throw new Error(error.message);
 }
 
 export async function createTeacherAction(formData: FormData) {
@@ -45,24 +34,16 @@ export async function createTeacherAction(formData: FormData) {
     throw new Error(parsed.error.issues.map((issue) => issue.message).join(" "));
   }
 
-  const { data: teacher, error } = await supabase
-    .from("teachers")
-    .upsert(
-      {
-        name: parsed.data.name,
-        normalized_name: normalizeKey(parsed.data.name),
-        email: parsed.data.email || null,
-        max_hours: parsed.data.max_hours,
-        active: true
-      },
-      { onConflict: "normalized_name" }
-    )
-    .select("id")
-    .single();
+  const { error } = await supabase.rpc("upsert_teacher_with_profiles", {
+    p_teacher_id: crypto.randomUUID(),
+    p_name: parsed.data.name,
+    p_normalized_name: normalizeKey(parsed.data.name),
+    p_email: parsed.data.email || "",
+    p_max_hours: parsed.data.max_hours,
+    p_profile_codes: uniqueValidProfileCodes(getStringList(formData, "profile_codes"))
+  });
 
-  if (error || !teacher) throw new Error(error?.message ?? "No se pudo guardar el docente.");
-
-  await replaceTeacherProfiles(supabase, teacher.id, getStringList(formData, "profile_codes"));
+  if (error) throw new Error(error.message);
   revalidatePath("/docentes");
 }
 

@@ -107,7 +107,7 @@ export function TeacherCard({
                 <input name="teacher_id" type="hidden" value={teacher.id} />
                 <ProfileCheckboxGroup
                   maxHeight="max-h-40"
-                  profiles={profileOptions as any[]}
+                  profiles={profileOptions}
                   selected={teacher.selectedProfiles}
                 />
                 <ConfirmActionButton

@@ -1,12 +1,19 @@
-import { PostgrestError } from "@supabase/supabase-js";
+import type { PostgrestError } from "@supabase/supabase-js";
+
+function isPostgrestError(error: unknown): error is PostgrestError {
+  if (typeof error !== "object" || error === null) return false;
+
+  const candidate = error as Record<string, unknown>;
+  return typeof candidate.code === "string" && typeof candidate.message === "string";
+}
 
 export function getSafeErrorMessage(error: unknown): string {
-  if (error instanceof PostgrestError) {
+  if (isPostgrestError(error)) {
     const codeMap: Record<string, string> = {
       "23505": "Ya existe un registro con esos datos.",
       "23503": "No se puede eliminar porque hay datos vinculados.",
       "23514": "El valor ingresado no cumple las reglas del sistema.",
-      "42501": "No tienes permiso para realizar esta accion."
+      "42501": "No tienes permiso para realizar esta acción."
     };
     if (error.code && codeMap[error.code]) {
       return codeMap[error.code];
@@ -23,13 +30,13 @@ export function getSafeErrorMessage(error: unknown): string {
 
   if (error instanceof Error) {
     if (error.message.includes("fetch failed") || error.message.includes("network")) {
-      return "No se pudo conectar con el servidor. Revisa tu conexion a internet.";
+      return "No se pudo conectar con el servidor. Revisa tu conexión a internet.";
     }
     if (error.message.includes("JWT expired") || error.message.includes("token")) {
-      return "Tu sesion ha expirado. Inicia sesion nuevamente.";
+      return "Tu sesión ha expirado. Inicia sesión nuevamente.";
     }
     return error.message;
   }
 
-  return "Ocurrio un error inesperado.";
+  return "Ocurrió un error inesperado.";
 }

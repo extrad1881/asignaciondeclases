@@ -4,6 +4,7 @@ import { config as loadEnv } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 import readXlsxFile, { readSheet as readXlsxSheet } from "read-excel-file/node";
 import { isValidProfileCode, normalizeProfileCode } from "../lib/profiles";
+import type { Database } from "../types/supabase";
 
 function normalizeText(value: string) {
   return value
@@ -19,6 +20,8 @@ loadEnv();
 
 type Row = Record<string, unknown>;
 type CellValue = unknown;
+type PublicTables = Database["public"]["Tables"];
+type InsertRow<Table extends keyof PublicTables> = PublicTables[Table]["Insert"];
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -29,7 +32,7 @@ if (!supabaseUrl || !serviceKey) {
   );
 }
 
-const supabase = createClient(supabaseUrl, serviceKey, {
+const supabase = createClient<Database>(supabaseUrl, serviceKey, {
   auth: { persistSession: false, autoRefreshToken: false }
 });
 
@@ -76,7 +79,7 @@ function splitProfiles(value: unknown) {
     .filter(isValidProfileCode);
 }
 
-function uniqueRows<T extends Row>(rows: T[], keyFn: (row: T) => string) {
+function uniqueRows<T>(rows: T[], keyFn: (row: T) => string) {
   const map = new Map<string, T>();
   for (const row of rows) map.set(keyFn(row), row);
   return Array.from(map.values());
@@ -165,20 +168,16 @@ async function readSourceSheet(filePath: string, sheetName: string): Promise<Row
   return rows;
 }
 
-async function upsertRows<T extends Row>(table: string, rows: T[], onConflict: string) {
-  if (rows.length === 0) return [];
-  const { data, error } = await supabase
-    .from(table)
-    .upsert(rows as any[], { onConflict })
-    .select("*");
+async function requireSuccessfulWrite(
+  table: string,
+  request: PromiseLike<{ error: { message: string } | null }>
+) {
+  const { error } = await request;
   if (error) throw new Error(`${table}: ${error.message}`);
-  return data ?? [];
 }
 
-async function fetchMap(table: string, select: string, key: string) {
-  const { data, error } = await supabase.from(table).select(select);
-  if (error) throw new Error(`${table}: ${error.message}`);
-  return new Map((data ?? []).map((row: any) => [row[key], row]));
+function rowsToMap<T, Key extends keyof T>(rows: T[], key: Key) {
+  return new Map(rows.map((row) => [row[key], row]));
 }
 
 function findDataWorkbook() {
@@ -201,8 +200,8 @@ async function importAcademicData() {
   requiredColumns(teacherRows, ["NOMBRE", "PERFILES_APTOS", "LINK_EXPEDIENTE", "EMAIL_DOCENTE", "COORDINADOR", "HORAS_MAXIMAS"], "base_docentes");
 
   const coordinatorNames = new Set<string>();
-  const careerRows = new Map<string, Row>();
-  const profileRows = new Map<string, Row>();
+  const careerRows = new Map<string, InsertRow<"careers">>();
+  const profileRows = new Map<string, InsertRow<"teacher_profiles">>();
 
   for (const row of classRows) {
     const coordinator = normalizeText(clean(row.COORDINADOR));
@@ -231,19 +230,35 @@ async function importAcademicData() {
     }
   }
 
-  await upsertRows(
+  await requireSuccessfulWrite(
     "coordinators",
-    Array.from(coordinatorNames).map((name) => ({ name, active: true })),
-    "name"
+    supabase
+      .from("coordinators")
+      .upsert(Array.from(coordinatorNames).map((name) => ({ name, active: true })), { onConflict: "name" })
   );
-  await upsertRows("careers", Array.from(careerRows.values()), "code");
-  await upsertRows("teacher_profiles", Array.from(profileRows.values()), "code");
+  await requireSuccessfulWrite(
+    "careers",
+    supabase.from("careers").upsert(Array.from(careerRows.values()), { onConflict: "code" })
+  );
+  await requireSuccessfulWrite(
+    "teacher_profiles",
+    supabase.from("teacher_profiles").upsert(Array.from(profileRows.values()), { onConflict: "code" })
+  );
 
-  const coordinatorsByName = await fetchMap("coordinators", "id,name", "name");
-  const careersByCode = await fetchMap("careers", "id,code", "code");
+  const { data: coordinatorRecords, error: coordinatorRecordsError } = await supabase
+    .from("coordinators")
+    .select("id, name");
+  if (coordinatorRecordsError) throw new Error(`coordinators: ${coordinatorRecordsError.message}`);
+  const coordinatorsByName = rowsToMap(coordinatorRecords ?? [], "name");
 
-  const coordinatorCareerRows: Row[] = [];
-  const subjectRows = new Map<string, Row>();
+  const { data: careerRecords, error: careerRecordsError } = await supabase
+    .from("careers")
+    .select("id, code");
+  if (careerRecordsError) throw new Error(`careers: ${careerRecordsError.message}`);
+  const careersByCode = rowsToMap(careerRecords ?? [], "code");
+
+  const coordinatorCareerRows: Array<InsertRow<"coordinator_careers">> = [];
+  const subjectRows = new Map<string, InsertRow<"subjects">>();
 
   for (const row of classRows) {
     const career = careersByCode.get(normalizeText(clean(row.CARRERA)));
@@ -266,12 +281,19 @@ async function importAcademicData() {
     }
   }
 
-  await upsertRows(
+  await requireSuccessfulWrite(
     "coordinator_careers",
-    uniqueRows(coordinatorCareerRows, (row) => `${row.coordinator_id}|${row.career_id}`),
-    "coordinator_id,career_id"
+    supabase.from("coordinator_careers").upsert(
+      uniqueRows(coordinatorCareerRows, (row) => `${row.coordinator_id}|${row.career_id}`),
+      { onConflict: "coordinator_id,career_id" }
+    )
   );
-  await upsertRows("subjects", Array.from(subjectRows.values()), "career_id,quarter,normalized_name");
+  await requireSuccessfulWrite(
+    "subjects",
+    supabase.from("subjects").upsert(Array.from(subjectRows.values()), {
+      onConflict: "career_id,quarter,normalized_name"
+    })
+  );
 
   const { data: subjects, error: subjectsError } = await supabase
     .from("subjects")
@@ -279,13 +301,13 @@ async function importAcademicData() {
   if (subjectsError) throw new Error(`subjects: ${subjectsError.message}`);
 
   const subjectsByKey = new Map(
-    (subjects ?? []).map((subject: any) => [
+    (subjects ?? []).map((subject) => [
       `${subject.career_id}|${subject.quarter}|${subject.normalized_name}`,
       subject
     ])
   );
 
-  const classRequirementRows: Row[] = [];
+  const classRequirementRows: Array<InsertRow<"class_requirements">> = [];
   for (const row of classRows) {
     const career = careersByCode.get(normalizeText(clean(row.CARRERA)));
     if (!career) continue;
@@ -295,10 +317,12 @@ async function importAcademicData() {
       classRequirementRows.push({ subject_id: subject.id, profile_code: profile });
     }
   }
-  await upsertRows(
+  await requireSuccessfulWrite(
     "class_requirements",
-    uniqueRows(classRequirementRows, (row) => `${row.subject_id}|${row.profile_code}`),
-    "subject_id,profile_code"
+    supabase.from("class_requirements").upsert(
+      uniqueRows(classRequirementRows, (row) => `${row.subject_id}|${row.profile_code}`),
+      { onConflict: "subject_id,profile_code" }
+    )
   );
 
   const teacherImportRows = teacherRows.map((row) => {
@@ -315,11 +339,18 @@ async function importAcademicData() {
     };
   });
 
-  await upsertRows("teachers", teacherImportRows, "normalized_name");
-  const teachersByName = await fetchMap("teachers", "id,normalized_name,responsible_coordinator_id", "normalized_name");
+  await requireSuccessfulWrite(
+    "teachers",
+    supabase.from("teachers").upsert(teacherImportRows, { onConflict: "normalized_name" })
+  );
+  const { data: teacherRecords, error: teacherRecordsError } = await supabase
+    .from("teachers")
+    .select("id, normalized_name, responsible_coordinator_id");
+  if (teacherRecordsError) throw new Error(`teachers: ${teacherRecordsError.message}`);
+  const teachersByName = rowsToMap(teacherRecords ?? [], "normalized_name");
 
-  const teacherProfileRows: Row[] = [];
-  const coordinatorTeacherRows: Row[] = [];
+  const teacherProfileRows: Array<InsertRow<"teacher_available_profiles">> = [];
+  const coordinatorTeacherRows: Array<InsertRow<"coordinator_teachers">> = [];
 
   for (const row of teacherRows) {
     const teacher = teachersByName.get(normalizeText(clean(row.NOMBRE)));
@@ -335,15 +366,19 @@ async function importAcademicData() {
     }
   }
 
-  await upsertRows(
+  await requireSuccessfulWrite(
     "teacher_available_profiles",
-    uniqueRows(teacherProfileRows, (row) => `${row.teacher_id}|${row.profile_code}`),
-    "teacher_id,profile_code"
+    supabase.from("teacher_available_profiles").upsert(
+      uniqueRows(teacherProfileRows, (row) => `${row.teacher_id}|${row.profile_code}`),
+      { onConflict: "teacher_id,profile_code" }
+    )
   );
-  await upsertRows(
+  await requireSuccessfulWrite(
     "coordinator_teachers",
-    uniqueRows(coordinatorTeacherRows, (row) => `${row.coordinator_id}|${row.teacher_id}`),
-    "coordinator_id,teacher_id"
+    supabase.from("coordinator_teachers").upsert(
+      uniqueRows(coordinatorTeacherRows, (row) => `${row.coordinator_id}|${row.teacher_id}`),
+      { onConflict: "coordinator_id,teacher_id" }
+    )
   );
 
   console.log(
@@ -386,10 +421,12 @@ async function importClassrooms() {
     }
   }
 
-  await upsertRows(
+  await requireSuccessfulWrite(
     "classrooms",
-    Array.from(names).map((name) => ({ name, kind: "Aula", active: true })),
-    "name"
+    supabase.from("classrooms").upsert(
+      Array.from(names).map((name) => ({ name, kind: "Aula", active: true })),
+      { onConflict: "name" }
+    )
   );
 
   console.log(`Importación de aulas: ${names.size} aulas detectadas desde assets.`);

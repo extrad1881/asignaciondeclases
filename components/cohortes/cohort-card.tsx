@@ -1,4 +1,4 @@
-import { GitBranch, Plus, Save } from "lucide-react";
+import { GitBranch, Plus } from "lucide-react";
 import { ActionStateForm } from "@/components/ui/action-state-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import {
   advanceCohortAction,
-  completeCohortAction,
+  completeCohortStateAction,
   createCohortAction
-} from "@/app/(dashboard)/actions";
+} from "@/app/(dashboard)/actions/cohortes";
 
 export type Cohort = {
   id: string;
@@ -31,7 +31,7 @@ const statusLabel: Record<string, { label: string; tone: "success" | "info" | "n
   archived: { label: "Archivada", tone: "neutral" }
 };
 
-export function CohortCard({ cohort }: { cohort: Cohort }) {
+export function CohortCard({ cohort, canAdminister }: { cohort: Cohort; canAdminister: boolean }) {
   const status = statusLabel[cohort.status] ?? { label: cohort.status, tone: "neutral" as const };
   const shiftLabel = cohort.shift === "matutino" ? "Matutino" : "Vespertino";
   return (
@@ -44,27 +44,29 @@ export function CohortCard({ cohort }: { cohort: Cohort }) {
               <ConfirmActionButton
                 affectedName={cohort.name}
                 className="h-10 w-full"
-                confirmLabel="Avanzar cuatrimestre"
-                description={`Se avanzará la cohorte al cuatrimestre ${Number(cohort.current_quarter) + 1}. Se creará un nuevo grupo automáticamente con las materias pendientes.`}
-                title="Avanzar cohorte"
+                confirmLabel="Generar grupo pendiente"
+                description="Acción de recuperación: solo se creará un grupo si esta cohorte todavía no tiene uno en el ciclo activo. Nunca crea duplicados."
+                title="Recuperar automatización de cohorte"
               >
                 <GitBranch className="h-4 w-4" aria-hidden />
-                Avanzar al Q{Number(cohort.current_quarter) + 1}
+                Generar grupo pendiente
               </ConfirmActionButton>
             </ActionStateForm>
-            <form action={completeCohortAction}>
-              <input name="cohort_id" type="hidden" value={cohort.id} />
-              <ConfirmActionButton
-                affectedName={cohort.name}
-                className="h-10 w-full"
-                confirmLabel="Completar cohorte"
-                description={`Se marcará la cohorte ${cohort.name} como completada.`}
-                title="Completar cohorte"
-                variant="secondary"
-              >
-                Completar
-              </ConfirmActionButton>
-            </form>
+            {canAdminister ? (
+              <ActionStateForm action={completeCohortStateAction}>
+                <input name="cohort_id" type="hidden" value={cohort.id} />
+                <ConfirmActionButton
+                  affectedName={cohort.name}
+                  className="h-10 w-full"
+                  confirmLabel="Completar cohorte"
+                  description={`Se marcará la cohorte ${cohort.name} como completada.`}
+                  title="Completar cohorte"
+                  variant="secondary"
+                >
+                  Completar
+                </ConfirmActionButton>
+              </ActionStateForm>
+            ) : null}
           </div>
         ) : null
       }

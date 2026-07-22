@@ -33,11 +33,15 @@ export async function proxy(request: NextRequest) {
     "/carreras",
     "/coordinador",
     "/coordinadores",
+    "/ciclos",
+    "/cohortes",
     "/dashboard",
+    "/datos-incompletos",
     "/docentes",
     "/grupos",
     "/horarios",
-    "/materias"
+    "/materias",
+    "/reportes"
   ];
   const isProtected = protectedPaths.some((pathname) => request.nextUrl.pathname.startsWith(pathname));
 

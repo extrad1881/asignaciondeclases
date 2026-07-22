@@ -38,36 +38,49 @@ export async function updateCoordinatorUserAction(formData: FormData) {
   if (coordinatorLookupError) throw new Error(coordinatorLookupError.message);
   if (!coordinator) throw new Error("El usuario no esta vinculado a este coordinador.");
 
+  const { data: previousProfile, error: profileLookupError } = await service
+    .from("users_profile")
+    .select("id, email, display_name, role_code, active")
+    .eq("id", parsed.data.user_id)
+    .maybeSingle();
+  if (profileLookupError) throw new Error(profileLookupError.message);
+  if (!previousProfile) throw new Error("No se encontró el perfil del usuario.");
+
   const authUpdate: { email: string; password?: string } = {
     email: parsed.data.email
   };
 
   if (parsed.data.password) {
-    if (parsed.data.password.length < 6) {
-      throw new Error("La contraseña debe tener al menos 6 caracteres.");
+    if (parsed.data.password.length < 8) {
+      throw new Error("La contraseña debe tener al menos 8 caracteres.");
     }
     authUpdate.password = parsed.data.password;
   }
 
-  const { error: authError } = await service.auth.admin.updateUserById(parsed.data.user_id, authUpdate);
-  if (authError) throw new Error(authError.message);
-
   const active = parsed.data.active === "true";
-  const { error: profileError } = await service
-    .from("users_profile")
-    .update({
-      email: parsed.data.email,
-      role_code: "coordinator",
-      active
-    })
-    .eq("id", parsed.data.user_id);
-  if (profileError) throw new Error(profileError.message);
+  const { error: configureError } = await service.rpc("configure_managed_user", {
+    p_user_id: parsed.data.user_id,
+    p_email: parsed.data.email,
+    p_display_name: previousProfile.display_name,
+    p_role_code: "coordinator",
+    p_active: active
+  });
+  if (configureError) throw new Error(configureError.message);
 
-  const { error: coordinatorError } = await service
-    .from("coordinators")
-    .update({ active })
-    .eq("id", parsed.data.coordinator_id);
-  if (coordinatorError) throw new Error(coordinatorError.message);
+  const { error: authError } = await service.auth.admin.updateUserById(parsed.data.user_id, authUpdate);
+  if (authError) {
+    const { error: rollbackError } = await service.rpc("configure_managed_user", {
+      p_user_id: previousProfile.id,
+      p_email: previousProfile.email,
+      p_display_name: previousProfile.display_name,
+      p_role_code: previousProfile.role_code,
+      p_active: previousProfile.active
+    });
+    if (rollbackError) {
+      throw new Error(`${authError.message} Además, no se pudo revertir el perfil: ${rollbackError.message}`);
+    }
+    throw new Error(authError.message);
+  }
 
   revalidatePath("/admin");
   revalidatePath("/coordinadores");
@@ -182,21 +195,11 @@ export async function updateCoordinatorCareersAction(formData: FormData) {
     }
   }
 
-  const { error: deleteError } = await supabase
-    .from("coordinator_careers")
-    .delete()
-    .eq("coordinator_id", parsed.data.coordinator_id);
-  if (deleteError) throw new Error(deleteError.message);
-
-  if (parsed.data.career_ids.length > 0) {
-    const { error: insertError } = await supabase.from("coordinator_careers").insert(
-      parsed.data.career_ids.map((careerId) => ({
-        coordinator_id: parsed.data.coordinator_id,
-        career_id: careerId
-      }))
-    );
-    if (insertError) throw new Error(insertError.message);
-  }
+  const { error } = await supabase.rpc("replace_coordinator_careers", {
+    p_coordinator_id: parsed.data.coordinator_id,
+    p_career_ids: parsed.data.career_ids
+  });
+  if (error) throw new Error(error.message);
 
   revalidatePath("/admin");
   revalidatePath("/coordinadores");

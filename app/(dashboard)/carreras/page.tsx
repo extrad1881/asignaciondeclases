@@ -20,11 +20,11 @@ export default async function CareersPage() {
   const careerRows = careers ?? [];
   const canManageSubjects = isAdmin(profile?.role_code);
 
-  const careerItems = careerRows.map((career: any) => {
+  const careerItems = careerRows.map((career) => {
     const coordinatorNames = (career.coordinator_careers ?? [])
-      .map((item: any) => item.coordinators?.name)
+      .map((item) => item.coordinators?.name)
       .filter(Boolean) as string[];
-    const activeSubjects = (career.subjects ?? []).filter((subject: any) => subject.active).length;
+    const activeSubjects = (career.subjects ?? []).filter((subject) => subject.active).length;
     return {
       id: career.id,
       code: career.code as string,

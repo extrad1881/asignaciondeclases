@@ -53,5 +53,18 @@ El frontend filtra datos para una experiencia cómoda, pero las restricciones im
 - `teachers`, `coordinator_teachers`, `teacher_profiles`, `teacher_available_profiles`
 - `subjects`, `class_requirements`
 - `academic_cycles`, `groups`, `group_subjects`
+- `cohort_groups`, `cohort_subject_history`
 - `schedule_templates`, `schedule_blocks`, `assignments`
 - `classrooms`, `audit_logs`
+
+## Ciclos y cohortes
+
+Una cohorte representa al grupo padre que avanza por el plan de estudios. Su primer grupo se captura y vincula manualmente. Al activar cada ciclo posterior, `activate_academic_cycle_and_advance_cohorts` crea en una sola transacción el grupo del siguiente cuatrimestre y sus materias; los reintentos son idempotentes y no generan duplicados.
+
+Los coordinadores pueden crear y recuperar cohortes únicamente en carreras asignadas. Completar y archivar cohortes sigue siendo una operación exclusiva de administrador.
+
+## Aprovisionamiento y auditoría administrativa
+
+El trigger de nuevas cuentas ignora cualquier rol recibido en `user_metadata` y crea un perfil `coordinator` inactivo. Solo una acción administrativa validada puede activar el perfil o asignarle el rol `admin` mediante `configure_managed_user`.
+
+Las escrituras realizadas con service role incluyen el encabezado interno `x-audit-user-id`, agregado exclusivamente después de validar sesión, rol y estado del administrador. El trigger de auditoría usa ese valor para conservar al actor humano en `audit_logs`; el encabezado nunca se acepta desde clientes públicos.

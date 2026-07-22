@@ -36,7 +36,7 @@ export default async function CoordinatorsPage() {
   ]);
   const canManageUsers = isAdmin(profile?.role_code);
   const coordinatorRows = coordinators ?? [];
-  const careerRows = (careers ?? []).map((c: any) => ({
+  const careerRows = (careers ?? []).map((c) => ({
     id: c.id,
     code: c.code,
     name: c.name,
@@ -49,7 +49,7 @@ export default async function CoordinatorsPage() {
       <ResponsiveTable
         cards={
           <ul className="grid gap-3 sm:grid-cols-2">
-            {coordinatorRows.map((coordinator: any) => (
+            {coordinatorRows.map((coordinator) => (
               <li key={coordinator.id}>
                 <CoordinatorCard
                   canManage={canManageUsers}
@@ -83,10 +83,10 @@ export default async function CoordinatorsPage() {
                   ]
                 : ["Coordinador", "Usuario", "Carreras", "Docentes", "Estado"]
             }
-            rows={coordinatorRows.map((coordinator: any) => {
+            rows={coordinatorRows.map((coordinator) => {
               const assignedCareerIds = new Set(
                 (coordinator.coordinator_careers ?? [])
-                  .map((item: any) => item.career_id ?? item.careers?.id)
+                  .map((item) => item.career_id ?? item.careers?.id)
                   .filter(Boolean)
               );
 
@@ -103,7 +103,7 @@ export default async function CoordinatorsPage() {
                   {(coordinator.coordinator_careers ?? []).length === 0 ? (
                     <span className="text-muted-foreground">Sin asignar</span>
                   ) : (
-                    (coordinator.coordinator_careers ?? []).map((item: any, index: number) => (
+                    (coordinator.coordinator_careers ?? []).map((item, index) => (
                       <Badge key={index}>{item.careers?.code}</Badge>
                     ))
                   )}

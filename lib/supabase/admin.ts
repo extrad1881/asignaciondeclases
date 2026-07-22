@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 
-export function createServiceClient() {
+export function createServiceClient(options?: { auditUserId?: string }) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -14,7 +14,14 @@ export function createServiceClient() {
     auth: {
       persistSession: false,
       autoRefreshToken: false
-    }
+    },
+    global: options?.auditUserId
+      ? {
+          headers: {
+            "x-audit-user-id": options.auditUserId
+          }
+        }
+      : undefined
   });
 }
 
@@ -47,5 +54,5 @@ export async function requireActiveAdminServiceClient() {
     throw new Error("Solo el administrador puede realizar esta acción.");
   }
 
-  return createServiceClient();
+  return createServiceClient({ auditUserId: profile.id });
 }

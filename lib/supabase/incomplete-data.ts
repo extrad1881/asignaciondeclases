@@ -32,23 +32,38 @@ function addIssue(issues: IncompleteIssue[], issue: IncompleteIssue) {
   issues.push(issue);
 }
 
-function requiredProfilesFromGroupSubject(groupSubject: any) {
+type RequirementSource = {
+  required_profile_code: string | null;
+  subjects: {
+    class_requirements: Array<{ profile_code: string }> | null;
+  } | null;
+};
+
+type ScheduledAssignment = {
+  schedule_blocks: {
+    day_of_week: number;
+    starts_at: string;
+    ends_at: string;
+  } | null;
+};
+
+function requiredProfilesFromGroupSubject(groupSubject: RequirementSource) {
   if (groupSubject.required_profile_code && isValidProfileCode(groupSubject.required_profile_code)) {
     return [groupSubject.required_profile_code];
   }
 
-  return ((groupSubject.subjects?.class_requirements ?? []) as any[])
+  return (groupSubject.subjects?.class_requirements ?? [])
     .map((requirement) => requirement.profile_code)
     .filter(isValidProfileCode);
 }
 
-function requiredProfilesFromAssignment(assignment: any) {
+function requiredProfilesFromAssignment(assignment: { group_subjects: RequirementSource | null }) {
   const groupSubject = assignment.group_subjects;
   if (groupSubject?.required_profile_code && isValidProfileCode(groupSubject.required_profile_code)) {
     return [groupSubject.required_profile_code];
   }
 
-  return ((groupSubject?.subjects?.class_requirements ?? []) as any[])
+  return (groupSubject?.subjects?.class_requirements ?? [])
     .map((requirement) => requirement.profile_code)
     .filter(isValidProfileCode);
 }
@@ -60,7 +75,7 @@ function timeToMinutes(value?: string | null) {
   return hours * 60 + minutes;
 }
 
-function schedulesOverlap(left: any, right: any) {
+function schedulesOverlap(left: ScheduledAssignment, right: ScheduledAssignment) {
   const leftBlock = left.schedule_blocks;
   const rightBlock = right.schedule_blocks;
   if (!leftBlock || !rightBlock || leftBlock.day_of_week !== rightBlock.day_of_week) return false;
@@ -113,8 +128,12 @@ export async function getIncompleteData(): Promise<IncompleteDataResult> {
   ]);
 
   const issues: IncompleteIssue[] = [];
+  const teacherRows = teachers ?? [];
+  const subjectRows = subjects ?? [];
+  const groupRows = groups ?? [];
+  const assignmentRows = assignments ?? [];
   const careerCoordinator = new Map<string, { id?: string; name?: string }>();
-  (coordinatorCareers ?? []).forEach((item: any) => {
+  (coordinatorCareers ?? []).forEach((item) => {
     if (item.career_id && item.coordinators) {
       careerCoordinator.set(item.career_id, {
         id: item.coordinators.id,
@@ -123,9 +142,9 @@ export async function getIncompleteData(): Promise<IncompleteDataResult> {
     }
   });
 
-  (teachers ?? []).forEach((teacher: any) => {
+  teacherRows.forEach((teacher) => {
     if (!teacher.active) return;
-    const teacherProfiles = ((teacher.teacher_available_profiles ?? []) as any[])
+    const teacherProfiles = (teacher.teacher_available_profiles ?? [])
       .map((profile) => profile.profile_code)
       .filter(isValidProfileCode);
     const assignedHours = Number(teacher.assigned_hours ?? 0);
@@ -183,8 +202,9 @@ export async function getIncompleteData(): Promise<IncompleteDataResult> {
     }
   });
 
-  const subjectsByDuplicateKey = new Map<string, any[]>();
-  (subjects ?? []).forEach((subject: any) => {
+  type SubjectRow = (typeof subjectRows)[number];
+  const subjectsByDuplicateKey = new Map<string, SubjectRow[]>();
+  subjectRows.forEach((subject) => {
     const careerId = subject.career_id ?? "sin-carrera";
     const duplicateKey = `${careerId}|${subject.quarter}|${subject.normalized_name ?? subject.name}`;
     subjectsByDuplicateKey.set(duplicateKey, [...(subjectsByDuplicateKey.get(duplicateKey) ?? []), subject]);
@@ -204,7 +224,7 @@ export async function getIncompleteData(): Promise<IncompleteDataResult> {
       quarter: subject.quarter ?? undefined
     };
 
-    const requirements = ((subject.class_requirements ?? []) as any[])
+    const requirements = (subject.class_requirements ?? [])
       .map((requirement) => requirement.profile_code)
       .filter(isValidProfileCode);
 
@@ -245,7 +265,7 @@ export async function getIncompleteData(): Promise<IncompleteDataResult> {
 
   subjectsByDuplicateKey.forEach((duplicates) => {
     if (duplicates.length <= 1) return;
-    duplicates.forEach((subject: any) => {
+    duplicates.forEach((subject) => {
       const career = subject.careers;
       addIssue(issues, {
         id: `subject-${subject.id}-duplicate`,
@@ -263,7 +283,7 @@ export async function getIncompleteData(): Promise<IncompleteDataResult> {
     });
   });
 
-  (groups ?? []).forEach((group: any) => {
+  groupRows.forEach((group) => {
     if (group.status !== "active") return;
     const career = group.careers;
     const coordinator = career?.id ? careerCoordinator.get(career.id) : undefined;
@@ -313,7 +333,7 @@ export async function getIncompleteData(): Promise<IncompleteDataResult> {
       });
     }
 
-    ((group.group_subjects ?? []) as any[]).forEach((groupSubject) => {
+    (group.group_subjects ?? []).forEach((groupSubject) => {
       if (requiredProfilesFromGroupSubject(groupSubject).length === 0) {
         addIssue(issues, {
           ...base,
@@ -327,19 +347,20 @@ export async function getIncompleteData(): Promise<IncompleteDataResult> {
     });
   });
 
-  const assignmentsByTeacherBlock = new Map<string, any[]>();
-  (assignments ?? []).forEach((assignment: any) => {
+  type AssignmentRow = (typeof assignmentRows)[number];
+  const assignmentsByTeacherBlock = new Map<string, AssignmentRow[]>();
+  assignmentRows.forEach((assignment) => {
     if (assignment.teacher_id && assignment.schedule_block_id) {
       const key = `${assignment.teacher_id}|${assignment.schedule_block_id}`;
       assignmentsByTeacherBlock.set(key, [...(assignmentsByTeacherBlock.get(key) ?? []), assignment]);
     }
   });
 
-  (assignments ?? []).forEach((assignment: any) => {
+  assignmentRows.forEach((assignment) => {
     const group = assignment.group_subjects?.groups;
     const career = group?.careers;
     const coordinator = career?.id ? careerCoordinator.get(career.id) : undefined;
-    const teacherProfiles = ((assignment.teachers?.teacher_available_profiles ?? []) as any[])
+    const teacherProfiles = (assignment.teachers?.teacher_available_profiles ?? [])
       .map((profile) => profile.profile_code)
       .filter(isValidProfileCode);
     const requiredProfiles = requiredProfilesFromAssignment(assignment);
@@ -417,7 +438,7 @@ export async function getIncompleteData(): Promise<IncompleteDataResult> {
 
   assignmentsByTeacherBlock.forEach((collisions) => {
     if (collisions.length <= 1) return;
-    collisions.forEach((assignment: any) => {
+    collisions.forEach((assignment) => {
       const group = assignment.group_subjects?.groups;
       addIssue(issues, {
         id: `assignment-${assignment.id}-collision`,
@@ -435,7 +456,6 @@ export async function getIncompleteData(): Promise<IncompleteDataResult> {
     });
   });
 
-  const assignmentRows = (assignments ?? []) as any[];
   for (let index = 0; index < assignmentRows.length; index += 1) {
     for (let nextIndex = index + 1; nextIndex < assignmentRows.length; nextIndex += 1) {
       const left = assignmentRows[index];

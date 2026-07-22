@@ -9,11 +9,11 @@ import { DataTable } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import {
-  activateCycleAction,
-  archiveCycleAction,
-  finalizeCycleAction,
+  activateCycleStateAction,
+  archiveCycleStateAction,
+  finalizeCycleStateAction,
   updateCycleAction
-} from "@/app/(dashboard)/actions";
+} from "@/app/(dashboard)/actions/ciclos";
 import { createClient } from "@/lib/supabase/server";
 import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
 import { isAdmin } from "@/lib/permissions";
@@ -28,7 +28,7 @@ export default async function CiclosPage() {
     .select("id, code, name, starts_at, ends_at, status")
     .order("code");
 
-  const cycleItems = (cycles ?? []).map((cycle: any) => ({
+  const cycleItems = (cycles ?? []).map((cycle) => ({
     id: cycle.id,
     code: cycle.code as string,
     name: cycle.name as string,
@@ -39,7 +39,11 @@ export default async function CiclosPage() {
 
   return (
     <>
-      <SectionHeader eyebrow="Admin" title="Ciclos escolares">
+      <SectionHeader
+        eyebrow="Admin"
+        title="Ciclos escolares"
+        description="Al activar un ciclo se genera automáticamente el siguiente grupo de cada cohorte que ya tenga su primer grupo vinculado."
+      >
         <Badge tone="info">Gestión de periodos académicos</Badge>
       </SectionHeader>
 
@@ -64,7 +68,7 @@ export default async function CiclosPage() {
             <DataTable
               emptyLabel="No hay ciclos escolares registrados."
               headers={["Código", "Nombre", "Inicio", "Fin", "Estado", "Editar", "Acciones"]}
-              rows={(cycles ?? []).map((cycle: any) => [
+              rows={(cycles ?? []).map((cycle) => [
                 cycle.code,
                 cycle.name,
                 cycle.starts_at ? new Date(cycle.starts_at).toLocaleDateString("es-MX") : "Sin fecha",
@@ -102,22 +106,22 @@ export default async function CiclosPage() {
                 </ActionStateForm>,
                 <div className="flex flex-wrap gap-1" key={`actions-${cycle.id}`}>
                   {cycle.status === "draft" ? (
-                    <form action={activateCycleAction}>
+                    <ActionStateForm action={activateCycleStateAction}>
                       <input name="cycle_id" type="hidden" value={cycle.id} />
                       <ConfirmActionButton
                         affectedName={cycle.name}
                         className="h-8 px-3 text-xs"
                         confirmLabel="Activar ciclo"
-                        description={`Se activará el ciclo ${cycle.name}. Si hay otro ciclo activo, se finalizará automáticamente.`}
+                        description={`Se activará el ciclo ${cycle.name}, se finalizará el anterior y se generarán los grupos siguientes de las cohortes inicializadas.`}
                         title="Activar ciclo escolar"
                       >
                         <Zap className="h-3 w-3" aria-hidden />
-                        Activar
+                        Activar y generar
                       </ConfirmActionButton>
-                    </form>
+                    </ActionStateForm>
                   ) : null}
                   {cycle.status === "active" ? (
-                    <form action={finalizeCycleAction}>
+                    <ActionStateForm action={finalizeCycleStateAction}>
                       <input name="cycle_id" type="hidden" value={cycle.id} />
                       <ConfirmActionButton
                         affectedName={cycle.name}
@@ -130,10 +134,10 @@ export default async function CiclosPage() {
                         <CheckCircle2 className="h-3 w-3" aria-hidden />
                         Finalizar
                       </ConfirmActionButton>
-                    </form>
+                    </ActionStateForm>
                   ) : null}
                   {cycle.status === "finalized" ? (
-                    <form action={archiveCycleAction}>
+                    <ActionStateForm action={archiveCycleStateAction}>
                       <input name="cycle_id" type="hidden" value={cycle.id} />
                       <ConfirmActionButton
                         affectedName={cycle.name}
@@ -146,7 +150,7 @@ export default async function CiclosPage() {
                         <Inbox className="h-3 w-3" aria-hidden />
                         Archivar
                       </ConfirmActionButton>
-                    </form>
+                    </ActionStateForm>
                   ) : null}
                 </div>
               ])}

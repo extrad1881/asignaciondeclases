@@ -31,6 +31,8 @@ type CohortOption = {
   name: string;
   career_id: string;
   current_quarter: number;
+  modality: string;
+  shift: string;
 };
 
 export function GroupForm({
@@ -54,6 +56,8 @@ export function GroupForm({
   const [state, formAction, pending] = useActionState(createGroupStateAction, initialActionState);
   const [careerId, setCareerId] = useState(careers[0]?.id ?? "");
   const [quarter, setQuarter] = useState(1);
+  const [modality, setModality] = useState<string>(MODALITIES[0]?.value ?? "escolarizado");
+  const [shift, setShift] = useState<string>(SHIFTS[0]?.value ?? "matutino");
   const [includeOtherQuarters, setIncludeOtherQuarters] = useState(false);
   const [externalSubjectKeys, setExternalSubjectKeys] = useState<string[]>([]);
   const [cohortId, setCohortId] = useState("");
@@ -69,8 +73,8 @@ export function GroupForm({
 
   const visibleCohorts = useMemo(() => {
     if (!cohorts.length) return [];
-    return cohorts.filter((c) => c.career_id === careerId && c.current_quarter <= quarter);
-  }, [careerId, cohorts, quarter]);
+    return cohorts.filter((c) => c.career_id === careerId);
+  }, [careerId, cohorts]);
 
   const selectedCohort = useMemo(
     () => cohorts.find((c) => c.id === cohortId),
@@ -137,7 +141,11 @@ export function GroupForm({
           <Select
             className="mt-1"
             name="career_id"
-            onChange={(event) => setCareerId(event.target.value)}
+            onChange={(event) => {
+              setCareerId(event.target.value);
+              setCohortId("");
+              setCompletedSubjectIds(new Set());
+            }}
             required
             value={careerId}
           >
@@ -165,7 +173,13 @@ export function GroupForm({
         </label>
         <label className="text-sm font-medium text-ink">
           Modalidad
-          <Select className="mt-1" name="modality" required>
+          <Select
+            className="mt-1"
+            name="modality"
+            onChange={(event) => setModality(event.target.value)}
+            required
+            value={modality}
+          >
             {MODALITIES.map((modality) => (
               <option key={modality.value} value={modality.value}>
                 {modality.label}
@@ -175,7 +189,13 @@ export function GroupForm({
         </label>
         <label className="text-sm font-medium text-ink">
           Turno
-          <Select className="mt-1" name="shift" required>
+          <Select
+            className="mt-1"
+            name="shift"
+            onChange={(event) => setShift(event.target.value)}
+            required
+            value={shift}
+          >
             {SHIFTS.map((shift) => (
               <option key={shift.value} value={shift.value}>
                 {shift.label}
@@ -200,13 +220,23 @@ export function GroupForm({
         </label>
         {cohorts.length > 0 ? (
           <label className="text-sm font-medium text-ink">
-            Cohorte (opcional)
+            Cohorte para inicializar (opcional)
             <Select
               className="mt-1"
               name="cohort_group_id"
               onChange={(event) => {
-                setCohortId(event.target.value);
-                if (!event.target.value) setShowCompletedSubjects(false);
+                const nextCohortId = event.target.value;
+                const cohort = cohorts.find((item) => item.id === nextCohortId);
+                setCohortId(nextCohortId);
+                setCompletedSubjectIds(new Set());
+
+                if (cohort) {
+                  setQuarter(cohort.current_quarter);
+                  setModality(cohort.modality);
+                  setShift(cohort.shift);
+                } else {
+                  setShowCompletedSubjects(false);
+                }
               }}
               value={cohortId}
             >
@@ -217,6 +247,9 @@ export function GroupForm({
                 </option>
               ))}
             </Select>
+            <span className="mt-1 block text-xs font-normal text-muted">
+              Solo se vincula el primer grupo; los siguientes se crearán al activar cada ciclo.
+            </span>
           </label>
         ) : null}
       </section>

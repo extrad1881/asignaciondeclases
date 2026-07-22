@@ -50,16 +50,16 @@ export default async function CareerSubjectsPage({ params }: { params: Promise<{
   if (!career) notFound();
 
   const subjectRows = subjects ?? [];
-  const profileOptions = (profiles ?? []).filter((teacherProfile: any) => isValidProfileCode(teacherProfile.code));
+  const profileOptions = (profiles ?? []).filter((teacherProfile) => isValidProfileCode(teacherProfile.code));
 
-  const subjectItems = subjectRows.map((subject: any) => ({
+  const subjectItems = subjectRows.map((subject) => ({
     id: subject.id,
     name: subject.name,
     quarter: subject.quarter,
     default_hours: Number(subject.default_hours ?? 0),
     active: Boolean(subject.active),
     profiles: (subject.class_requirements ?? [])
-      .map((req: any) => req.profile_code)
+      .map((req) => req.profile_code)
       .filter(isValidProfileCode)
   }));
 
@@ -105,7 +105,7 @@ export default async function CareerSubjectsPage({ params }: { params: Promise<{
           <div className="text-sm font-medium text-ink">
             Perfil requerido
             <div className="mt-1">
-              <ProfileCheckboxGroup profiles={profileOptions as any[]} />
+              <ProfileCheckboxGroup profiles={profileOptions} />
             </div>
           </div>
           <div className="flex items-end">
@@ -128,7 +128,7 @@ export default async function CareerSubjectsPage({ params }: { params: Promise<{
             <ul className="grid gap-3 sm:grid-cols-2">
               {subjectItems.map((subject) => (
                 <li key={subject.id}>
-                  <SubjectCard careerId={career.id} profileOptions={profileOptions as any[]} subject={subject} />
+                  <SubjectCard careerId={career.id} profileOptions={profileOptions} subject={subject} />
                 </li>
               ))}
             </ul>
@@ -137,17 +137,17 @@ export default async function CareerSubjectsPage({ params }: { params: Promise<{
             <DataTable
               emptyLabel="Esta carrera no tiene materias todavía."
               headers={["Materia", "Cuatrimestre", "Carga", "Perfil", "Estado", "Modificar", "Acciones"]}
-              rows={subjectRows.map((subject: any) => [
+              rows={subjectRows.map((subject) => [
                 <span className="font-medium text-ink" key="name">
                   {subject.name}
                 </span>,
                 subject.quarter,
                 formatHours(subject.default_hours),
                 <div className="flex flex-wrap gap-1" key="profiles">
-                  {((subject.class_requirements ?? []).filter((item: any) => isValidProfileCode(item.profile_code))).length === 0 ? (
+                  {((subject.class_requirements ?? []).filter((item) => isValidProfileCode(item.profile_code))).length === 0 ? (
                     <span className="text-muted-foreground">Sin perfil</span>
                   ) : (
-                    (subject.class_requirements ?? []).filter((item: any) => isValidProfileCode(item.profile_code)).map((item: any) => (
+                    (subject.class_requirements ?? []).filter((item) => isValidProfileCode(item.profile_code)).map((item) => (
                       <Badge key={item.profile_code} tone="info">
                         {item.profile_code}
                       </Badge>
@@ -184,9 +184,9 @@ export default async function CareerSubjectsPage({ params }: { params: Promise<{
                   </div>
                   <ProfileCheckboxGroup
                     maxHeight="max-h-36"
-                    profiles={profileOptions as any[]}
+                    profiles={profileOptions}
                     selected={(subject.class_requirements ?? [])
-                      .map((item: any) => item.profile_code)
+                      .map((item) => item.profile_code)
                       .filter(isValidProfileCode)}
                   />
                   <ConfirmActionButton

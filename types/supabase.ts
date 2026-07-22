@@ -932,6 +932,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_academic_cycle_and_advance_cohorts: {
+        Args: { p_cycle_id: string }
+        Returns: Json
+      }
       can_access_career: {
         Args: { target_career_id: string }
         Returns: boolean
@@ -958,6 +962,16 @@ export type Database = {
           subject_name: string
         }[]
       }
+      configure_managed_user: {
+        Args: {
+          p_active: boolean
+          p_display_name: string
+          p_email: string
+          p_role_code: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       create_group_with_subjects: {
         Args: {
           p_academic_cycle_id: string
@@ -971,15 +985,69 @@ export type Database = {
         }
         Returns: string
       }
+      create_initial_cohort_group_with_subjects: {
+        Args: {
+          p_academic_cycle_id: string
+          p_career_id: string
+          p_classroom_id: string
+          p_cohort_group_id: string
+          p_completed_subject_ids: Json
+          p_modality: string
+          p_name: string
+          p_quarter: number
+          p_shift: string
+          p_subjects: Json
+        }
+        Returns: string
+      }
       current_coordinator_id: { Args: never; Returns: string }
       current_role_code: { Args: never; Returns: string }
+      generate_cohort_group_for_active_cycle: {
+        Args: { p_cohort_group_id: string }
+        Returns: Json
+      }
       is_admin: { Args: never; Returns: boolean }
       normalize_key: { Args: { value: string }; Returns: string }
       refresh_teacher_hours: {
         Args: { target_teacher_id: string }
         Returns: undefined
       }
+      replace_coordinator_careers: {
+        Args: { p_career_ids: string[]; p_coordinator_id: string }
+        Returns: undefined
+      }
+      replace_subject_requirements: {
+        Args: { p_profile_codes: string[]; p_subject_id: string }
+        Returns: undefined
+      }
+      replace_teacher_profiles: {
+        Args: { p_profile_codes: string[]; p_teacher_id: string }
+        Returns: undefined
+      }
       unaccent_fallback: { Args: { value: string }; Returns: string }
+      upsert_subject_with_requirements: {
+        Args: {
+          p_career_id: string
+          p_default_hours: number
+          p_name: string
+          p_normalized_name: string
+          p_profile_codes: string[]
+          p_quarter: number
+          p_subject_id: string
+        }
+        Returns: string
+      }
+      upsert_teacher_with_profiles: {
+        Args: {
+          p_email: string
+          p_max_hours: number
+          p_name: string
+          p_normalized_name: string
+          p_profile_codes: string[]
+          p_teacher_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

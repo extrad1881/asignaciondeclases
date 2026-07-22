@@ -115,7 +115,7 @@ export default async function DashboardPage() {
             />
           ) : (
             <ul className="grid gap-3 md:grid-cols-2">
-              {(groups ?? []).map((group: any) => (
+              {(groups ?? []).map((group) => (
                 <li key={group.id}>
                   <LinkCard
                     ariaLabel={`Abrir grupo ${group.name}`}

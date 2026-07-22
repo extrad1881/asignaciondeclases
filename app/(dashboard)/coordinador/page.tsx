@@ -17,7 +17,7 @@ import { AssignmentForm } from "@/components/forms/assignment-form";
 import { ProfileCheckboxGroup } from "@/components/forms/profile-checkbox-group";
 import { GroupForm } from "@/components/groups/group-form";
 import { AssignmentCard } from "@/components/grupos/assignment-card";
-import { SubjectHoursCard } from "@/components/grupos/subject-hours-card";
+import { SubjectHoursCard, type SubjectHoursItem } from "@/components/grupos/subject-hours-card";
 import { SectionHeader } from "@/components/section-header";
 import { GroupScheduleBoard } from "@/components/schedule/group-schedule-board";
 import { Badge } from "@/components/ui/badge";
@@ -37,12 +37,19 @@ import { formatHours } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-function requiredProfilesFor(groupSubject: any) {
+type GroupSubjectProfileSource = {
+  required_profile_code: string | null;
+  subjects: {
+    class_requirements: Array<{ profile_code: string }> | null;
+  } | null;
+};
+
+function requiredProfilesFor(groupSubject: GroupSubjectProfileSource) {
   if (groupSubject.required_profile_code && isValidProfileCode(groupSubject.required_profile_code)) {
     return [groupSubject.required_profile_code];
   }
 
-  return ((groupSubject.subjects?.class_requirements ?? []) as any[])
+  return (groupSubject.subjects?.class_requirements ?? [])
     .map((requirement) => requirement.profile_code)
     .filter(isValidProfileCode);
 }
@@ -105,8 +112,15 @@ export default async function CoordinatorPage() {
 
   const groupRows = groups ?? [];
   const teacherRows = teachers ?? [];
-  const profileOptions = (profiles ?? []).filter((teacherProfile: any) => isValidProfileCode(teacherProfile.code));
-  const groupSubjectIds = groupRows.flatMap((group: any) => ((group.group_subjects ?? []) as any[]).map((subject) => subject.id));
+  const cycleRows = cycles ?? [];
+  const careerRows = careers ?? [];
+  const classroomRows = classrooms ?? [];
+  const subjectRows = subjects ?? [];
+  const scheduleBlockRows = scheduleBlocks ?? [];
+  const profileOptions = (profiles ?? []).filter((teacherProfile) => isValidProfileCode(teacherProfile.code));
+  const groupSubjectIds = groupRows.flatMap((group) =>
+    (group.group_subjects ?? []).map((subject) => subject.id)
+  );
 
   const { data: assignments = [] } = groupSubjectIds.length > 0
     ? await supabase
@@ -116,19 +130,21 @@ export default async function CoordinatorPage() {
         .eq("status", "active")
     : { data: [] };
 
-  const teacherOptions = teacherRows.map((teacher: any) => ({
+  const assignmentRows = assignments ?? [];
+
+  const teacherOptions = teacherRows.map((teacher) => ({
     id: teacher.id,
     label: `${teacher.name} - ${formatHours(teacher.assigned_hours)} / ${formatHours(teacher.max_hours)} h`,
-    profileCodes: ((teacher.teacher_available_profiles ?? []) as any[])
+    profileCodes: (teacher.teacher_available_profiles ?? [])
       .map((teacherProfile) => teacherProfile.profile_code)
       .filter(isValidProfileCode)
   }));
 
   const stats = [
-    { label: "Carreras", value: careers?.length ?? 0, icon: LayoutGrid, tone: "info" as const, description: "Carreras asignadas" },
+    { label: "Carreras", value: careerRows.length, icon: LayoutGrid, tone: "info" as const, description: "Carreras asignadas" },
     { label: "Docentes a cargo", value: teacherRows.length, icon: Users, tone: "success" as const, description: "Docentes bajo tu responsabilidad" },
     { label: "Grupos visibles", value: groupRows.length, icon: UserCog, tone: "neutral" as const, description: "Grupos activos asignados" },
-    { label: "Asignaciones", value: assignments?.length ?? 0, icon: Clock, tone: "warning" as const, description: "Asignaciones activas" }
+    { label: "Asignaciones", value: assignmentRows.length, icon: Clock, tone: "warning" as const, description: "Asignaciones activas" }
   ];
 
   return (
@@ -161,13 +177,13 @@ export default async function CoordinatorPage() {
           </Link>
         </div>
         <GroupForm
-          careers={careers as any[]}
-          classrooms={classrooms as any[]}
+          careers={careerRows}
+          classrooms={classroomRows}
           canCreateExternalSubjects
           cohorts={[]}
-          cycles={cycles as any[]}
-          profiles={profileOptions as any[]}
-          subjects={subjects as any[]}
+          cycles={cycleRows}
+          profiles={profileOptions}
+          subjects={subjectRows}
         />
       </section>
 
@@ -179,14 +195,14 @@ export default async function CoordinatorPage() {
         <DataTable
           emptyLabel="No tienes docentes asignados todavia."
           headers={["Docente", "Correo", "Perfiles aptos", "Horas", "Editar perfiles", "Horas máximas"]}
-          rows={teacherRows.map((teacher: any) => [
+          rows={teacherRows.map((teacher) => [
             <span className="font-medium text-ink" key="name">{teacher.name}</span>,
             teacher.email ?? <span className="text-muted-foreground">Sin correo</span>,
             <div className="flex flex-wrap gap-1" key="profiles">
-              {((teacher.teacher_available_profiles ?? []) as any[]).filter((item) => isValidProfileCode(item.profile_code)).length === 0 ? (
+              {(teacher.teacher_available_profiles ?? []).filter((item) => isValidProfileCode(item.profile_code)).length === 0 ? (
                 <span className="text-muted-foreground">Sin perfiles</span>
               ) : (
-                ((teacher.teacher_available_profiles ?? []) as any[])
+                (teacher.teacher_available_profiles ?? [])
                   .filter((item) => isValidProfileCode(item.profile_code))
                   .map((item) => <Badge key={item.profile_code}>{item.profile_code}</Badge>)
               )}
@@ -196,8 +212,8 @@ export default async function CoordinatorPage() {
               <input name="teacher_id" type="hidden" value={teacher.id} />
               <ProfileCheckboxGroup
                 maxHeight="max-h-36"
-                profiles={profileOptions as any[]}
-                selected={((teacher.teacher_available_profiles ?? []) as any[])
+                profiles={profileOptions}
+                selected={(teacher.teacher_available_profiles ?? [])
                   .map((item) => item.profile_code)
                   .filter(isValidProfileCode)}
               />
@@ -245,15 +261,17 @@ export default async function CoordinatorPage() {
             Todavía no hay grupos activos en tus carreras asignadas.
           </div>
         ) : (
-          groupRows.map((group: any) => {
-            const groupSubjects = ((group.group_subjects ?? []) as any[]).map((item) => ({
+          groupRows.map((group) => {
+            const groupSubjects = (group.group_subjects ?? []).map((item) => ({
               id: item.id,
               label: `${item.subjects?.name} (${item.hours_per_week ?? 0} h)`,
               requiredProfiles: requiredProfilesFor(item),
               loadHours: Number(item.hours_per_week ?? 1.5)
             }));
             const groupSubjectIdSet = new Set(groupSubjects.map((subject) => subject.id));
-            const groupAssignments = ((assignments ?? []) as any[]).filter((assignment) => groupSubjectIdSet.has(assignment.group_subject_id));
+            const groupAssignments = assignmentRows.filter((assignment) =>
+              groupSubjectIdSet.has(assignment.group_subject_id)
+            );
 
             const assignedMap = new Map<string, number>();
             for (const a of groupAssignments) {
@@ -268,7 +286,9 @@ export default async function CoordinatorPage() {
               }])
             );
 
-            const groupHoursStatus = ((group.group_subjects ?? []) as any[]).map((gs: any) => {
+            const groupHoursStatus: Array<SubjectHoursItem & { remaining: number }> = (
+              group.group_subjects ?? []
+            ).map((gs) => {
               const assigned = assignedMap.get(gs.id) ?? 0;
               const total = Number(gs.hours_per_week ?? 0);
               const remaining = total - assigned;
@@ -283,7 +303,7 @@ export default async function CoordinatorPage() {
                          remaining === 0 ? "completa" : "excedida"
               };
             });
-            const groupBlocks = ((scheduleBlocks ?? []) as any[])
+            const groupBlocks = scheduleBlockRows
               .filter((block) => block.schedule_templates?.modality === group.modality && block.schedule_templates?.shift === group.shift)
               .map((block) => ({
                 id: block.id,
@@ -294,7 +314,7 @@ export default async function CoordinatorPage() {
                 isCustom: block.is_custom
               }));
             const groupBlockOptions = groupBlocks.map((block) => ({ id: block.id, label: block.label }));
-            const classroomOptions = (classrooms as any[]).map((classroom) => ({ id: classroom.id, name: classroom.name }));
+            const classroomOptions = classroomRows.map((classroom) => ({ id: classroom.id, name: classroom.name }));
             const groupAssignmentItems = groupAssignments.map((assignment) => ({
               id: assignment.id,
               group_id: group.id,
@@ -306,7 +326,7 @@ export default async function CoordinatorPage() {
               classroom_id: assignment.classrooms?.id ?? null,
               classroom_name: assignment.classrooms?.name ?? null
             }));
-            const assetPath = ((scheduleBlocks ?? []) as any[]).find(
+            const assetPath = scheduleBlockRows.find(
               (block) => block.schedule_templates?.modality === group.modality && block.schedule_templates?.shift === group.shift
             )?.schedule_templates?.asset_path;
 
@@ -347,7 +367,7 @@ export default async function CoordinatorPage() {
                         teacherName: assignment.teachers?.name
                       }))}
                       blocks={groupBlocks}
-                      classrooms={(classrooms as any[]).map((classroom) => ({
+                      classrooms={classroomRows.map((classroom) => ({
                         id: classroom.id,
                         label: classroom.name
                       }))}
@@ -361,7 +381,7 @@ export default async function CoordinatorPage() {
                       <ResponsiveTable
                         cards={
                           <ul className="grid gap-3 sm:grid-cols-2">
-                            {groupHoursStatus.map((item: any) => (
+                            {groupHoursStatus.map((item) => (
                               <li key={item.group_subject_id}>
                                 <SubjectHoursCard groupId={group.id} item={item} />
                               </li>
@@ -372,7 +392,7 @@ export default async function CoordinatorPage() {
                           <DataTable
                             emptyLabel="No hay materias en este grupo."
                             headers={["Materia", "Límite", "Asignadas", "Estado", "Editar límite"]}
-                            rows={groupHoursStatus.map((item: any) => {
+                            rows={groupHoursStatus.map((item) => {
                               return [
                                 item.subject_name,
                                 `${item.hours_per_week} h/semana`,
@@ -471,7 +491,7 @@ export default async function CoordinatorPage() {
                                 />
                                 <Select defaultValue={assignment.classrooms?.id ?? ""} name="classroom_id">
                                   <option value="">Aula del grupo</option>
-                                  {(classrooms as any[]).map((classroom) => (
+                                  {classroomRows.map((classroom) => (
                                     <option key={classroom.id} value={classroom.id}>
                                       {classroom.name}
                                     </option>

@@ -147,44 +147,34 @@ async function createGroupFromFormData(formData: FormData) {
     }))
   ];
 
-  const { data: groupId, error } = await (supabase as any).rpc("create_group_with_subjects", {
-    p_academic_cycle_id: parsed.data.academic_cycle_id,
-    p_career_id: parsed.data.career_id,
-    p_quarter: parsed.data.quarter,
-    p_modality: parsed.data.modality,
-    p_shift: parsed.data.shift,
-    p_name: parsed.data.name,
-    p_classroom_id: parsed.data.classroom_id || null,
-    p_subjects: groupSubjects
-  });
-
-  if (error) throw new Error(error.message);
-
   const cohortGroupId = cleanString(formData.get("cohort_group_id"));
   const completedSubjectIds = getStringList(formData, "completed_subject_ids");
+  const rpcResult = cohortGroupId
+    ? await supabase.rpc("create_initial_cohort_group_with_subjects", {
+        p_academic_cycle_id: parsed.data.academic_cycle_id,
+        p_career_id: parsed.data.career_id,
+        p_quarter: parsed.data.quarter,
+        p_modality: parsed.data.modality,
+        p_shift: parsed.data.shift,
+        p_name: parsed.data.name,
+        p_classroom_id: parsed.data.classroom_id || (null as unknown as string),
+        p_subjects: groupSubjects,
+        p_cohort_group_id: cohortGroupId,
+        p_completed_subject_ids: completedSubjectIds
+      })
+    : await supabase.rpc("create_group_with_subjects", {
+        p_academic_cycle_id: parsed.data.academic_cycle_id,
+        p_career_id: parsed.data.career_id,
+        p_quarter: parsed.data.quarter,
+        p_modality: parsed.data.modality,
+        p_shift: parsed.data.shift,
+        p_name: parsed.data.name,
+        p_classroom_id: parsed.data.classroom_id || (null as unknown as string),
+        p_subjects: groupSubjects
+      });
 
-  if (cohortGroupId && groupId) {
-    const { error: linkError } = await supabase
-      .from("groups")
-      .update({ cohort_group_id: cohortGroupId })
-      .eq("id", groupId);
-    if (linkError) throw new Error(linkError.message);
-
-    if (completedSubjectIds.length > 0) {
-      const { error: historyError } = await supabase
-        .from("cohort_subject_history")
-        .upsert(
-          completedSubjectIds.map((subjectId) => ({
-            cohort_group_id: cohortGroupId,
-            subject_id: subjectId,
-            quarter: Math.max(1, Number(parsed.data.quarter) - 1),
-            group_id: groupId
-          })),
-          { onConflict: "cohort_group_id,subject_id" }
-        );
-      if (historyError) throw new Error(historyError.message);
-    }
-  }
+  if (rpcResult.error) throw new Error(rpcResult.error.message);
+  const groupId = rpcResult.data;
 
   revalidatePath("/grupos");
   revalidatePath("/materias");
@@ -399,7 +389,10 @@ export async function updateGroupSubjectHoursAction(
       .select("duration_hours")
       .eq("group_subject_id", parsed.data.group_subject_id)
       .eq("status", "active");
-    const totalAssigned = (assignedRows ?? []).reduce((sum: number, row: any) => sum + Number(row.duration_hours ?? 0), 0);
+    const totalAssigned = (assignedRows ?? []).reduce(
+      (sum, row) => sum + Number(row.duration_hours ?? 0),
+      0
+    );
 
     const { error: updateError } = await supabase
       .from("group_subjects")

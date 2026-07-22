@@ -2,7 +2,11 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { GitBranch, CheckCircle2 } from "lucide-react";
-import { advanceCohortAction, completeCohortAction, archiveCohortAction } from "@/app/(dashboard)/actions/cohortes";
+import {
+  advanceCohortAction,
+  archiveCohortStateAction,
+  completeCohortStateAction
+} from "@/app/(dashboard)/actions/cohortes";
 import { SectionHeader } from "@/components/section-header";
 import { Badge } from "@/components/ui/badge";
 import { ActionStateForm } from "@/components/ui/action-state-form";
@@ -17,7 +21,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ i
   const supabase = await createClient();
   const profile = await requireActiveProfileOrRedirect();
 
-  const { data: cohort } = await (supabase as any)
+  const { data: cohort } = await supabase
     .from("cohort_groups")
     .select("id, name, career_id, modality, shift, current_quarter, status, careers(code, name)")
     .eq("id", id)
@@ -25,21 +29,24 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ i
 
   if (!cohort) notFound();
 
-  const { data: groups = [] } = await (supabase as any)
+  const { data: groups = [] } = await supabase
     .from("groups")
     .select("id, name, quarter, status, academic_cycles(code)")
     .eq("cohort_group_id", cohort.id)
     .order("quarter");
 
-  const { data: history = [] } = await (supabase as any)
+  const { data: history = [] } = await supabase
     .from("cohort_subject_history")
     .select("id, subject_id, quarter, group_id, subjects(name, quarter, hours_per_week:default_hours)")
     .eq("cohort_group_id", cohort.id)
     .order("quarter")
     .order("subject_id");
 
-  const historyByQuarter = new Map<number, any[]>();
-  for (const row of history) {
+  const cohortGroups = groups ?? [];
+  const cohortHistory = history ?? [];
+  type HistoryRow = (typeof cohortHistory)[number];
+  const historyByQuarter = new Map<number, HistoryRow[]>();
+  for (const row of cohortHistory) {
     const q = Number(row.quarter);
     if (!historyByQuarter.has(q)) historyByQuarter.set(q, []);
     historyByQuarter.get(q)!.push(row);
@@ -63,7 +70,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ i
         <p><span className="font-semibold">Carrera:</span> {cohort.careers?.name}</p>
         <p><span className="font-semibold">Modalidad:</span> {cohort.modality}</p>
         <p><span className="font-semibold">Turno:</span> {cohort.shift === "matutino" ? "Matutino" : "Vespertino"}</p>
-        <p><span className="font-semibold">Grupos:</span> {groups.length}</p>
+        <p><span className="font-semibold">Grupos:</span> {cohortGroups.length}</p>
       </section>
 
       {cohort.status === "active" ? (
@@ -74,34 +81,36 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ i
             <ConfirmActionButton
               affectedName={cohort.name}
               className="h-9 px-3 text-xs"
-              confirmLabel="Avanzar cuatrimestre"
-              description={`Se avanzara la cohorte al cuatrimestre ${Number(cohort.current_quarter) + 1}. Se creara un nuevo grupo automaticamente con las materias pendientes del plan de estudios.`}
-              title="Avanzar cohorte"
+              confirmLabel="Generar grupo pendiente"
+              description="Acción de recuperación: solo se creará el siguiente grupo si aún falta en el ciclo activo. No genera duplicados."
+              title="Recuperar automatización de cohorte"
             >
               <GitBranch className="h-3 w-3" />
-              Avanzar al Q{Number(cohort.current_quarter) + 1}
+              Generar grupo pendiente
             </ConfirmActionButton>
           </ActionStateForm>
-          <form action={completeCohortAction}>
-            <input name="cohort_id" type="hidden" value={cohort.id} />
-            <ConfirmActionButton
-              affectedName={cohort.name}
-              className="h-9 px-3 text-xs"
-              confirmLabel="Completar cohorte"
-              description="Se marcara la cohorte como completada."
-              title="Completar cohorte"
-              variant="secondary"
-            >
-              <CheckCircle2 className="h-3 w-3" />
-              Completar
-            </ConfirmActionButton>
-          </form>
+          {isAdmin(profile.role_code) ? (
+            <ActionStateForm action={completeCohortStateAction}>
+              <input name="cohort_id" type="hidden" value={cohort.id} />
+              <ConfirmActionButton
+                affectedName={cohort.name}
+                className="h-9 px-3 text-xs"
+                confirmLabel="Completar cohorte"
+                description="Se marcará la cohorte como completada."
+                title="Completar cohorte"
+                variant="secondary"
+              >
+                <CheckCircle2 className="h-3 w-3" />
+                Completar
+              </ConfirmActionButton>
+            </ActionStateForm>
+          ) : null}
         </section>
       ) : null}
 
       {cohort.status === "completed" && isAdmin(profile?.role_code) ? (
         <section className="mb-5 flex flex-wrap gap-2 rounded-md border border-line bg-card p-3 shadow-subtle">
-          <form action={archiveCohortAction}>
+          <ActionStateForm action={archiveCohortStateAction}>
             <input name="cohort_id" type="hidden" value={cohort.id} />
             <ConfirmActionButton
               affectedName={cohort.name}
@@ -113,7 +122,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ i
             >
               Archivar
             </ConfirmActionButton>
-          </form>
+          </ActionStateForm>
         </section>
       ) : null}
 
@@ -122,7 +131,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ i
         <DataTable
           emptyLabel="No hay grupos vinculados a esta cohorte."
           headers={["Cuatrimestre", "Grupo", "Ciclo", "Estado"]}
-          rows={(groups as any[]).map((group) => [
+          rows={cohortGroups.map((group) => [
             `Q${group.quarter}`,
             <Link className="font-medium text-brand hover:text-brandDeep" href={`/grupos/${group.id}`} key="link">
               {group.name}
@@ -163,8 +172,8 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ i
             </div>
           );
         })}
-        {history.length === 0 ? (
-          <p className="text-sm text-muted">Todavia no hay materias registradas en el historial.</p>
+        {cohortHistory.length === 0 ? (
+          <p className="text-sm text-muted">Todavía no hay materias registradas en el historial.</p>
         ) : null}
       </section>
     </>

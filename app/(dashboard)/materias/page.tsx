@@ -26,7 +26,7 @@ export default async function SubjectsPage() {
   const subjectRows = subjects ?? [];
   const canManageSubjects = isAdmin(profile?.role_code);
 
-  const subjectItems = subjectRows.map((subject: any) => ({
+  const subjectItems = subjectRows.map((subject) => ({
     id: subject.id,
     name: subject.name as string,
     career_code: (subject.careers?.code ?? subject.careers?.name ?? "Sin carrera") as string,
@@ -35,7 +35,7 @@ export default async function SubjectsPage() {
     default_hours: Number(subject.default_hours ?? 0),
     active: Boolean(subject.active),
     profiles: (subject.class_requirements ?? [])
-      .map((req: any) => req.profile_code)
+      .map((req) => req.profile_code)
       .filter(isValidProfileCode)
   }));
 

@@ -38,7 +38,7 @@ export default async function GroupsPage() {
           Crear grupo
         </Link>
       </SectionHeader>
-      <SavedGroups canArchive={isAdmin(profile?.role_code)} groups={groups as any[]} />
+      <SavedGroups canArchive={isAdmin(profile?.role_code)} groups={groups ?? []} />
     </>
   );
 }

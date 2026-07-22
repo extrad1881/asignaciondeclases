@@ -20,10 +20,10 @@ supabase start
 supabase db reset
 ```
 
-4. Revisa las llaves locales:
+4. Configura las llaves locales sin imprimir secretos:
 
 ```bash
-supabase status
+npm run env:local
 ```
 
 El archivo `.env.local` debe incluir:
@@ -43,11 +43,39 @@ npm run test
 npm run test:integration
 npm run test:rls
 npm run test:audit
+npm run test:security
+npm run test:e2e
 npm run typecheck
 npm run lint
 ```
 
-`test:integration` crea datos temporales con prefijos `TST_RLS_` y `TST_AUDIT_`, valida RLS, auditoria y reglas criticas de asignacion, y luego limpia los registros principales.
+`test:integration` crea datos temporales con prefijos `TST_RLS_`, `TST_AUDIT_`, `TST_COHORT_` y `TST_SECURITY_`. Valida RLS, auditoría, automatización de cohortes, registro cerrado, aprovisionamiento seguro y reglas críticas de asignación; después limpia los registros temporales.
+
+Las pruebas E2E usan Playwright con Chromium contra la aplicación y Supabase locales. Instala el navegador una vez y mantén Supabase iniciado:
+
+```bash
+npx playwright install chromium
+supabase start
+npm run test:e2e
+```
+
+La suite comprueba redirección de rutas protegidas, errores de acceso, permisos del coordinador, creación real de ciclos/cohortes y procesamiento de imágenes con Next.js. Los registros E2E llevan nombres únicos y se eliminan al terminar.
+
+La activación real de ciclos se omite por defecto para no avanzar cohortes existentes. Ejecútala solo después de `supabase db reset` o en una base desechable:
+
+```powershell
+$env:PLAYWRIGHT_CYCLE_AUTOMATION="true"
+npm run test:e2e
+```
+
+Antes de entregar cambios de base de datos ejecuta también:
+
+```bash
+supabase db lint --level error
+npm run validate:migrations
+```
+
+El workflow de CI repite validaciones estáticas, build, reinicio local de Supabase, lint de PostgreSQL, pruebas de integración y la suite E2E en Chromium.
 
 ## Backup local
 

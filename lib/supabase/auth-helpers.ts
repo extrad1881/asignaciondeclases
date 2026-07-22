@@ -47,9 +47,24 @@ export async function requireAdmin() {
 }
 
 export async function requireActiveProfileOrRedirect() {
-  const { profile } = await requireAuthenticatedProfile();
-  if (!profile.active) {
+  const supabase = await createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
     redirect("/login");
   }
+
+  const { data: profile } = await supabase
+    .from("users_profile")
+    .select("id, display_name, email, role_code, active")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!profile?.active) {
+    redirect("/login");
+  }
+
   return profile;
 }

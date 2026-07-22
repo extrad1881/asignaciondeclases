@@ -4,13 +4,17 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireActiveAdminServiceClient } from "@/lib/supabase/admin";
 import { actionFailure, actionSuccess, type ActionState } from "@/lib/actions/action-state";
-import { cleanString, normalizeKey } from "@/app/(dashboard)/actions/utils";
+import { cleanString } from "@/app/(dashboard)/actions/utils";
 
-const createUserSchema = z.object({
+const managedUserFields = {
   email: z.string().email(),
-  password: z.string().min(6),
   display_name: z.string().min(2),
   role_code: z.enum(["admin", "coordinator"])
+};
+
+const createUserSchema = z.object({
+  ...managedUserFields,
+  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres.")
 });
 
 export async function createUserAction(formData: FormData) {
@@ -31,30 +35,28 @@ export async function createUserAction(formData: FormData) {
     password: parsed.data.password,
     email_confirm: true,
     user_metadata: {
-      display_name: parsed.data.display_name,
-      role_code: parsed.data.role_code
+      display_name: parsed.data.display_name
     }
   });
 
   if (error || !data.user) throw new Error(error?.message ?? "No se pudo crear el usuario.");
 
-  await service.from("users_profile").upsert({
-    id: data.user.id,
-    email: parsed.data.email,
-    display_name: parsed.data.display_name,
-    role_code: parsed.data.role_code,
-    active: true
+  const { error: configureError } = await service.rpc("configure_managed_user", {
+    p_user_id: data.user.id,
+    p_email: parsed.data.email,
+    p_display_name: parsed.data.display_name,
+    p_role_code: parsed.data.role_code,
+    p_active: true
   });
 
-  if (parsed.data.role_code === "coordinator") {
-    await service.from("coordinators").upsert(
-      {
-        profile_id: data.user.id,
-        name: parsed.data.display_name.toUpperCase(),
-        active: true
-      },
-      { onConflict: "profile_id" }
-    );
+  if (configureError) {
+    const { error: cleanupError } = await service.auth.admin.deleteUser(data.user.id);
+    if (cleanupError) {
+      throw new Error(
+        `${configureError.message} Además, no se pudo revertir el usuario de autenticación: ${cleanupError.message}`
+      );
+    }
+    throw new Error(configureError.message);
   }
 
   revalidatePath("/admin");
@@ -62,11 +64,9 @@ export async function createUserAction(formData: FormData) {
 }
 
 const updateUserSchema = z.object({
+  ...managedUserFields,
   user_id: z.string().uuid(),
-  email: z.string().email(),
   password: z.string().optional().or(z.literal("")),
-  display_name: z.string().min(2),
-  role_code: z.enum(["admin", "coordinator"]),
   active: z.enum(["true", "false"])
 });
 
@@ -85,57 +85,55 @@ export async function updateUserAction(formData: FormData) {
     throw new Error(parsed.error.issues.map((issue) => issue.message).join(" "));
   }
 
+  const { data: previousProfile, error: profileLookupError } = await service
+    .from("users_profile")
+    .select("id, email, display_name, role_code, active")
+    .eq("id", parsed.data.user_id)
+    .maybeSingle();
+  if (profileLookupError) throw new Error(profileLookupError.message);
+  if (!previousProfile) throw new Error("No se encontró el perfil del usuario.");
+
   const authUpdate: {
     email: string;
     password?: string;
-    user_metadata: {
-      display_name: string;
-      role_code: "admin" | "coordinator";
-    };
+    user_metadata: { display_name: string };
   } = {
     email: parsed.data.email,
     user_metadata: {
-      display_name: parsed.data.display_name,
-      role_code: parsed.data.role_code
+      display_name: parsed.data.display_name
     }
   };
 
   if (parsed.data.password) {
-    if (parsed.data.password.length < 6) {
-      throw new Error("La contraseña debe tener al menos 6 caracteres.");
+    if (parsed.data.password.length < 8) {
+      throw new Error("La contraseña debe tener al menos 8 caracteres.");
     }
     authUpdate.password = parsed.data.password;
   }
 
-  const { error: authError } = await service.auth.admin.updateUserById(parsed.data.user_id, authUpdate);
-  if (authError) throw new Error(authError.message);
-
   const active = parsed.data.active === "true";
-  const { error: profileError } = await service.from("users_profile").upsert({
-    id: parsed.data.user_id,
-    email: parsed.data.email,
-    display_name: parsed.data.display_name,
-    role_code: parsed.data.role_code,
-    active
+  const { error: configureError } = await service.rpc("configure_managed_user", {
+    p_user_id: parsed.data.user_id,
+    p_email: parsed.data.email,
+    p_display_name: parsed.data.display_name,
+    p_role_code: parsed.data.role_code,
+    p_active: active
   });
-  if (profileError) throw new Error(profileError.message);
+  if (configureError) throw new Error(configureError.message);
 
-  if (parsed.data.role_code === "coordinator") {
-    const { error: coordinatorError } = await service.from("coordinators").upsert(
-      {
-        profile_id: parsed.data.user_id,
-        name: normalizeKey(parsed.data.display_name),
-        active
-      },
-      { onConflict: "profile_id" }
-    );
-    if (coordinatorError) throw new Error(coordinatorError.message);
-  } else {
-    const { error: coordinatorError } = await service
-      .from("coordinators")
-      .update({ active: false })
-      .eq("profile_id", parsed.data.user_id);
-    if (coordinatorError) throw new Error(coordinatorError.message);
+  const { error: authError } = await service.auth.admin.updateUserById(parsed.data.user_id, authUpdate);
+  if (authError) {
+    const { error: rollbackError } = await service.rpc("configure_managed_user", {
+      p_user_id: previousProfile.id,
+      p_email: previousProfile.email,
+      p_display_name: previousProfile.display_name,
+      p_role_code: previousProfile.role_code,
+      p_active: previousProfile.active
+    });
+    if (rollbackError) {
+      throw new Error(`${authError.message} Además, no se pudo revertir el perfil: ${rollbackError.message}`);
+    }
+    throw new Error(authError.message);
   }
 
   revalidatePath("/admin");

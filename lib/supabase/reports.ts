@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { escapeCsvCell } from "@/lib/csv";
 
 export type ReportRow = {
   ciclo: string;
@@ -67,7 +68,7 @@ export async function getReportData(groupId?: string): Promise<ReportRow[]> {
 
   if (!assignments) return [];
 
-  return assignments.map((a: any) => {
+  return assignments.map((a) => {
     const gs = a.group_subject;
     const g = gs.group;
     const sb = a.schedule_block;
@@ -113,7 +114,7 @@ export function rowsToCsv(rows: ReportRow[]): string {
       row.hora,
       row.aula
     ]
-      .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+      .map(escapeCsvCell)
       .join(",")
   );
 

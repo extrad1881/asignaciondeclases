@@ -1,15 +1,14 @@
 import Link from "next/link";
-import { GitBranch, Plus } from "lucide-react";
+import { GitBranch } from "lucide-react";
 import {
   advanceCohortAction,
-  archiveCohortAction,
-  completeCohortAction
-} from "@/app/(dashboard)/actions";
+  archiveCohortStateAction,
+  completeCohortStateAction
+} from "@/app/(dashboard)/actions/cohortes";
 import { SectionHeader } from "@/components/section-header";
 import { CohortCard, CohortFormFields } from "@/components/cohortes/cohort-card";
 import { ActionStateForm } from "@/components/ui/action-state-form";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
 import { DataTable } from "@/components/ui/data-table";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
@@ -22,8 +21,9 @@ export const dynamic = "force-dynamic";
 export default async function CohortesPage() {
   const profile = await requireActiveProfileOrRedirect();
   const supabase = await createClient();
+  const canAdministerCohorts = profile.role_code === "admin";
 
-  const { data: cohorts = [] } = await (supabase as any)
+  const { data: cohorts = [] } = await supabase
     .from("cohort_groups")
     .select("id, name, career_id, modality, shift, current_quarter, status, careers(code, name)")
     .order("name");
@@ -34,7 +34,7 @@ export default async function CohortesPage() {
     .eq("active", true)
     .order("code");
 
-  const cohortItems = (cohorts ?? []).map((cohort: any) => ({
+  const cohortItems = (cohorts ?? []).map((cohort) => ({
     id: cohort.id,
     name: cohort.name as string,
     career_name: (cohort.careers?.name ?? cohort.career_id) as string,
@@ -46,13 +46,17 @@ export default async function CohortesPage() {
 
   return (
     <>
-      <SectionHeader eyebrow="Cohortes" title="Grupos padre">
-        <Badge tone="info">Seguimiento curricular por cuatrimestre</Badge>
+      <SectionHeader
+        eyebrow="Cohortes"
+        title="Grupos padre"
+        description="Captura el primer grupo una sola vez. Después, cada activación de ciclo crea automáticamente el grupo del siguiente cuatrimestre."
+      >
+        <Badge tone="info">Generación automática por ciclo</Badge>
       </SectionHeader>
 
       <section className="mb-6 rounded-md border border-line bg-card p-4 shadow-subtle">
         <h2 className="mb-3 text-sm font-semibold text-ink">Crear cohorte</h2>
-        <CohortFormFields careers={(careers ?? []).map((c: any) => ({ id: c.id, code: c.code, name: c.name }))} />
+        <CohortFormFields careers={(careers ?? []).map((c) => ({ id: c.id, code: c.code, name: c.name }))} />
       </section>
 
       <section>
@@ -62,7 +66,7 @@ export default async function CohortesPage() {
             <ul className="grid gap-3 sm:grid-cols-2">
               {cohortItems.map((cohort: { id: string; name: string; career_name: string; modality: string; shift: string; current_quarter: number; status: string }) => (
                 <li key={cohort.id}>
-                  <CohortCard cohort={cohort} />
+                  <CohortCard cohort={cohort} canAdminister={canAdministerCohorts} />
                 </li>
               ))}
             </ul>
@@ -71,7 +75,7 @@ export default async function CohortesPage() {
             <DataTable
               emptyLabel="No hay cohortes creadas todavía."
               headers={["Cohorte", "Carrera", "Modalidad", "Turno", "Cuatrimestre", "Estado", "Acciones"]}
-              rows={(cohorts ?? []).map((cohort: any) => [
+              rows={(cohorts ?? []).map((cohort) => [
                 <Link className="font-medium text-brand hover:text-brandDeep" href={`/cohortes/${cohort.id}`} key="name">
                   {cohort.name}
                 </Link>,
@@ -93,31 +97,33 @@ export default async function CohortesPage() {
                         <ConfirmActionButton
                           affectedName={cohort.name}
                           className="h-8 px-3 text-xs"
-                          confirmLabel="Avanzar cuatrimestre"
-                          description={`Se avanzará la cohorte al cuatrimestre ${Number(cohort.current_quarter) + 1}. Se creará un nuevo grupo automáticamente con las materias pendientes.`}
-                          title="Avanzar cohorte"
+                          confirmLabel="Generar grupo pendiente"
+                          description="Acción de recuperación: solo se creará un grupo si falta en el ciclo activo. No genera duplicados."
+                          title="Recuperar automatización de cohorte"
                         >
                           <GitBranch className="h-3 w-3" />
-                          Avanzar
+                          Generar pendiente
                         </ConfirmActionButton>
                       </ActionStateForm>
-                      <form action={completeCohortAction}>
-                        <input name="cohort_id" type="hidden" value={cohort.id} />
-                        <ConfirmActionButton
-                          affectedName={cohort.name}
-                          className="h-8 px-3 text-xs"
-                          confirmLabel="Completar cohorte"
-                          description={`Se marcará la cohorte ${cohort.name} como completada.`}
-                          title="Completar cohorte"
-                          variant="secondary"
-                        >
-                          Completar
-                        </ConfirmActionButton>
-                      </form>
+                      {canAdministerCohorts ? (
+                        <ActionStateForm action={completeCohortStateAction}>
+                          <input name="cohort_id" type="hidden" value={cohort.id} />
+                          <ConfirmActionButton
+                            affectedName={cohort.name}
+                            className="h-8 px-3 text-xs"
+                            confirmLabel="Completar cohorte"
+                            description={`Se marcará la cohorte ${cohort.name} como completada.`}
+                            title="Completar cohorte"
+                            variant="secondary"
+                          >
+                            Completar
+                          </ConfirmActionButton>
+                        </ActionStateForm>
+                      ) : null}
                     </>
                   ) : null}
-                  {cohort.status === "completed" ? (
-                    <form action={archiveCohortAction}>
+                  {cohort.status === "completed" && canAdministerCohorts ? (
+                    <ActionStateForm action={archiveCohortStateAction}>
                       <input name="cohort_id" type="hidden" value={cohort.id} />
                       <ConfirmActionButton
                         affectedName={cohort.name}
@@ -129,7 +135,7 @@ export default async function CohortesPage() {
                       >
                         Archivar
                       </ConfirmActionButton>
-                    </form>
+                    </ActionStateForm>
                   ) : null}
                 </div>
               ])}

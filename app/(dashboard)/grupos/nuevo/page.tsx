@@ -31,30 +31,41 @@ export default async function NewGroupPage() {
       supabase.from("teacher_profiles").select("code, name").order("code")
     ]);
 
-  let cohortsQuery = (supabase as any)
+  let cohortsQuery = supabase
     .from("cohort_groups")
-    .select("id, name, career_id, current_quarter")
+    .select("id, name, career_id, current_quarter, modality, shift")
     .eq("status", "active");
 
   if (!isAdmin(profile?.role_code)) {
-    const { data: coordinator } = await (supabase as any)
+    const { data: coordinator } = await supabase
       .from("coordinators")
       .select("id")
       .eq("profile_id", profile?.id)
       .maybeSingle();
     if (coordinator) {
-      const { data: coordinatorCareers = [] } = await (supabase as any)
+      const { data: coordinatorCareers = [] } = await supabase
         .from("coordinator_careers")
         .select("career_id")
         .eq("coordinator_id", coordinator.id);
-      const careerIds = coordinatorCareers.map((cc: any) => cc.career_id);
+      const careerIds = (coordinatorCareers ?? []).map((cc) => cc.career_id);
       if (careerIds.length > 0) {
         cohortsQuery = cohortsQuery.in("career_id", careerIds);
       }
     }
   }
 
-  const { data: cohorts = [] } = await cohortsQuery.order("name");
+  const [{ data: cohorts = [] }, { data: initializedCohorts = [] }] = await Promise.all([
+    cohortsQuery.order("name"),
+    supabase.from("groups").select("cohort_group_id").not("cohort_group_id", "is", null)
+  ]);
+  const initializedCohortIds = new Set(
+    (initializedCohorts ?? [])
+      .map((group) => group.cohort_group_id)
+      .filter((cohortId): cohortId is string => Boolean(cohortId))
+  );
+  const cohortsPendingInitialGroup = (cohorts ?? []).filter(
+    (cohort: { id: string }) => !initializedCohortIds.has(cohort.id)
+  );
 
   const canCreateExtraSubjects = isAdmin(profile?.role_code) || profile?.role_code === "coordinator";
 
@@ -66,13 +77,13 @@ export default async function NewGroupPage() {
         description="Selecciona ciclo, carrera, cuatrimestre y materias. Las materias externas quedan registradas cuando el rol tiene permisos."
       />
       <GroupForm
-        careers={careers as any[]}
-        classrooms={classrooms as any[]}
+        careers={careers ?? []}
+        classrooms={classrooms ?? []}
         canCreateExternalSubjects={canCreateExtraSubjects}
-        cohorts={cohorts as any[]}
-        cycles={cycles as any[]}
-        profiles={(profiles ?? []).filter((teacherProfile: any) => isValidProfileCode(teacherProfile.code)) as any[]}
-        subjects={subjects as any[]}
+        cohorts={cohortsPendingInitialGroup}
+        cycles={cycles ?? []}
+        profiles={(profiles ?? []).filter((teacherProfile) => isValidProfileCode(teacherProfile.code))}
+        subjects={subjects ?? []}
       />
     </>
   );

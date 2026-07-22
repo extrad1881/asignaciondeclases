@@ -1,11 +1,11 @@
 import { CalendarPlus, CheckCircle2, Inbox, Save, Zap } from "lucide-react";
 import {
-  activateCycleAction,
-  archiveCycleAction,
+  activateCycleStateAction,
+  archiveCycleStateAction,
   createCycleAction,
-  finalizeCycleAction,
+  finalizeCycleStateAction,
   updateCycleAction
-} from "@/app/(dashboard)/actions";
+} from "@/app/(dashboard)/actions/ciclos";
 import { ActionStateForm } from "@/components/ui/action-state-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -78,22 +78,22 @@ export function CycleCard({ cycle }: { cycle: Cycle }) {
           </details>
 
           {cycle.status === "draft" ? (
-            <form action={activateCycleAction}>
+            <ActionStateForm action={activateCycleStateAction}>
               <input name="cycle_id" type="hidden" value={cycle.id} />
               <ConfirmActionButton
                 affectedName={cycle.name}
                 className="h-10 w-full"
                 confirmLabel="Activar ciclo"
-                description={`Se activará el ciclo ${cycle.name}. Si hay otro ciclo activo, se finalizará automáticamente.`}
+                description={`Se activará el ciclo ${cycle.name}, se finalizará el anterior y se crearán los grupos siguientes de todas las cohortes inicializadas.`}
                 title="Activar ciclo escolar"
               >
                 <Zap className="h-4 w-4" aria-hidden />
-                Activar
+                Activar y generar grupos
               </ConfirmActionButton>
-            </form>
+            </ActionStateForm>
           ) : null}
           {cycle.status === "active" ? (
-            <form action={finalizeCycleAction}>
+            <ActionStateForm action={finalizeCycleStateAction}>
               <input name="cycle_id" type="hidden" value={cycle.id} />
               <ConfirmActionButton
                 affectedName={cycle.name}
@@ -106,10 +106,10 @@ export function CycleCard({ cycle }: { cycle: Cycle }) {
                 <CheckCircle2 className="h-4 w-4" aria-hidden />
                 Finalizar
               </ConfirmActionButton>
-            </form>
+            </ActionStateForm>
           ) : null}
           {cycle.status === "finalized" ? (
-            <form action={archiveCycleAction}>
+            <ActionStateForm action={archiveCycleStateAction}>
               <input name="cycle_id" type="hidden" value={cycle.id} />
               <ConfirmActionButton
                 affectedName={cycle.name}
@@ -122,7 +122,7 @@ export function CycleCard({ cycle }: { cycle: Cycle }) {
                 <Inbox className="h-4 w-4" aria-hidden />
                 Archivar
               </ConfirmActionButton>
-            </form>
+            </ActionStateForm>
           ) : null}
         </div>
       }

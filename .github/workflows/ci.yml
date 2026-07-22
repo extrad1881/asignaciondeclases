@@ -51,7 +51,7 @@ jobs:
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest # 2. Solución para el error de compatibilidad del archivo config.toml
+          version: 2.105.0
 
       - name: Start Supabase local
         run: supabase start
@@ -60,18 +60,27 @@ jobs:
         run: |
           SUPABASE_ENV=$(supabase status -o env)
           echo "$SUPABASE_ENV" >> $GITHUB_ENV
+          eval "$SUPABASE_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${PUBLISHABLE_KEY:-$ANON_KEY}" >> $GITHUB_ENV
+          echo "SUPABASE_SERVICE_ROLE_KEY=${SECRET_KEY:-$SERVICE_ROLE_KEY}" >> $GITHUB_ENV
 
       - name: Reset database (apply migrations + seed)
         run: supabase db reset
 
+      - name: Lint database schema
+        run: supabase db lint --level error
+
       - name: Run integration tests
         run: npm run test:integration
 
-      - name: Run RLS tests
-        run: npm run test:rls
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
 
-      - name: Run audit tests
-        run: npm run test:audit
+      - name: Run browser E2E tests
+        run: npm run test:e2e
+        env:
+          PLAYWRIGHT_CYCLE_AUTOMATION: "true"
 
       - name: Stop Supabase
         if: always()

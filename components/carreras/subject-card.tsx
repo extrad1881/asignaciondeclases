@@ -93,7 +93,7 @@ export function SubjectCard({
               <div className="text-xs font-semibold text-muted">Perfiles requeridos</div>
               <ProfileCheckboxGroup
                 maxHeight="max-h-40"
-                profiles={profileOptions as any[]}
+                profiles={profileOptions}
                 selected={subject.profiles}
               />
               <ConfirmActionButton

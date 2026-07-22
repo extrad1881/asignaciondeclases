@@ -45,15 +45,15 @@ export default async function TeachersPage() {
   ]);
   const teacherRows = teachers ?? [];
   const canManageTeachers = isAdmin(profile?.role_code);
-  const profileOptions = (profiles ?? []).filter((teacherProfile: any) => isValidProfileCode(teacherProfile.code));
-  const coordinatorOptions = (coordinators ?? []).map((c: any) => ({ id: c.id, name: c.name }));
+  const profileOptions = (profiles ?? []).filter((teacherProfile) => isValidProfileCode(teacherProfile.code));
+  const coordinatorOptions = (coordinators ?? []).map((c) => ({ id: c.id, name: c.name }));
 
-  const rows: DataTableAdvancedRow[] = teacherRows.map((teacher: any) => {
+  const rows: DataTableAdvancedRow[] = teacherRows.map((teacher) => {
     const selectedProfiles = (teacher.teacher_available_profiles ?? [])
-      .map((item: any) => item.profile_code)
+      .map((item) => item.profile_code)
       .filter(isValidProfileCode);
     const assignedCoordinators: Array<{ id: string; name: string }> = (teacher.coordinator_teachers ?? [])
-      .map((ct: any) => ct.coordinators)
+      .map((ct) => ct.coordinators)
       .filter(Boolean);
     const coordinatorNames = assignedCoordinators.map((c) => c.name);
     const statusLabel = teacher.active ? "Activo" : "Inactivo";
@@ -142,7 +142,7 @@ export default async function TeachersPage() {
           ? [
               <form action={updateTeacherProfilesAction} className="grid min-w-56 gap-2" key="profiles-form">
                 <input name="teacher_id" type="hidden" value={teacher.id} />
-                <ProfileCheckboxGroup maxHeight="max-h-36" profiles={profileOptions as any[]} selected={selectedProfiles} />
+                <ProfileCheckboxGroup maxHeight="max-h-36" profiles={profileOptions} selected={selectedProfiles} />
                 <ConfirmActionButton
                   action={updateTeacherProfilesFeedbackAction}
                   affectedName={teacher.name}
@@ -226,7 +226,7 @@ export default async function TeachersPage() {
             <div className="text-sm font-semibold text-ink">
               Perfiles aptos
               <div className="mt-1">
-                <ProfileCheckboxGroup profiles={profileOptions as any[]} />
+                <ProfileCheckboxGroup profiles={profileOptions} />
               </div>
             </div>
             <div className="flex items-end">
@@ -241,19 +241,19 @@ export default async function TeachersPage() {
       <ResponsiveTable
         cards={
           <ul className="grid gap-3 sm:grid-cols-2">
-            {teacherRows.map((teacher: any) => {
+            {teacherRows.map((teacher) => {
               const selectedProfiles = (teacher.teacher_available_profiles ?? [])
-                .map((item: any) => item.profile_code)
+                .map((item) => item.profile_code)
                 .filter(isValidProfileCode);
               const assignedCoordinators = (teacher.coordinator_teachers ?? [])
-                .map((ct: any) => ct.coordinators)
+                .map((ct) => ct.coordinators)
                 .filter(Boolean);
               return (
                 <li key={teacher.id}>
                   <TeacherCard
                     canManage={canManageTeachers}
                     coordinatorOptions={coordinatorOptions}
-                    profileOptions={profileOptions as any[]}
+                    profileOptions={profileOptions}
                     teacher={{
                       id: teacher.id,
                       name: teacher.name,

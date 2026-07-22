@@ -28,7 +28,14 @@ npm run supabase:types
 npm run import:datos
 ```
 
-7. En Authentication, valida que Email Auth esté activo y que RLS permanezca habilitado en las tablas públicas.
+7. En Authentication:
+
+   - Mantén Email Auth activo para permitir el inicio de sesión.
+   - Desactiva **Allow new users to sign up**. Los usuarios se aprovisionan únicamente desde el panel administrativo de la aplicación.
+   - Configura una longitud mínima de 8 caracteres y exige mayúsculas, minúsculas y números.
+   - Conserva RLS habilitado en todas las tablas públicas.
+
+La configuración local equivalente está en `supabase/config.toml`. Esa configuración no modifica automáticamente un proyecto de Supabase Cloud: hay que replicarla en el Dashboard del ambiente desplegado.
 
 ## Vercel
 
@@ -64,3 +71,7 @@ npm run start
 - Tipos generados después de cada cambio de base.
 - Variables de entorno separadas por ambiente.
 - `SUPABASE_SERVICE_ROLE_KEY` usada solo en scripts o server runtime.
+- Registro público deshabilitado y Email Auth habilitado para usuarios existentes.
+- No hay perfiles activos inesperados ni cuentas administrativas fuera del inventario autorizado.
+- `supabase db lint --level error` termina sin hallazgos.
+- `npm audit` reporta cero vulnerabilidades conocidas.
