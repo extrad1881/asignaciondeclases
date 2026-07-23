@@ -1,6 +1,7 @@
 import { canUseShift } from "@/lib/permissions";
 import { isValidProfileCode } from "@/lib/profiles";
 import { createClient } from "@/lib/supabase/server";
+import { fetchAllRows } from "@/lib/supabase/pagination";
 
 export type IncompleteSeverity = "critico" | "advertencia" | "informativo";
 export type IncompleteCategory = "docentes" | "materias" | "grupos" | "asignaciones";
@@ -93,7 +94,7 @@ export async function getIncompleteData(): Promise<IncompleteDataResult> {
   const supabase = await createClient();
   const [
     { data: teachers = [] },
-    { data: subjects = [] },
+    subjects,
     { data: groups = [] },
     { data: assignments = [] },
     { data: coordinatorCareers = [] }
@@ -105,11 +106,16 @@ export async function getIncompleteData(): Promise<IncompleteDataResult> {
       )
       .order("name")
       .limit(1000),
-    supabase
-      .from("subjects")
-      .select("id, name, normalized_name, quarter, default_hours, active, career_id, careers(id, code, name), class_requirements(profile_code)")
-      .order("name")
-      .limit(2000),
+    fetchAllRows(
+      (from, to) =>
+        supabase
+          .from("subjects")
+          .select("id, name, normalized_name, quarter, default_hours, active, career_id, careers(id, code, name), class_requirements(profile_code)")
+          .order("name")
+          .order("id")
+          .range(from, to),
+      { label: "Materias para auditoría" }
+    ),
     supabase
       .from("groups")
       .select(
@@ -129,7 +135,7 @@ export async function getIncompleteData(): Promise<IncompleteDataResult> {
 
   const issues: IncompleteIssue[] = [];
   const teacherRows = teachers ?? [];
-  const subjectRows = subjects ?? [];
+  const subjectRows = subjects;
   const groupRows = groups ?? [];
   const assignmentRows = assignments ?? [];
   const careerCoordinator = new Map<string, { id?: string; name?: string }>();

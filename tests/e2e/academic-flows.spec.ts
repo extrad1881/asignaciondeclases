@@ -142,6 +142,40 @@ test("el administrador crea una cohorte inicial sin duplicar trabajo por ciclo",
   cohortId = data?.id ?? "";
 });
 
+test("el formulario de grupos muestra todas las materias activas de cada carrera", async ({ page }) => {
+  test.setTimeout(90_000);
+
+  const { data: careers, error: careersError } = await service
+    .from("careers")
+    .select("id, code")
+    .eq("active", true)
+    .order("code");
+  expect(careersError).toBeNull();
+  expect(careers?.some((career) => career.code === "SISCOMOLD")).toBe(true);
+
+  const expectedCounts = await Promise.all(
+    (careers ?? []).map(async (career) => {
+      const { count, error: subjectsError } = await service
+        .from("subjects")
+        .select("id", { count: "exact", head: true })
+        .eq("career_id", career.id)
+        .eq("active", true);
+      expect(subjectsError).toBeNull();
+      return { ...career, subjectCount: count ?? 0 };
+    })
+  );
+
+  await login(page);
+  await page.goto("/grupos/nuevo");
+  await page.getByLabel("Ver todos los cuatrimestres").check();
+
+  const careerSelect = page.locator('select[name="career_id"]');
+  for (const career of expectedCounts) {
+    await careerSelect.selectOption(career.id);
+    await expect.poll(() => page.locator('input[name="subject_ids"]').count()).toBe(career.subjectCount);
+  }
+});
+
 test("la activación del ciclo genera el siguiente grupo de la cohorte", async ({ page }) => {
   test.skip(!runCycleAutomation, "La activación se ejecuta únicamente sobre una base local reiniciada o en CI.");
 

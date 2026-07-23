@@ -33,6 +33,7 @@ import { MODALITIES, SHIFTS, WEEKDAYS } from "@/lib/constants";
 import { isValidProfileCode } from "@/lib/profiles";
 import { createClient } from "@/lib/supabase/server";
 import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
+import { fetchAllRows } from "@/lib/supabase/pagination";
 import { formatHours } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -70,7 +71,6 @@ export default async function CoordinatorPage() {
     { data: cycles = [] },
     { data: careers = [] },
     { data: classrooms = [] },
-    { data: subjects = [] },
     { data: profiles = [] },
     { data: teachers = [] },
     { data: groups = [] },
@@ -80,12 +80,6 @@ export default async function CoordinatorPage() {
     supabase.from("academic_cycles").select("id, code, name").eq("status", "active").order("code"),
     supabase.from("careers").select("id, code, name").eq("active", true).order("code"),
     supabase.from("classrooms").select("id, name").eq("active", true).order("name"),
-    supabase
-      .from("subjects")
-      .select("id, name, career_id, quarter, default_hours")
-      .eq("active", true)
-      .order("quarter")
-      .order("name"),
     supabase.from("teacher_profiles").select("code, name").order("code"),
     supabase
       .from("teachers")
@@ -115,7 +109,22 @@ export default async function CoordinatorPage() {
   const cycleRows = cycles ?? [];
   const careerRows = careers ?? [];
   const classroomRows = classrooms ?? [];
-  const subjectRows = subjects ?? [];
+  const careerIds = careerRows.map((career) => career.id);
+  const subjectRows = careerIds.length === 0
+    ? []
+    : await fetchAllRows(
+        (from, to) =>
+          supabase
+            .from("subjects")
+            .select("id, name, career_id, quarter, default_hours")
+            .eq("active", true)
+            .in("career_id", careerIds)
+            .order("quarter")
+            .order("name")
+            .order("id")
+            .range(from, to),
+        { label: "Materias activas" }
+      );
   const scheduleBlockRows = scheduleBlocks ?? [];
   const profileOptions = (profiles ?? []).filter((teacherProfile) => isValidProfileCode(teacherProfile.code));
   const groupSubjectIds = groupRows.flatMap((group) =>

@@ -3,6 +3,7 @@ import path from "node:path";
 import { config as loadEnv } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 import readXlsxFile, { readSheet as readXlsxSheet } from "read-excel-file/node";
+import { fetchAllRows } from "../lib/supabase/pagination";
 import { isValidProfileCode, normalizeProfileCode } from "../lib/profiles";
 import type { Database } from "../types/supabase";
 
@@ -295,13 +296,18 @@ async function importAcademicData() {
     })
   );
 
-  const { data: subjects, error: subjectsError } = await supabase
-    .from("subjects")
-    .select("id, career_id, quarter, normalized_name");
-  if (subjectsError) throw new Error(`subjects: ${subjectsError.message}`);
+  const subjects = await fetchAllRows(
+    (from, to) =>
+      supabase
+        .from("subjects")
+        .select("id, career_id, quarter, normalized_name")
+        .order("id")
+        .range(from, to),
+    { label: "subjects" }
+  );
 
   const subjectsByKey = new Map(
-    (subjects ?? []).map((subject) => [
+    subjects.map((subject) => [
       `${subject.career_id}|${subject.quarter}|${subject.normalized_name}`,
       subject
     ])

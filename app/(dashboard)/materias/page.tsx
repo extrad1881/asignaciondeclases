@@ -9,21 +9,27 @@ import { createClient } from "@/lib/supabase/server";
 import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
 import { isAdmin } from "@/lib/permissions";
 import { isValidProfileCode } from "@/lib/profiles";
+import { fetchAllRows } from "@/lib/supabase/pagination";
 import { formatHours } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function SubjectsPage() {
   const supabase = await createClient();
-  const [profile, { data: subjects = [] }] = await Promise.all([
+  const [profile, subjects] = await Promise.all([
     requireActiveProfileOrRedirect(),
-    supabase
-      .from("subjects")
-      .select("id, name, quarter, default_hours, active, careers(id, code, name), class_requirements(profile_code)")
-      .order("name")
-      .limit(300)
+    fetchAllRows(
+      (from, to) =>
+        supabase
+          .from("subjects")
+          .select("id, name, quarter, default_hours, active, careers(id, code, name), class_requirements(profile_code)")
+          .order("name")
+          .order("id")
+          .range(from, to),
+      { label: "Materias" }
+    )
   ]);
-  const subjectRows = subjects ?? [];
+  const subjectRows = subjects;
   const canManageSubjects = isAdmin(profile?.role_code);
 
   const subjectItems = subjectRows.map((subject) => ({

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
 import { isAdmin } from "@/lib/permissions";
 import { isValidProfileCode } from "@/lib/profiles";
+import { fetchAllRows } from "@/lib/supabase/pagination";
 
 
 export default async function NewGroupPage() {
@@ -14,7 +15,6 @@ export default async function NewGroupPage() {
     { data: cycles = [] },
     { data: careers = [] },
     { data: classrooms = [] },
-    { data: subjects = [] },
     { data: profiles = [] }
   ] =
     await Promise.all([
@@ -22,14 +22,26 @@ export default async function NewGroupPage() {
       supabase.from("academic_cycles").select("id, code, name").eq("status", "active").order("code"),
       supabase.from("careers").select("id, code, name").eq("active", true).order("code"),
       supabase.from("classrooms").select("id, name").eq("active", true).order("name"),
-      supabase
-        .from("subjects")
-        .select("id, name, career_id, quarter, default_hours")
-        .eq("active", true)
-        .order("quarter")
-        .order("name"),
       supabase.from("teacher_profiles").select("code, name").order("code")
     ]);
+
+  const careerRows = careers ?? [];
+  const careerIds = careerRows.map((career) => career.id);
+  const subjects = careerIds.length === 0
+    ? []
+    : await fetchAllRows(
+        (from, to) =>
+          supabase
+            .from("subjects")
+            .select("id, name, career_id, quarter, default_hours")
+            .eq("active", true)
+            .in("career_id", careerIds)
+            .order("quarter")
+            .order("name")
+            .order("id")
+            .range(from, to),
+        { label: "Materias activas" }
+      );
 
   let cohortsQuery = supabase
     .from("cohort_groups")
@@ -77,13 +89,13 @@ export default async function NewGroupPage() {
         description="Selecciona ciclo, carrera, cuatrimestre y materias. Las materias externas quedan registradas cuando el rol tiene permisos."
       />
       <GroupForm
-        careers={careers ?? []}
+        careers={careerRows}
         classrooms={classrooms ?? []}
         canCreateExternalSubjects={canCreateExtraSubjects}
         cohorts={cohortsPendingInitialGroup}
         cycles={cycles ?? []}
         profiles={(profiles ?? []).filter((teacherProfile) => isValidProfileCode(teacherProfile.code))}
-        subjects={subjects ?? []}
+        subjects={subjects}
       />
     </>
   );
