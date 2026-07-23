@@ -34,7 +34,7 @@ Los bloques base activos se limitan a tres franjas por jornada:
 - Modular matutino, sabatino matutino y virtual: `08:00-09:30`, `10:00-11:30`, `11:30-13:00`.
 - Modular y sabatino vespertino: `14:00-15:30`, `16:00-17:30`, `17:30-19:00`.
 
-Sabatino y virtual usan una sola fila por franja, sin duplicados M1/M2. Maestrías conserva su catálogo independiente. La migración de reconciliación desactiva bloques base anteriores en vez de borrarlos, para conservar referencias históricas.
+Sabatino matutino, sabatino vespertino y virtual publican cada una de sus tres franjas en `Módulo 1` y `Módulo 2`. Los módulos representan periodos consecutivos del ciclo: una coincidencia de día y hora dentro del mismo módulo es un conflicto para docente, grupo y aula; la misma franja en módulos distintos es válida. Los bloques sin módulo continúan chocando con ambos módulos. Maestrías conserva su catálogo independiente y las migraciones desactivan bloques base obsoletos en vez de borrarlos para conservar referencias históricas.
 
 ## Capas
 
@@ -71,6 +71,8 @@ El frontend filtra datos para una experiencia cómoda, pero las restricciones im
 ## Ciclos y cohortes
 
 Una cohorte representa al grupo padre que avanza por el plan de estudios. Su primer grupo se captura y vincula manualmente. Al activar cada ciclo posterior, `activate_academic_cycle_and_advance_cohorts` crea en una sola transacción el grupo del siguiente cuatrimestre y sus materias; los reintentos son idempotentes y no generan duplicados.
+
+Al vincular el primer grupo se pueden marcar materias cursadas de cuatrimestres anteriores. Se registran en `cohort_subject_history`, se excluyen de las opciones del grupo y PostgreSQL impide que una materia llegue simultáneamente como cursada y como materia activa.
 
 Los coordinadores pueden crear y recuperar cohortes únicamente en carreras asignadas. Completar y archivar cohortes sigue siendo una operación exclusiva de administrador.
 

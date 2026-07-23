@@ -97,10 +97,11 @@ export default async function CoordinatorPage() {
       .limit(80),
     supabase
       .from("schedule_blocks")
-      .select("id, label, starts_at, ends_at, day_of_week, is_custom, created_by, schedule_templates!inner(code, label, modality, shift, asset_path)")
+      .select("id, label, starts_at, ends_at, day_of_week, is_custom, created_by, module, schedule_templates!inner(code, label, modality, shift, asset_path)")
       .eq("active", true)
       .or(`is_custom.eq.false,created_by.eq.${profile.id}`)
       .order("day_of_week")
+      .order("module")
       .order("starts_at")
   ]);
 
@@ -320,7 +321,8 @@ export default async function CoordinatorPage() {
                 dayOfWeek: block.day_of_week,
                 startsAt: block.starts_at,
                 endsAt: block.ends_at,
-                isCustom: block.is_custom
+                isCustom: block.is_custom,
+                module: block.module ?? undefined
               }));
             const groupBlockOptions = groupBlocks.map((block) => ({ id: block.id, label: block.label }));
             const classroomOptions = classroomRows.map((classroom) => ({ id: classroom.id, name: classroom.name }));
@@ -546,7 +548,7 @@ export default async function CoordinatorPage() {
                     <ActionStateForm action={createCustomScheduleBlockStateAction} className="grid gap-3 rounded-md border border-line bg-card p-4 shadow-subtle">
                       <input name="group_id" type="hidden" value={group.id} />
                       <label className="text-sm font-medium text-ink">
-                        Dia
+                        Día
                         <Select className="mt-1" name="day_of_week" required>
                           {WEEKDAYS.map((day) => (
                             <option key={day.value} value={day.value}>
@@ -555,6 +557,17 @@ export default async function CoordinatorPage() {
                           ))}
                         </Select>
                       </label>
+                      {group.modality === "sabatino" || group.modality === "virtual_modular" ? (
+                        <label className="text-sm font-medium text-ink">
+                          Módulo
+                          <Select className="mt-1" name="module" required>
+                            <option value="1">Módulo 1</option>
+                            <option value="2">Módulo 2</option>
+                          </Select>
+                        </label>
+                      ) : (
+                        <input name="module" type="hidden" value="0" />
+                      )}
                       <label className="text-sm font-medium text-ink">
                         Inicio
                         <Input className="mt-1" name="starts_at" required type="time" />

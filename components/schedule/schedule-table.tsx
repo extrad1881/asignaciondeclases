@@ -35,11 +35,11 @@ function buildTimeRows<TBlock>(
         })
         .map((row) => [row.key, row])
     ).values()
-  ).sort((a, b) => a.startsAt.localeCompare(b.startsAt) || (a.mod ?? 0) - (b.mod ?? 0));
+  ).sort((a, b) => (a.mod ?? 0) - (b.mod ?? 0) || a.startsAt.localeCompare(b.startsAt));
 
   return classRows.flatMap((row, index) => {
     const previous = classRows[index - 1];
-    if (!previous || previous.endsAt >= row.startsAt) return [row];
+    if (!previous || previous.mod !== row.mod || previous.endsAt >= row.startsAt) return [row];
     return [
       {
         key: `break-${previous.endsAt}-${row.startsAt}`,

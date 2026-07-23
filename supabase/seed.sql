@@ -11358,7 +11358,8 @@ CREATE TEMP TABLE desired_schedule_slots (
   starts_at time NOT NULL,
   ends_at time NOT NULL,
   label text NOT NULL,
-  position integer NOT NULL
+  position integer NOT NULL,
+  module integer NOT NULL
 );
 
 WITH
@@ -11394,6 +11395,9 @@ days(day_of_week, day_label) AS (
     (4, 'JUE'),
     (5, 'VIE'),
     (6, 'SAB')
+),
+modules(module) AS (
+  VALUES (0), (1), (2)
 )
 INSERT INTO desired_schedule_slots
 SELECT
@@ -11401,13 +11405,22 @@ SELECT
   d.day_of_week,
   sp.starts_at,
   sp.ends_at,
-  d.day_label || ' ' || to_char(sp.starts_at, 'HH24:MI') || ' - ' ||
+  d.day_label ||
+    CASE WHEN sp.saturday_only THEN ' M' || modules.module ELSE '' END ||
+    ' ' || to_char(sp.starts_at, 'HH24:MI') || ' - ' ||
     to_char(sp.ends_at, 'HH24:MI'),
-  sp.position
+  CASE
+    WHEN sp.saturday_only THEN (modules.module * 100) + sp.position
+    ELSE sp.position
+  END,
+  modules.module
 FROM slot_patterns sp
 JOIN days d
   ON (sp.saturday_only AND d.day_of_week = 6)
-  OR (NOT sp.saturday_only AND d.day_of_week BETWEEN 1 AND 5);
+  OR (NOT sp.saturday_only AND d.day_of_week BETWEEN 1 AND 5)
+JOIN modules
+  ON (sp.saturday_only AND modules.module IN (1, 2))
+  OR (NOT sp.saturday_only AND modules.module = 0);
 
 INSERT INTO public.schedule_blocks (
   template_id,
@@ -11429,7 +11442,7 @@ SELECT
   desired.position,
   true,
   false,
-  0
+  desired.module
 FROM desired_schedule_slots desired
 JOIN public.schedule_templates st ON st.code = desired.template_code
 ON CONFLICT ON CONSTRAINT schedule_blocks_unique_times_per_module DO UPDATE
@@ -11458,6 +11471,26 @@ WHERE a.schedule_block_id = previous.id
     'modular-vespertino'
   );
 
+UPDATE public.assignments assignment
+SET schedule_block_id = module_one.id
+FROM public.schedule_blocks neutral
+JOIN public.schedule_templates template ON template.id = neutral.template_id
+JOIN public.schedule_blocks module_one
+  ON module_one.template_id = neutral.template_id
+ AND module_one.day_of_week = neutral.day_of_week
+ AND module_one.starts_at = neutral.starts_at
+ AND module_one.ends_at = neutral.ends_at
+ AND module_one.module = 1
+ AND module_one.active = true
+WHERE assignment.schedule_block_id = neutral.id
+  AND neutral.module = 0
+  AND coalesce(neutral.is_custom, false) = false
+  AND template.code IN (
+    'virtual-modular-matutino',
+    'sabatino-matutino',
+    'sabatino-vespertino'
+  );
+
 UPDATE public.schedule_blocks sb
 SET active = false,
     updated_at = now()
@@ -11480,7 +11513,7 @@ WHERE sb.template_id = st.id
       AND desired.day_of_week = sb.day_of_week
       AND desired.starts_at = sb.starts_at
       AND desired.ends_at = sb.ends_at
-      AND sb.module = 0
+      AND desired.module = sb.module
   );
 
 DROP TABLE desired_schedule_slots;

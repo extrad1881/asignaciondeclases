@@ -30,13 +30,16 @@ function weekdayBlocks(times: Array<[string, string]>) {
   );
 }
 
-function saturdayBlocks(times: Array<[string, string]>) {
-  return times.map(([startsAt, endsAt]) => ({
-    dayOfWeek: 6,
-    label: `SAB ${startsAt}-${endsAt}`,
-    startsAt,
-    endsAt
-  }));
+function saturdayModuleBlocks(times: Array<[string, string]>) {
+  return [1, 2].flatMap((module) =>
+    times.map(([startsAt, endsAt]) => ({
+      dayOfWeek: 6,
+      label: `SAB M${module} ${startsAt}-${endsAt}`,
+      startsAt,
+      endsAt,
+      module
+    }))
+  );
 }
 
 export const scheduleTemplates: ScheduleTemplateConfig[] = [
@@ -94,7 +97,7 @@ export const scheduleTemplates: ScheduleTemplateConfig[] = [
     modality: "virtual_modular",
     shift: "matutino",
     asset: "/schedule-assets/CUADRO MODULAR VIRTUAL.png",
-    blocks: saturdayBlocks([
+    blocks: saturdayModuleBlocks([
       ["08:00", "09:30"],
       ["10:00", "11:30"],
       ["11:30", "13:00"]
@@ -117,7 +120,7 @@ export const scheduleTemplates: ScheduleTemplateConfig[] = [
     modality: "sabatino",
     shift: "matutino",
     asset: "/schedule-assets/CUADRO MODULAR.png",
-    blocks: saturdayBlocks([
+    blocks: saturdayModuleBlocks([
       ["08:00", "09:30"],
       ["10:00", "11:30"],
       ["11:30", "13:00"]
@@ -129,7 +132,7 @@ export const scheduleTemplates: ScheduleTemplateConfig[] = [
     modality: "sabatino",
     shift: "vespertino",
     asset: "/schedule-assets/CUADRO MODULAR VESPERTINO.png",
-    blocks: saturdayBlocks([
+    blocks: saturdayModuleBlocks([
       ["14:00", "15:30"],
       ["16:00", "17:30"],
       ["17:30", "19:00"]

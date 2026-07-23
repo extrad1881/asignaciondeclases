@@ -17,6 +17,7 @@ let cohortId = "";
 let originalCycleId = "";
 let initialGroupId = "";
 let cycleWasActivated = false;
+let firstQuarterSubjectId = "";
 
 test.beforeAll(async () => {
   const { data: career, error } = await service
@@ -33,25 +34,29 @@ test.beforeAll(async () => {
   if (error || !career) throw new Error(`No se pudo preparar la carrera E2E: ${error?.message}`);
   careerId = career.id;
 
-  const { error: subjectsError } = await service.from("subjects").insert([
-    {
-      career_id: careerId,
-      name: `${careerName} Materia Q1`,
-      normalized_name: `${careerName} MATERIA Q1`,
-      quarter: 1,
-      default_hours: 5,
-      active: true
-    },
-    {
-      career_id: careerId,
-      name: `${careerName} Materia Q2`,
-      normalized_name: `${careerName} MATERIA Q2`,
-      quarter: 2,
-      default_hours: 5,
-      active: true
-    }
-  ]);
+  const { data: subjects, error: subjectsError } = await service
+    .from("subjects")
+    .insert([
+      {
+        career_id: careerId,
+        name: `${careerName} Materia Q1`,
+        normalized_name: `${careerName} MATERIA Q1`,
+        quarter: 1,
+        default_hours: 5,
+        active: true
+      },
+      {
+        career_id: careerId,
+        name: `${careerName} Materia Q2`,
+        normalized_name: `${careerName} MATERIA Q2`,
+        quarter: 2,
+        default_hours: 5,
+        active: true
+      }
+    ])
+    .select("id, quarter");
   if (subjectsError) throw new Error(`No se pudieron preparar las materias E2E: ${subjectsError.message}`);
+  firstQuarterSubjectId = subjects?.find((subject) => subject.quarter === 1)?.id ?? "";
 
   const { data: activeCycle, error: activeCycleError } = await service
     .from("academic_cycles")
@@ -140,6 +145,33 @@ test("el administrador crea una cohorte inicial sin duplicar trabajo por ciclo",
   expect(error).toBeNull();
   expect(data).toMatchObject({ name: cohortName, current_quarter: 1, status: "active" });
   cohortId = data?.id ?? "";
+});
+
+test("el grupo inicial permite seleccionar las materias ya cursadas de la cohorte", async ({ page }) => {
+  const { error: advanceError } = await service
+    .from("cohort_groups")
+    .update({ current_quarter: 2 })
+    .eq("id", cohortId);
+  expect(advanceError).toBeNull();
+
+  try {
+    await login(page);
+    await page.goto("/grupos/nuevo");
+    await page.locator('select[name="career_id"]').selectOption(careerId);
+    await page.locator('select[name="cohort_group_id"]').selectOption(cohortId);
+
+    const completedSection = page
+      .getByRole("heading", { name: "Materias ya cursadas" })
+      .locator("xpath=ancestor::section");
+    await expect(completedSection).toContainText(`${careerName} Materia Q1`);
+    await completedSection.getByLabel(`${careerName} Materia Q1`).check();
+
+    await expect(page.locator(`input[name="completed_subject_ids"][value="${firstQuarterSubjectId}"]`)).toHaveCount(1);
+    await page.getByLabel("Ver todos los cuatrimestres").check();
+    await expect(page.locator(`input[name="subject_ids"][value="${firstQuarterSubjectId}"]`)).toHaveCount(0);
+  } finally {
+    await service.from("cohort_groups").update({ current_quarter: 1 }).eq("id", cohortId);
+  }
 });
 
 test("el formulario de grupos muestra todas las materias activas de cada carrera", async ({ page }) => {

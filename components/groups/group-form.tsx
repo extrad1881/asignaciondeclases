@@ -110,10 +110,11 @@ export function GroupForm({
   const visibleSubjects = useMemo(() => {
     return subjects.filter((subject) => {
       if (subject.career_id !== careerId) return false;
+      if (completedSubjectIds.has(subject.id)) return false;
       if (includeOtherQuarters) return true;
       return subject.quarter === quarter;
     });
-  }, [careerId, includeOtherQuarters, quarter, subjects]);
+  }, [careerId, completedSubjectIds, includeOtherQuarters, quarter, subjects]);
 
   function addExternalSubject() {
     setExternalSubjectKeys((current) => [...current, `${Date.now()}-${current.length}`]);
@@ -161,7 +162,16 @@ export function GroupForm({
           <Select
             className="mt-1"
             name="quarter"
-            onChange={(event) => setQuarter(Number(event.target.value))}
+            onChange={(event) => {
+              const nextQuarter = Number(event.target.value);
+              setQuarter(nextQuarter);
+              setCompletedSubjectIds((current) => new Set(
+                Array.from(current).filter((subjectId) => {
+                  const subject = subjects.find((item) => item.id === subjectId);
+                  return Boolean(subject?.quarter && subject.quarter < nextQuarter);
+                })
+              ));
+            }}
             value={quarter}
           >
             {Array.from({ length: 12 }, (_, index) => index + 1).map((item) => (
@@ -234,6 +244,7 @@ export function GroupForm({
                   setQuarter(cohort.current_quarter);
                   setModality(cohort.modality);
                   setShift(cohort.shift);
+                  setShowCompletedSubjects(cohort.current_quarter > 1);
                 } else {
                   setShowCompletedSubjects(false);
                 }
@@ -383,13 +394,33 @@ export function GroupForm({
             <div>
               <h2 className="text-lg font-semibold text-ink">Materias ya cursadas</h2>
               <p className="text-sm text-muted">
-                Marca las materias que esta cohorte ya tomó en cuatrimestres anteriores. Se excluirán del grupo actual.
+                Marca las materias que esta cohorte ya tomó en cuatrimestres anteriores. No podrán agregarse nuevamente al grupo.
               </p>
             </div>
-            <span className="text-sm text-muted">{showCompletedSubjects ? "▲" : "▼"}</span>
+            <span className="flex items-center gap-2 text-sm text-muted">
+              {completedSubjectIds.size > 0 ? `${completedSubjectIds.size} seleccionadas` : "Sin selección"}
+              {showCompletedSubjects ? "▲" : "▼"}
+            </span>
           </button>
           {showCompletedSubjects ? (
             <div className="mt-3 space-y-3">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={() => setCompletedSubjectIds(new Set(subjectsBeforeCurrentQuarter.map((subject) => subject.id)))}
+                  type="button"
+                  variant="secondary"
+                >
+                  Marcar todas las anteriores
+                </Button>
+                <Button
+                  disabled={completedSubjectIds.size === 0}
+                  onClick={() => setCompletedSubjectIds(new Set())}
+                  type="button"
+                  variant="ghost"
+                >
+                  Limpiar selección
+                </Button>
+              </div>
               {Array.from(subjectsByQuarter.entries())
                 .sort(([a], [b]) => a - b)
                 .map(([q, qSubjects]) => (

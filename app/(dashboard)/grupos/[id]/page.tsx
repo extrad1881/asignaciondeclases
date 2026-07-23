@@ -80,6 +80,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
     .eq("schedule_templates.shift", group.shift)
     .eq("active", true)
     .order("day_of_week")
+    .order("module")
     .order("starts_at");
 
   if (!isAdmin(profile?.role_code) && profile?.id) {
@@ -181,6 +182,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   const blockOptions = blocks.map((block) => ({ id: block.id, label: block.label }));
   const classroomOptions = classrooms.map((classroom) => ({ id: classroom.id, name: classroom.name }));
   const isGroupEditable = group.status === "draft" || group.status === "review" || group.status === "active";
+  const usesScheduleModules = group.modality === "sabatino" || group.modality === "virtual_modular";
 
   return (
     <>
@@ -381,7 +383,9 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
           <ActionStateForm
             action={createCustomScheduleBlockStateAction}
             alertClassName="md:col-span-full"
-            className="grid gap-2 rounded-md border border-line bg-card p-3 shadow-subtle md:min-w-[520px] md:grid-cols-[150px_120px_120px_auto]"
+            className={usesScheduleModules
+              ? "grid gap-2 rounded-md border border-line bg-card p-3 shadow-subtle md:min-w-[620px] md:grid-cols-[140px_100px_120px_120px_auto]"
+              : "grid gap-2 rounded-md border border-line bg-card p-3 shadow-subtle md:min-w-[520px] md:grid-cols-[150px_120px_120px_auto]"}
           >
             <input name="group_id" type="hidden" value={group.id} />
             <label className="text-xs font-semibold uppercase text-muted">
@@ -394,6 +398,17 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
                 ))}
               </Select>
             </label>
+            {usesScheduleModules ? (
+              <label className="text-xs font-semibold uppercase text-muted">
+                Módulo
+                <Select className="mt-1 h-9" name="module" required>
+                  <option value="1">Módulo 1</option>
+                  <option value="2">Módulo 2</option>
+                </Select>
+              </label>
+            ) : (
+              <input name="module" type="hidden" value="0" />
+            )}
             <label className="text-xs font-semibold uppercase text-muted">
               Inicio
               <Input className="mt-1 h-9" name="starts_at" required type="time" />

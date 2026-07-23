@@ -113,7 +113,12 @@ export function AssignmentForm({
   }, [blocks]);
 
   const mobileBlocks = useMemo(
-    () => blocks.filter((block) => block.dayOfWeek === mobileDay),
+    () => blocks
+      .filter((block) => block.dayOfWeek === mobileDay)
+      .sort((left, right) =>
+        (left.module ?? 0) - (right.module ?? 0) ||
+        left.startsAt.localeCompare(right.startsAt)
+      ),
     [blocks, mobileDay]
   );
 

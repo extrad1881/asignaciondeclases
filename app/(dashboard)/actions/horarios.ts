@@ -12,7 +12,8 @@ const customScheduleBlockSchema = z.object({
   group_id: z.string().uuid(),
   day_of_week: z.coerce.number().int().min(1).max(6),
   starts_at: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Usa formato HH:MM."),
-  ends_at: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Usa formato HH:MM.")
+  ends_at: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Usa formato HH:MM."),
+  module: z.coerce.number().int().min(0).max(2)
 });
 
 export async function createCustomScheduleBlockAction(formData: FormData) {
@@ -21,7 +22,8 @@ export async function createCustomScheduleBlockAction(formData: FormData) {
     group_id: formData.get("group_id"),
     day_of_week: formData.get("day_of_week"),
     starts_at: formData.get("starts_at"),
-    ends_at: formData.get("ends_at")
+    ends_at: formData.get("ends_at"),
+    module: formData.get("module") ?? 0
   });
 
   if (!parsed.success) {
@@ -53,6 +55,12 @@ export async function createCustomScheduleBlockAction(formData: FormData) {
     throw new Error("No tienes permiso para modificar este grupo.");
   }
 
+  const usesModules = group.modality === "sabatino" || group.modality === "virtual_modular";
+  const scheduleModule = usesModules ? parsed.data.module : 0;
+  if (usesModules && scheduleModule !== 1 && scheduleModule !== 2) {
+    throw new Error("Selecciona Módulo 1 o Módulo 2 para este bloque.");
+  }
+
   const { data: template } = await supabase
     .from("schedule_templates")
     .select("id, starts_at, ends_at")
@@ -74,19 +82,29 @@ export async function createCustomScheduleBlockAction(formData: FormData) {
 
   const { data: overlapping } = await supabase
     .from("schedule_blocks")
-    .select("id")
+    .select("id, module")
     .eq("template_id", template.id)
     .eq("day_of_week", parsed.data.day_of_week)
     .eq("active", true)
     .lt("starts_at", `${parsed.data.ends_at}:00`)
     .gt("ends_at", `${parsed.data.starts_at}:00`);
 
-  if (overlapping && overlapping.length > 0) {
-    throw new Error("Ya existe un bloque en este dia que se traslapa con el horario solicitado.");
+  const hasConflictingBlock = (overlapping ?? []).some((block) => {
+    const existingModule = block.module ?? 0;
+    return !(
+      scheduleModule > 0 &&
+      existingModule > 0 &&
+      scheduleModule !== existingModule
+    );
+  });
+
+  if (hasConflictingBlock) {
+    throw new Error("Ya existe un bloque en este día y módulo que se traslapa con el horario solicitado.");
   }
 
   const day = WEEKDAYS.find((item) => item.value === parsed.data.day_of_week);
-  const label = `${day?.short ?? "DIA"} ${startsAt}-${endsAt} personalizado`;
+  const moduleLabel = scheduleModule > 0 ? ` M${scheduleModule}` : "";
+  const label = `${day?.short ?? "DIA"}${moduleLabel} ${startsAt}-${endsAt} personalizado`;
 
   const { error } = await supabase.from("schedule_blocks").insert({
     template_id: template.id,
@@ -97,12 +115,13 @@ export async function createCustomScheduleBlockAction(formData: FormData) {
     position: startsAtMinutes,
     active: true,
     is_custom: true,
-    created_by: profile.id
+    created_by: profile.id,
+    module: scheduleModule
   });
 
   if (error) {
     if (error.code === "23505") {
-      throw new Error("Ya existe un bloque con ese dia y horario para este cuadro.");
+      throw new Error("Ya existe un bloque con ese día, horario y módulo para este cuadro.");
     }
     throw new Error(error.message);
   }

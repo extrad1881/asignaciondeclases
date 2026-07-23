@@ -26,7 +26,7 @@ describe("plantillas de horario visibles", () => {
     ]);
   });
 
-  it("virtual y sabatino no duplican franjas por módulo", () => {
+  it("virtual y sabatino publican sus tres franjas en Módulo 1 y Módulo 2", () => {
     const expectedMorning = ["08:00-09:30", "10:00-11:30", "11:30-13:00"];
     const virtual = findScheduleTemplate("virtual_modular", "matutino");
     const saturdayMorning = findScheduleTemplate("sabatino", "matutino");
@@ -39,13 +39,11 @@ describe("plantillas de horario visibles", () => {
       "16:00-17:30",
       "17:30-19:00"
     ]);
-    expect(virtual?.blocks).toHaveLength(3);
-    expect(saturdayMorning?.blocks).toHaveLength(3);
-    expect(saturdayEvening?.blocks).toHaveLength(3);
-    expect([
-      ...(virtual?.blocks ?? []),
-      ...(saturdayMorning?.blocks ?? []),
-      ...(saturdayEvening?.blocks ?? [])
-    ].every((block) => block.dayOfWeek === 6 && block.module == null)).toBe(true);
+    for (const template of [virtual, saturdayMorning, saturdayEvening]) {
+      expect(template?.blocks).toHaveLength(6);
+      expect(template?.blocks.every((block) => block.dayOfWeek === 6)).toBe(true);
+      expect(template?.blocks.filter((block) => block.module === 1)).toHaveLength(3);
+      expect(template?.blocks.filter((block) => block.module === 2)).toHaveLength(3);
+    }
   });
 });

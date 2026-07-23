@@ -15,6 +15,7 @@ export type VisualScheduleBlock = {
   startsAt: string;
   endsAt: string;
   isCustom?: boolean;
+  module?: number;
 };
 
 export type VisualScheduleAssignment = {
@@ -89,6 +90,7 @@ export function GroupScheduleBoard({
               getBlockDay={(block) => block.dayOfWeek}
               getBlockEndsAt={(block) => block.endsAt}
               getBlockKey={(block) => block.id}
+              getBlockModule={(block) => block.module}
               getBlockStartsAt={(block) => block.startsAt}
               renderCell={({ block, assignments: blockAssignments }) => (
                 <div className="grid gap-1 text-xs text-muted">
@@ -129,6 +131,7 @@ export function GroupScheduleBoard({
             getBlockDay={(block) => block.dayOfWeek}
             getBlockEndsAt={(block) => block.endsAt}
             getBlockKey={(block) => block.id}
+            getBlockModule={(block) => block.module}
             getBlockStartsAt={(block) => block.startsAt}
             renderCell={({ block, assignments: blockAssignments }) => (
               <div className="grid gap-1 text-xs text-muted">
