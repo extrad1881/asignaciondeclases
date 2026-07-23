@@ -5,12 +5,14 @@ import {
   createSubjectStateAction,
   setSubjectActiveAction,
   setSubjectActiveFeedbackAction,
+  updateSubjectAction,
   updateSubjectFeedbackAction
 } from "@/app/(dashboard)/actions";
 import { SectionHeader } from "@/components/section-header";
 import { SubjectCard } from "@/components/carreras/subject-card";
 import { ProfileCheckboxGroup } from "@/components/forms/profile-checkbox-group";
 import { ActionStateForm } from "@/components/ui/action-state-form";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
 import { DataTable } from "@/components/ui/data-table";
@@ -230,6 +232,3 @@ export default async function CareerSubjectsPage({ params }: { params: Promise<{
     </>
   );
 }
-
-import { Badge } from "@/components/ui/badge";
-import { updateSubjectAction } from "@/app/(dashboard)/actions";

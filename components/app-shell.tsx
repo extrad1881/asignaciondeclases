@@ -20,6 +20,7 @@ const navItems: NavItemDef[] = [
   { href: "/carreras", label: "Carreras", icon: "GraduationCap" },
   { href: "/coordinadores", label: "Coordinadores", icon: "Settings" },
   { href: "/grupos", label: "Grupos", icon: "LayoutGrid" },
+  { href: "/aulas", label: "Aulas", icon: "DoorOpen", adminOnly: true },
   { href: "/horarios", label: "Horarios", icon: "CalendarDays" },
   { href: "/reportes", label: "Reportes", icon: "FileText" },
   { href: "/datos-incompletos", label: "Incompletos", icon: "CircleAlert", adminOnly: true },

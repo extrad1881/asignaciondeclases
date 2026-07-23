@@ -25,6 +25,17 @@ La carpeta `assets` contiene las imágenes base de horarios:
 
 Las imágenes se sirven desde `public/schedule-assets` y las estructuras editables se modelan en `schedule_templates` y `schedule_blocks`.
 
+### Catálogo operativo de horarios
+
+Los bloques base activos se limitan a tres franjas por jornada:
+
+- Escolarizado matutino: `08:00-09:30`, `10:00-11:30`, `11:30-13:00`.
+- Escolarizado vespertino: `15:00-16:30`, `17:00-18:30`, `18:30-20:00`.
+- Modular matutino, sabatino matutino y virtual: `08:00-09:30`, `10:00-11:30`, `11:30-13:00`.
+- Modular y sabatino vespertino: `14:00-15:30`, `16:00-17:30`, `17:30-19:00`.
+
+Sabatino y virtual usan una sola fila por franja, sin duplicados M1/M2. Maestrías conserva su catálogo independiente. La migración de reconciliación desactiva bloques base anteriores en vez de borrarlos, para conservar referencias históricas.
+
 ## Capas
 
 - `app`: rutas App Router, autenticación, dashboard y vistas administrativas.
@@ -62,6 +73,10 @@ El frontend filtra datos para una experiencia cómoda, pero las restricciones im
 Una cohorte representa al grupo padre que avanza por el plan de estudios. Su primer grupo se captura y vincula manualmente. Al activar cada ciclo posterior, `activate_academic_cycle_and_advance_cohorts` crea en una sola transacción el grupo del siguiente cuatrimestre y sus materias; los reintentos son idempotentes y no generan duplicados.
 
 Los coordinadores pueden crear y recuperar cohortes únicamente en carreras asignadas. Completar y archivar cohortes sigue siendo una operación exclusiva de administrador.
+
+## Catálogo de aulas
+
+La ruta administrativa `/aulas` permite crear, editar, desactivar y reactivar espacios. La desactivación los retira de grupos y asignaciones nuevas sin eliminar referencias existentes. RLS limita las escrituras a administradores activos y el trigger `audit_classrooms` registra sus cambios en `audit_logs`.
 
 ## Aprovisionamiento y auditoría administrativa
 

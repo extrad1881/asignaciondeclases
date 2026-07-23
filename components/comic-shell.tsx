@@ -7,6 +7,7 @@ import {
   BookOpen,
   CalendarDays,
   CircleAlert,
+  DoorOpen,
   FileText,
   GraduationCap,
   Home,
@@ -47,7 +48,8 @@ const iconMap: Record<string, LucideIcon> = {
   LayoutGrid,
   CalendarDays,
   FileText,
-  CircleAlert
+  CircleAlert,
+  DoorOpen
 };
 
 function subscribeTheme(callback: () => void) {

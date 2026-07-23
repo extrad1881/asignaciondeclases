@@ -137,6 +137,7 @@ export async function proxy(request: NextRequest) {
   const isLogin = request.nextUrl.pathname.startsWith("/login");
   const protectedPaths = [
     "/admin",
+    "/aulas",
     "/carreras",
     "/coordinador",
     "/coordinadores",
@@ -167,6 +168,7 @@ export const config = {
   matcher: [
     "/login",
     "/admin/:path*",
+    "/aulas/:path*",
     "/api/reportes/:path*",
     "/carreras/:path*",
     "/coordinador/:path*",

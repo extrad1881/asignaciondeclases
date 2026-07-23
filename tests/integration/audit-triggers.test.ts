@@ -289,6 +289,7 @@ describe("Supabase audit triggers and assignment validations", () => {
     expect(tables.has("coordinators")).toBe(true);
     expect(tables.has("subjects")).toBe(true);
     expect(tables.has("teachers")).toBe(true);
+    expect(tables.has("classrooms")).toBe(true);
     expect(tables.has("groups")).toBe(true);
     expect(tables.has("assignments")).toBe(true);
 

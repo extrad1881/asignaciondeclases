@@ -62,14 +62,16 @@ describe("validateAssignmentDraft", () => {
 });
 
 describe("sabatino schedule support", () => {
-  it("exposes canonical sabatino templates with Saturday modules", () => {
+  it("expone tres bloques sabatinos canónicos sin módulos duplicados", () => {
     const matutino = findScheduleTemplate("sabatino", "matutino");
     const vespertino = findScheduleTemplate("sabatino", "vespertino");
 
     expect(matutino?.code).toBe("sabatino-matutino");
     expect(vespertino?.code).toBe("sabatino-vespertino");
-    expect(matutino?.blocks.every((block) => block.dayOfWeek === 6 && block.module)).toBe(true);
-    expect(vespertino?.blocks.every((block) => block.dayOfWeek === 6 && block.module)).toBe(true);
+    expect(matutino?.blocks).toHaveLength(3);
+    expect(vespertino?.blocks).toHaveLength(3);
+    expect(matutino?.blocks.every((block) => block.dayOfWeek === 6 && block.module == null)).toBe(true);
+    expect(vespertino?.blocks.every((block) => block.dayOfWeek === 6 && block.module == null)).toBe(true);
   });
 
   it("accepts sabatino groups in matutino and vespertino shifts", () => {

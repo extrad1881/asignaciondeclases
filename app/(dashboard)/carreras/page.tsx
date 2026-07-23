@@ -1,5 +1,9 @@
+import Link from "next/link";
+import { BookOpen } from "lucide-react";
 import { SectionHeader } from "@/components/section-header";
 import { CareerListCard } from "@/components/carreras/career-list-card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { DataTableAdvanced, type DataTableAdvancedRow } from "@/components/ui/data-table-advanced";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { createClient } from "@/lib/supabase/server";
@@ -59,7 +63,17 @@ export default async function CareersPage() {
         estado: statusLabel,
         coordinador: career.coordinator_names[0] ?? "Sin asignar"
       },
-      cells: canManageSubjects ? [...baseCells, <span className="text-muted" key="manage">Ver y modificar en móvil</span>] : baseCells
+      cells: canManageSubjects
+        ? [
+            ...baseCells,
+            <Link href={`/carreras/${career.id}/materias`} key="manage">
+              <Button type="button" variant="secondary">
+                <BookOpen className="h-4 w-4" aria-hidden />
+                Ver y modificar
+              </Button>
+            </Link>
+          ]
+        : baseCells
     };
   });
 
@@ -100,5 +114,3 @@ export default async function CareersPage() {
     </>
   );
 }
-
-import { Badge } from "@/components/ui/badge";

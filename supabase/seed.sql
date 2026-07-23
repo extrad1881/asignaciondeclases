@@ -11348,4 +11348,144 @@ SELECT pg_catalog.setval('"public"."audit_logs_id_seq"', 3565, true);
 
 -- \unrestrict zbYpo1w89vAJiGa1a86cZM0bRilteL2qqMdjwu50img6o6XlkBaQ55A2jHvJFgv
 
+-- Mantiene el catálogo de horarios del seed alineado con producción.
+DO $reconcile_schedule_catalog$
+BEGIN
+
+CREATE TEMP TABLE desired_schedule_slots (
+  template_code text NOT NULL,
+  day_of_week integer NOT NULL,
+  starts_at time NOT NULL,
+  ends_at time NOT NULL,
+  label text NOT NULL,
+  position integer NOT NULL
+);
+
+WITH
+slot_patterns(template_code, starts_at, ends_at, position, saturday_only) AS (
+  VALUES
+    ('escolarizado-matutino', '08:00'::time, '09:30'::time, 1, false),
+    ('escolarizado-matutino', '10:00'::time, '11:30'::time, 2, false),
+    ('escolarizado-matutino', '11:30'::time, '13:00'::time, 3, false),
+    ('escolarizado-vespertino', '15:00'::time, '16:30'::time, 1, false),
+    ('escolarizado-vespertino', '17:00'::time, '18:30'::time, 2, false),
+    ('escolarizado-vespertino', '18:30'::time, '20:00'::time, 3, false),
+    ('modular-matutino', '08:00'::time, '09:30'::time, 1, false),
+    ('modular-matutino', '10:00'::time, '11:30'::time, 2, false),
+    ('modular-matutino', '11:30'::time, '13:00'::time, 3, false),
+    ('modular-vespertino', '14:00'::time, '15:30'::time, 1, false),
+    ('modular-vespertino', '16:00'::time, '17:30'::time, 2, false),
+    ('modular-vespertino', '17:30'::time, '19:00'::time, 3, false),
+    ('virtual-modular-matutino', '08:00'::time, '09:30'::time, 1, true),
+    ('virtual-modular-matutino', '10:00'::time, '11:30'::time, 2, true),
+    ('virtual-modular-matutino', '11:30'::time, '13:00'::time, 3, true),
+    ('sabatino-matutino', '08:00'::time, '09:30'::time, 1, true),
+    ('sabatino-matutino', '10:00'::time, '11:30'::time, 2, true),
+    ('sabatino-matutino', '11:30'::time, '13:00'::time, 3, true),
+    ('sabatino-vespertino', '14:00'::time, '15:30'::time, 1, true),
+    ('sabatino-vespertino', '16:00'::time, '17:30'::time, 2, true),
+    ('sabatino-vespertino', '17:30'::time, '19:00'::time, 3, true)
+),
+days(day_of_week, day_label) AS (
+  VALUES
+    (1, 'LUN'),
+    (2, 'MAR'),
+    (3, 'MIE'),
+    (4, 'JUE'),
+    (5, 'VIE'),
+    (6, 'SAB')
+)
+INSERT INTO desired_schedule_slots
+SELECT
+  sp.template_code,
+  d.day_of_week,
+  sp.starts_at,
+  sp.ends_at,
+  d.day_label || ' ' || to_char(sp.starts_at, 'HH24:MI') || ' - ' ||
+    to_char(sp.ends_at, 'HH24:MI'),
+  sp.position
+FROM slot_patterns sp
+JOIN days d
+  ON (sp.saturday_only AND d.day_of_week = 6)
+  OR (NOT sp.saturday_only AND d.day_of_week BETWEEN 1 AND 5);
+
+INSERT INTO public.schedule_blocks (
+  template_id,
+  day_of_week,
+  starts_at,
+  ends_at,
+  label,
+  position,
+  active,
+  is_custom,
+  module
+)
+SELECT
+  st.id,
+  desired.day_of_week,
+  desired.starts_at,
+  desired.ends_at,
+  desired.label,
+  desired.position,
+  true,
+  false,
+  0
+FROM desired_schedule_slots desired
+JOIN public.schedule_templates st ON st.code = desired.template_code
+ON CONFLICT ON CONSTRAINT schedule_blocks_unique_times_per_module DO UPDATE
+SET label = EXCLUDED.label,
+    position = EXCLUDED.position,
+    active = true,
+    is_custom = false;
+
+UPDATE public.assignments a
+SET schedule_block_id = canonical.id
+FROM public.schedule_blocks previous
+JOIN public.schedule_templates st ON st.id = previous.template_id
+JOIN public.schedule_blocks canonical
+  ON canonical.template_id = previous.template_id
+ AND canonical.day_of_week = previous.day_of_week
+ AND canonical.starts_at = previous.starts_at
+ AND canonical.ends_at = previous.ends_at
+ AND canonical.module = 0
+WHERE a.schedule_block_id = previous.id
+  AND previous.id <> canonical.id
+  AND coalesce(previous.is_custom, false) = false
+  AND st.code IN (
+    'escolarizado-matutino',
+    'escolarizado-vespertino',
+    'modular-matutino',
+    'modular-vespertino'
+  );
+
+UPDATE public.schedule_blocks sb
+SET active = false,
+    updated_at = now()
+FROM public.schedule_templates st
+WHERE sb.template_id = st.id
+  AND coalesce(sb.is_custom, false) = false
+  AND st.code IN (
+    'escolarizado-matutino',
+    'escolarizado-vespertino',
+    'modular-matutino',
+    'modular-vespertino',
+    'virtual-modular-matutino',
+    'sabatino-matutino',
+    'sabatino-vespertino'
+  )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM desired_schedule_slots desired
+    WHERE desired.template_code = st.code
+      AND desired.day_of_week = sb.day_of_week
+      AND desired.starts_at = sb.starts_at
+      AND desired.ends_at = sb.ends_at
+      AND sb.module = 0
+  );
+
+DROP TABLE desired_schedule_slots;
+
+END;
+$reconcile_schedule_catalog$;
+
 RESET ALL;

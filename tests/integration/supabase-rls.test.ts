@@ -24,6 +24,7 @@ describe("Supabase RLS", () => {
   let deniedGroupId = "";
   let adminSubjectId = "";
   let allowedCohortId = "";
+  let classroomId = "";
 
   beforeAll(async () => {
     adminClient = await createAuthenticatedTestClient("admin@local.test", "Admin123!");
@@ -40,6 +41,7 @@ describe("Supabase RLS", () => {
     const classroom = await requireSingle<{ id: string }>(
       service.from("classrooms").select("id").eq("active", true).limit(1).single()
     );
+    classroomId = classroom.id;
 
     const { data: careers, error: careersError } = await service
       .from("careers")
@@ -202,6 +204,22 @@ describe("Supabase RLS", () => {
 
     const group = await requireSingle<{ id: string }>(service.from("groups").select("id").eq("id", deniedGroupId).single());
     expect(group.id).toBe(deniedGroupId);
+  });
+
+  it("un coordinador no puede modificar el catálogo de aulas", async () => {
+    const before = await requireSingle<{ kind: string | null }>(
+      service.from("classrooms").select("kind").eq("id", classroomId).single()
+    );
+
+    await coordinatorClient
+      .from("classrooms")
+      .update({ kind: `${prefix} Modificada` })
+      .eq("id", classroomId);
+
+    const after = await requireSingle<{ kind: string | null }>(
+      service.from("classrooms").select("kind").eq("id", classroomId).single()
+    );
+    expect(after.kind).toBe(before.kind);
   });
 
   it("un coordinador no puede finalizar o archivar un grupo mediante la API directa", async () => {

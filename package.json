@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run tests/assignment-validation.test.ts tests/auth-session.test.ts tests/error-utils.test.ts tests/pagination.test.ts tests/reports.test.ts",
+    "test": "vitest run tests/assignment-validation.test.ts tests/auth-session.test.ts tests/error-utils.test.ts tests/pagination.test.ts tests/reports.test.ts tests/schedule-templates.test.ts",
     "test:integration": "vitest run tests/integration --no-file-parallelism",
     "test:rls": "vitest run tests/integration/supabase-rls.test.ts",
     "test:audit": "vitest run tests/integration/audit-triggers.test.ts",
