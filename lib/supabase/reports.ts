@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getVerifiedSession } from "@/lib/supabase/auth-session";
 import { escapeCsvCell } from "@/lib/csv";
 
 export type ReportRow = {
@@ -26,10 +27,8 @@ const DAY_LABELS: Record<number, string> = {
 
 export async function getReportData(groupId?: string): Promise<ReportRow[]> {
   const supabase = await createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-  if (!user) return [];
+  const { userId } = await getVerifiedSession(supabase);
+  if (!userId) return [];
 
   let query = supabase
     .from("assignments")

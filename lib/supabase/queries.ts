@@ -1,17 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
+import { getVerifiedSession } from "@/lib/supabase/auth-session";
 
 export async function getCurrentProfile() {
   const supabase = await createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const { userId } = await getVerifiedSession(supabase);
 
-  if (!user) return null;
+  if (!userId) return null;
 
   const { data } = await supabase
     .from("users_profile")
     .select("id, display_name, email, role_code, active")
-    .eq("id", user.id)
+    .eq("id", userId)
     .maybeSingle();
 
   return data;
@@ -44,8 +43,8 @@ export async function checkGroupSubjectHours(groupId: string): Promise<SubjectHo
   return (data ?? []) as SubjectHoursStatus[];
 }
 
-export async function getDashboardCounts() {
-  const supabase = await createClient();
+export async function getDashboardCounts(client?: Awaited<ReturnType<typeof createClient>>) {
+  const supabase = client ?? await createClient();
 
   const [
     { count: careersCt },

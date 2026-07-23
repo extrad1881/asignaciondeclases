@@ -19,7 +19,6 @@ import { MetricCard } from "@/components/ui/metric-card";
 import { createClient } from "@/lib/supabase/server";
 import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
 import { getDashboardCounts } from "@/lib/supabase/queries";
-import { getIncompleteData } from "@/lib/supabase/incomplete-data";
 import { isAdmin } from "@/lib/permissions";
 
 
@@ -27,7 +26,7 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const [profile, counts, { data: groups = [] }] = await Promise.all([
     requireActiveProfileOrRedirect(),
-    getDashboardCounts(),
+    getDashboardCounts(supabase),
     supabase
       .from("groups")
       .select("id, name, modality, shift, quarter, status, academic_cycles(code), careers(code)")
@@ -36,9 +35,6 @@ export default async function DashboardPage() {
       .limit(6)
   ]);
 
-  const incomplete = isAdmin(profile?.role_code) ? await getIncompleteData() : null;
-  const incompleteTotal = incomplete?.issues.length ?? 0;
-  const incompleteLabel = incompleteTotal === 1 ? "pendiente" : "pendientes";
   const assignmentCoverage =
     counts.groups > 0 ? Math.round((Math.min(counts.assignments, counts.groups) / counts.groups) * 100) : 0;
 
@@ -72,23 +68,6 @@ export default async function DashboardPage() {
         <MetricCard description="Grupos no archivados" icon={LayoutGrid} label="Grupos" tone="success" value={counts.groups} />
         <MetricCard description={`${assignmentCoverage}% de referencia operativa`} icon={CalendarDays} label="Asignaciones" value={counts.assignments} />
       </section>
-
-      {isAdmin(profile?.role_code) && incompleteTotal > 0 ? (
-        <div className="mt-5">
-          <EmptyState
-            action={
-              <Link href="/datos-incompletos">
-                <Button type="button" variant="primary">
-                  Corregir datos
-                </Button>
-              </Link>
-            }
-            description="Corrige estos datos antes de iniciar asignaciones masivas."
-            icon={CircleAlert}
-            title={`${incompleteTotal} ${incompleteLabel} de datos incompletos`}
-          />
-        </div>
-      ) : null}
 
       <section className="mt-5 grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
         <div className="rounded-md border border-line bg-card p-4 shadow-subtle">

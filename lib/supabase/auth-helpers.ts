@@ -1,5 +1,7 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getVerifiedSession } from "@/lib/supabase/auth-session";
 
 export type AuthenticatedProfile = {
   supabase: Awaited<ReturnType<typeof createClient>>;
@@ -12,28 +14,35 @@ export type AuthenticatedProfile = {
   };
 };
 
-export async function requireAuthenticatedProfile(): Promise<AuthenticatedProfile> {
+const getAuthenticatedProfile = cache(async (): Promise<AuthenticatedProfile | null> => {
   const supabase = await createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("No hay una sesión activa.");
+  const { userId } = await getVerifiedSession(supabase);
+  if (!userId) return null;
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("users_profile")
     .select("id, display_name, email, role_code, active")
-    .eq("id", user.id)
-    .single();
+    .eq("id", userId)
+    .maybeSingle();
 
-  if (!profile) {
+  if (error) throw new Error(error.message);
+  if (!profile) return null;
+
+  return { supabase, profile };
+});
+
+export async function requireAuthenticatedProfile(): Promise<AuthenticatedProfile> {
+  const authenticated = await getAuthenticatedProfile();
+
+  if (!authenticated) {
     throw new Error("No hay una sesión activa.");
   }
 
-  if (!profile.active) {
+  if (!authenticated.profile.active) {
     throw new Error("Usuario inactivo.");
   }
 
-  return { supabase, profile };
+  return authenticated;
 }
 
 export async function requireAdmin() {
@@ -47,24 +56,11 @@ export async function requireAdmin() {
 }
 
 export async function requireActiveProfileOrRedirect() {
-  const supabase = await createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const authenticated = await getAuthenticatedProfile();
 
-  if (!user) {
+  if (!authenticated?.profile.active) {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("users_profile")
-    .select("id, display_name, email, role_code, active")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!profile?.active) {
-    redirect("/login");
-  }
-
-  return profile;
+  return authenticated.profile;
 }

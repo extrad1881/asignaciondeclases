@@ -64,6 +64,16 @@ npm run start
 
 5. Agrega la URL de Vercel a los redirect URLs permitidos de Supabase Auth.
 
+6. Configura las funciones de Vercel en una región cercana a la región del proyecto de Supabase. La distancia entre ambos servicios se suma a cada consulta autenticada.
+
+## Sesiones caducadas o revocadas
+
+El proxy verifica la identidad con `getClaims()` y elimina automáticamente las cookies de Supabase cuando Auth devuelve `refresh_token_not_found` u otro error equivalente de rotación. El usuario vuelve a `/login` y puede iniciar sesión de nuevo sin quedar atrapado en una sesión inválida.
+
+Este caso puede aparecer después de cerrar sesión en otro dispositivo, revocar sesiones, restaurar o cambiar el proyecto de Supabase, o conservar cookies de un despliegue anterior. Si ocurre antes de desplegar esta protección, elimina las cookies del sitio o prueba en una ventana privada.
+
+La pantalla `/datos-incompletos` ejecuta la auditoría completa bajo demanda. El dashboard inicial no debe invocarla porque descarga catálogos y asignaciones completos; mantener esa separación evita tiempos de respuesta altos y timeouts en funciones serverless.
+
 ## Checklist
 
 - RLS activo en todas las tablas de negocio.

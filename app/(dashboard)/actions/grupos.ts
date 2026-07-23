@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAuthenticatedProfile } from "@/lib/supabase/auth-helpers";
 import { actionFailure, actionSuccess, type ActionState } from "@/lib/actions/action-state";
 import { getSafeErrorMessage } from "@/lib/supabase/error-utils";
+import { getVerifiedSession } from "@/lib/supabase/auth-session";
 import { checkGroupSubjectHours } from "@/lib/supabase/queries";
 import { cleanString, getStringList, normalizeKey } from "@/app/(dashboard)/actions/utils";
 import { requireEditableGroup } from "@/app/(dashboard)/actions/group-guards";
@@ -53,15 +54,13 @@ async function getExternalSubjectCatalogClient(
   supabase: Awaited<ReturnType<typeof createClient>>,
   careerId: string
 ) {
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("No hay una sesión activa.");
+  const { userId } = await getVerifiedSession(supabase);
+  if (!userId) throw new Error("No hay una sesión activa.");
 
   const { data: profile, error: profileError } = await supabase
     .from("users_profile")
     .select("id, role_code")
-    .eq("id", user.id)
+    .eq("id", userId)
     .maybeSingle();
   if (profileError) throw new Error(profileError.message);
   if (!profile) throw new Error("No hay una sesion activa.");
