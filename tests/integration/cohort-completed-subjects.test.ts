@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  ADMIN_USER_ID,
+  COORDINATOR_USER_ID,
   createAuthenticatedTestClient,
   createServiceTestClient,
   requireSingle
@@ -9,16 +11,22 @@ describe("historial inicial de materias de una cohorte", () => {
   const prefix = `TST_COHORT_HISTORY_${Date.now().toString(36).toUpperCase()}`;
   const service = createServiceTestClient();
   let adminClient: Awaited<ReturnType<typeof createAuthenticatedTestClient>>;
+  let coordinatorClient: Awaited<ReturnType<typeof createAuthenticatedTestClient>>;
   let cycleId = "";
   let careerId = "";
   let previousSubjectId = "";
+  let replacementSubjectId = "";
   let currentSubjectId = "";
   let cohortId = "";
   let invalidCohortId = "";
+  let coordinatorCohortId = "";
+  let coordinatorId = "";
   let groupId = "";
+  const auditedHistoryIds: string[] = [];
 
   beforeAll(async () => {
     adminClient = await createAuthenticatedTestClient("admin@local.test", "Admin123!");
+    coordinatorClient = await createAuthenticatedTestClient("coordinador@local.test", "Coord123!");
 
     const cycle = await requireSingle<{ id: string }>(
       service.from("academic_cycles").select("id").eq("status", "active").single()
@@ -52,6 +60,14 @@ describe("historial inicial de materias de una cohorte", () => {
         },
         {
           career_id: careerId,
+          quarter: 1,
+          name: `${prefix} Materia cursada reemplazo`,
+          normalized_name: `${prefix} MATERIA CURSADA REEMPLAZO`,
+          default_hours: 3,
+          active: true
+        },
+        {
+          career_id: careerId,
           quarter: 2,
           name: `${prefix} Materia actual`,
           normalized_name: `${prefix} MATERIA ACTUAL`,
@@ -59,9 +75,10 @@ describe("historial inicial de materias de una cohorte", () => {
           active: true
         }
       ])
-      .select("id, quarter");
+      .select("id, name, quarter");
     if (subjectsError) throw new Error(subjectsError.message);
-    previousSubjectId = subjects?.find((subject) => subject.quarter === 1)?.id ?? "";
+    previousSubjectId = subjects?.find((subject) => subject.name.endsWith("Materia cursada"))?.id ?? "";
+    replacementSubjectId = subjects?.find((subject) => subject.name.endsWith("Materia cursada reemplazo"))?.id ?? "";
     currentSubjectId = subjects?.find((subject) => subject.quarter === 2)?.id ?? "";
 
     const { data: cohorts, error: cohortsError } = await adminClient
@@ -91,6 +108,12 @@ describe("historial inicial de materias de una cohorte", () => {
   });
 
   afterAll(async () => {
+    const { data: historyRows = [] } = await service
+      .from("cohort_subject_history")
+      .select("id")
+      .in("cohort_group_id", [cohortId, invalidCohortId, coordinatorCohortId].filter(Boolean));
+    auditedHistoryIds.push(...(historyRows ?? []).map((row) => row.id));
+
     const { data: groups = [] } = await service
       .from("groups")
       .select("id")
@@ -100,20 +123,36 @@ describe("historial inicial de materias de una cohorte", () => {
     if (groupIds.length > 0) {
       await service.from("groups").delete().in("id", groupIds);
     }
-    await service.from("cohort_groups").delete().in("id", [cohortId, invalidCohortId].filter(Boolean));
-    await service.from("subjects").delete().in("id", [previousSubjectId, currentSubjectId].filter(Boolean));
+    await service
+      .from("cohort_groups")
+      .delete()
+      .in("id", [cohortId, invalidCohortId, coordinatorCohortId].filter(Boolean));
+    await service
+      .from("subjects")
+      .delete()
+      .in("id", [previousSubjectId, replacementSubjectId, currentSubjectId].filter(Boolean));
+    if (coordinatorId && careerId) {
+      await service
+        .from("coordinator_careers")
+        .delete()
+        .eq("coordinator_id", coordinatorId)
+        .eq("career_id", careerId);
+    }
     if (careerId) await service.from("careers").delete().eq("id", careerId);
 
     const auditedIds = [
       ...groupIds,
       cohortId,
       invalidCohortId,
+      coordinatorCohortId,
       previousSubjectId,
+      replacementSubjectId,
       currentSubjectId,
-      careerId
+      careerId,
+      ...auditedHistoryIds
     ].filter(Boolean);
     if (auditedIds.length > 0) {
-      await service.from("audit_logs").delete().in("record_id", auditedIds);
+      await service.from("audit_logs").delete().in("record_id", Array.from(new Set(auditedIds)));
     }
   });
 
@@ -133,15 +172,16 @@ describe("historial inicial de materias de una cohorte", () => {
     expect(error).toBeNull();
     groupId = data ?? "";
 
-    const history = await requireSingle<{ subject_id: string; quarter: number; group_id: string | null }>(
+    const history = await requireSingle<{ id: string; subject_id: string; quarter: number; group_id: string | null }>(
       service
         .from("cohort_subject_history")
-        .select("subject_id, quarter, group_id")
+        .select("id, subject_id, quarter, group_id")
         .eq("cohort_group_id", cohortId)
         .eq("subject_id", previousSubjectId)
         .single()
     );
-    expect(history).toEqual({
+    auditedHistoryIds.push(history.id);
+    expect(history).toMatchObject({
       subject_id: previousSubjectId,
       quarter: 1,
       group_id: null
@@ -153,6 +193,106 @@ describe("historial inicial de materias de una cohorte", () => {
       .eq("group_id", groupId);
     expect(groupSubjectsError).toBeNull();
     expect(groupSubjects?.map((subject) => subject.subject_id)).toEqual([currentSubjectId]);
+  });
+
+  it("reemplaza los registros manuales, conserva la trazabilidad y audita la eliminación", async () => {
+    const originalHistoryId = auditedHistoryIds[0] ?? "";
+    const { data, error } = await adminClient.rpc("set_cohort_manual_completed_subjects", {
+      p_cohort_group_id: cohortId,
+      p_subject_ids: [replacementSubjectId]
+    });
+    expect(error).toBeNull();
+    expect(data).toBe(1);
+
+    const { data: history, error: historyError } = await service
+      .from("cohort_subject_history")
+      .select("id, subject_id, group_id")
+      .eq("cohort_group_id", cohortId);
+    expect(historyError).toBeNull();
+    expect(history).toEqual([
+      expect.objectContaining({
+        subject_id: replacementSubjectId,
+        group_id: null
+      })
+    ]);
+    auditedHistoryIds.push(...(history ?? []).map((row) => row.id));
+
+    const audit = await requireSingle<{ user_id: string | null; action_type: string }>(
+      service
+        .from("audit_logs")
+        .select("user_id, action_type")
+        .eq("table_name", "cohort_subject_history")
+        .eq("record_id", originalHistoryId)
+        .eq("action_type", "delete")
+        .single()
+    );
+    expect(audit).toEqual({ user_id: ADMIN_USER_ID, action_type: "delete" });
+  });
+
+  it("rechaza correcciones de un coordinador fuera de su carrera", async () => {
+    const { error } = await coordinatorClient.rpc("set_cohort_manual_completed_subjects", {
+      p_cohort_group_id: cohortId,
+      p_subject_ids: [previousSubjectId]
+    });
+    expect(error?.message).toContain("No tienes permiso");
+
+    const history = await requireSingle<{ subject_id: string }>(
+      service
+        .from("cohort_subject_history")
+        .select("subject_id")
+        .eq("cohort_group_id", cohortId)
+        .single()
+    );
+    expect(history.subject_id).toBe(replacementSubjectId);
+  });
+
+  it("permite al coordinador corregir una cohorte dentro de su carrera", async () => {
+    const coordinator = await requireSingle<{ id: string }>(
+      service
+        .from("coordinators")
+        .select("id")
+        .eq("profile_id", COORDINATOR_USER_ID)
+        .single()
+    );
+    coordinatorId = coordinator.id;
+    const { error: scopeError } = await service.from("coordinator_careers").insert({
+      coordinator_id: coordinatorId,
+      career_id: careerId
+    });
+    if (scopeError) throw new Error(scopeError.message);
+
+    const cohort = await requireSingle<{ id: string }>(
+      coordinatorClient
+        .from("cohort_groups")
+        .insert({
+          name: `${prefix} Cohorte coordinador`,
+          career_id: careerId,
+          modality: "escolarizado",
+          shift: "matutino",
+          current_quarter: 2,
+          status: "active"
+        })
+        .select("id")
+        .single()
+    );
+    coordinatorCohortId = cohort.id;
+
+    const { data, error } = await coordinatorClient.rpc("set_cohort_manual_completed_subjects", {
+      p_cohort_group_id: coordinatorCohortId,
+      p_subject_ids: [previousSubjectId]
+    });
+    expect(error).toBeNull();
+    expect(data).toBe(1);
+
+    const history = await requireSingle<{ id: string; subject_id: string }>(
+      service
+        .from("cohort_subject_history")
+        .select("id, subject_id")
+        .eq("cohort_group_id", coordinatorCohortId)
+        .single()
+    );
+    auditedHistoryIds.push(history.id);
+    expect(history.subject_id).toBe(previousSubjectId);
   });
 
   it("rechaza una materia enviada a la vez como cursada y como activa", async () => {

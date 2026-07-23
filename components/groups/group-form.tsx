@@ -107,6 +107,16 @@ export function GroupForm({
     });
   }
 
+  function changeQuarter(nextQuarter: number) {
+    setQuarter(nextQuarter);
+    setCompletedSubjectIds((current) => new Set(
+      Array.from(current).filter((subjectId) => {
+        const subject = subjects.find((item) => item.id === subjectId);
+        return Boolean(subject?.quarter && subject.quarter < nextQuarter);
+      })
+    ));
+  }
+
   const visibleSubjects = useMemo(() => {
     return subjects.filter((subject) => {
       if (subject.career_id !== careerId) return false;
@@ -163,14 +173,7 @@ export function GroupForm({
             className="mt-1"
             name="quarter"
             onChange={(event) => {
-              const nextQuarter = Number(event.target.value);
-              setQuarter(nextQuarter);
-              setCompletedSubjectIds((current) => new Set(
-                Array.from(current).filter((subjectId) => {
-                  const subject = subjects.find((item) => item.id === subjectId);
-                  return Boolean(subject?.quarter && subject.quarter < nextQuarter);
-                })
-              ));
+              changeQuarter(Number(event.target.value));
             }}
             value={quarter}
           >
@@ -273,7 +276,7 @@ export function GroupForm({
               Marca las materias que esta cohorte ya tomó en cuatrimestres anteriores. No podrán agregarse nuevamente al grupo.
             </p>
           </div>
-          {selectedCohort && subjectsBeforeCurrentQuarter.length > 0 ? (
+          {selectedCohort ? (
             <button
               aria-controls="completed-cohort-subjects"
               aria-expanded={showCompletedSubjects}
@@ -281,7 +284,8 @@ export function GroupForm({
               onClick={() => setShowCompletedSubjects(!showCompletedSubjects)}
               type="button"
             >
-              {completedSubjectIds.size > 0 ? `${completedSubjectIds.size} seleccionadas` : "Sin selección"}
+              Agregar manualmente
+              {completedSubjectIds.size > 0 ? ` · ${completedSubjectIds.size} seleccionadas` : ""}
               <span aria-hidden>{showCompletedSubjects ? "▲" : "▼"}</span>
             </button>
           ) : null}
@@ -291,52 +295,74 @@ export function GroupForm({
           <div className="mt-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
             Selecciona una cohorte para indicar las materias que ya cursó antes de crear su primer grupo.
           </div>
-        ) : subjectsBeforeCurrentQuarter.length === 0 ? (
-          <div className="mt-3 rounded-md border border-line bg-panel px-3 py-2 text-sm text-muted">
-            Esta cohorte no tiene materias de cuatrimestres anteriores para seleccionar.
-          </div>
         ) : showCompletedSubjects ? (
           <div className="mt-3 space-y-3" id="completed-cohort-subjects">
-            <div className="flex flex-wrap gap-2">
-              <Button
-                onClick={() => setCompletedSubjectIds(new Set(subjectsBeforeCurrentQuarter.map((subject) => subject.id)))}
-                type="button"
-                variant="secondary"
+            <label className="block max-w-sm text-sm font-medium text-ink">
+              Cuatrimestre de ingreso de la cohorte
+              <Select
+                className="mt-1"
+                onChange={(event) => changeQuarter(Number(event.target.value))}
+                value={quarter}
               >
-                Marcar todas las anteriores
-              </Button>
-              <Button
-                disabled={completedSubjectIds.size === 0}
-                onClick={() => setCompletedSubjectIds(new Set())}
-                type="button"
-                variant="ghost"
-              >
-                Limpiar selección
-              </Button>
-            </div>
-            {Array.from(subjectsByQuarter.entries())
-              .sort(([a], [b]) => a - b)
-              .map(([q, qSubjects]) => (
-                <div key={q}>
-                  <h3 className="mb-2 text-xs font-semibold uppercase text-muted">Cuatrimestre {q}</h3>
-                  <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                    {qSubjects.map((subject) => (
-                      <label
-                        className="flex items-center gap-2 rounded-md border border-line bg-panel p-2 text-sm"
-                        key={subject.id}
-                      >
-                        <input
-                          checked={completedSubjectIds.has(subject.id)}
-                          className="h-4 w-4 accent-brand"
-                          onChange={() => toggleCompletedSubject(subject.id)}
-                          type="checkbox"
-                        />
-                        {subject.name}
-                      </label>
-                    ))}
-                  </div>
+                {Array.from({ length: 12 }, (_, index) => index + 1).map((item) => (
+                  <option key={item} value={item}>
+                    Cuatrimestre {item}
+                  </option>
+                ))}
+              </Select>
+              <span className="mt-1 block text-xs font-normal text-muted">
+                Si el primer grupo inicia después de Q1, aquí podrás registrar las materias cursadas previamente.
+              </span>
+            </label>
+
+            {subjectsBeforeCurrentQuarter.length === 0 ? (
+              <div className="rounded-md border border-line bg-panel px-3 py-2 text-sm text-muted">
+                Selecciona un cuatrimestre de ingreso mayor a 1 para mostrar las materias anteriores.
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={() => setCompletedSubjectIds(new Set(subjectsBeforeCurrentQuarter.map((subject) => subject.id)))}
+                    type="button"
+                    variant="secondary"
+                  >
+                    Marcar todas las anteriores
+                  </Button>
+                  <Button
+                    disabled={completedSubjectIds.size === 0}
+                    onClick={() => setCompletedSubjectIds(new Set())}
+                    type="button"
+                    variant="ghost"
+                  >
+                    Limpiar selección
+                  </Button>
                 </div>
-              ))}
+                {Array.from(subjectsByQuarter.entries())
+                  .sort(([a], [b]) => a - b)
+                  .map(([q, qSubjects]) => (
+                    <div key={q}>
+                      <h3 className="mb-2 text-xs font-semibold uppercase text-muted">Cuatrimestre {q}</h3>
+                      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                        {qSubjects.map((subject) => (
+                          <label
+                            className="flex items-center gap-2 rounded-md border border-line bg-panel p-2 text-sm"
+                            key={subject.id}
+                          >
+                            <input
+                              checked={completedSubjectIds.has(subject.id)}
+                              className="h-4 w-4 accent-brand"
+                              onChange={() => toggleCompletedSubject(subject.id)}
+                              type="checkbox"
+                            />
+                            {subject.name}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+              </>
+            )}
           </div>
         ) : null}
 

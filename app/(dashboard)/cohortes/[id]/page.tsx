@@ -1,20 +1,23 @@
 export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { GitBranch, CheckCircle2, Trash2 } from "lucide-react";
+import { GitBranch, CheckCircle2, Save, Trash2 } from "lucide-react";
 import {
   advanceCohortAction,
   archiveCohortStateAction,
   completeCohortStateAction,
-  permanentDeleteCohortStateAction
+  permanentDeleteCohortStateAction,
+  updateCohortManualHistoryStateAction
 } from "@/app/(dashboard)/actions/cohortes";
 import { SectionHeader } from "@/components/section-header";
 import { Badge } from "@/components/ui/badge";
 import { ActionStateForm } from "@/components/ui/action-state-form";
+import { Button } from "@/components/ui/button";
 import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
 import { DataTable } from "@/components/ui/data-table";
 import { createClient } from "@/lib/supabase/server";
 import { requireActiveProfileOrRedirect } from "@/lib/supabase/auth-helpers";
+import { fetchAllRows } from "@/lib/supabase/pagination";
 import { isAdmin } from "@/lib/permissions";
 
 export default async function CohortDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -43,8 +46,31 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ i
     .order("quarter")
     .order("subject_id");
 
+  const cohortSubjects = await fetchAllRows(
+    (from, to) =>
+      supabase
+        .from("subjects")
+        .select("id, name, quarter, active")
+        .eq("career_id", cohort.career_id)
+        .order("quarter")
+        .order("name")
+        .order("id")
+        .range(from, to),
+    { label: "Materias de la cohorte" }
+  );
+
   const cohortGroups = groups ?? [];
   const cohortHistory = history ?? [];
+  const manualHistorySubjectIds = new Set(
+    cohortHistory.filter((row) => row.group_id === null).map((row) => row.subject_id)
+  );
+  const groupHistorySubjectIds = new Set(
+    cohortHistory.filter((row) => row.group_id !== null).map((row) => row.subject_id)
+  );
+  const editableHistorySubjects = cohortSubjects.filter(
+    (subject) => Number(subject.quarter) < Number(cohort.current_quarter)
+  );
+  const canEditHistory = cohort.status === "active" || isAdmin(profile.role_code);
   type HistoryRow = (typeof cohortHistory)[number];
   const historyByQuarter = new Map<number, HistoryRow[]>();
   for (const row of cohortHistory) {
@@ -174,6 +200,59 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ i
         />
       </section>
 
+      <section className="mb-5 rounded-md border border-line bg-card p-4 shadow-subtle">
+        <h2 className="text-sm font-semibold text-ink">Modificar materias ya cursadas</h2>
+        <p className="mt-1 text-sm text-muted">
+          Agrega o quita registros manuales. Las materias provenientes de un grupo real se muestran bloqueadas y se conservan.
+        </p>
+        {!canEditHistory ? (
+          <p className="mt-3 rounded-md border border-line bg-panel px-3 py-2 text-sm text-muted">
+            Solo el administrador puede corregir el historial de una cohorte que ya no está activa.
+          </p>
+        ) : editableHistorySubjects.length === 0 ? (
+          <p className="mt-3 rounded-md border border-line bg-panel px-3 py-2 text-sm text-muted">
+            La cohorte está en Q1; todavía no existen materias de cuatrimestres anteriores para registrar.
+          </p>
+        ) : (
+          <ActionStateForm
+            action={updateCohortManualHistoryStateAction}
+            className="mt-4 space-y-4"
+          >
+            <input name="cohort_id" type="hidden" value={cohort.id} />
+            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+              {editableHistorySubjects.map((subject) => {
+                const registeredByGroup = groupHistorySubjectIds.has(subject.id);
+                return (
+                  <label
+                    className="flex min-h-12 items-center gap-2 rounded-md border border-line bg-panel p-3 text-sm"
+                    key={subject.id}
+                  >
+                    <input
+                      className="h-4 w-4 accent-brand"
+                      defaultChecked={registeredByGroup || manualHistorySubjectIds.has(subject.id)}
+                      disabled={registeredByGroup}
+                      name={registeredByGroup ? undefined : "subject_ids"}
+                      type="checkbox"
+                      value={subject.id}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium text-ink">{subject.name}</span>
+                      <span className="text-xs text-muted">Cuatrimestre {subject.quarter}</span>
+                    </span>
+                    {registeredByGroup ? <Badge tone="info">Por grupo</Badge> : null}
+                    {!subject.active ? <Badge tone="neutral">Inactiva</Badge> : null}
+                  </label>
+                );
+              })}
+            </div>
+            <Button type="submit">
+              <Save className="h-4 w-4" />
+              Guardar materias cursadas
+            </Button>
+          </ActionStateForm>
+        )}
+      </section>
+
       <section>
         <h2 className="mb-3 text-sm font-semibold text-ink">Historial de materias cursadas</h2>
         {Array.from({ length: maxQuarter }, (_, i) => i + 1).map((quarter) => {
@@ -191,7 +270,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ i
                     <Link className="text-brand hover:text-brandDeep" href={`/grupos/${row.group_id}`} key="group">
                       Ver grupo
                     </Link>
-                  ) : "Migrado"
+                  ) : "Registro manual"
                 ])}
               />
             </div>

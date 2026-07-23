@@ -17,6 +17,11 @@ const cohortIdSchema = z.object({
   cohort_id: z.string().uuid()
 });
 
+const manualHistorySchema = z.object({
+  cohort_id: z.string().uuid("Selecciona una cohorte válida."),
+  subject_ids: z.array(z.string().uuid("Selecciona materias válidas.")).max(300)
+});
+
 const generationResultSchema = z.object({
   status: z.enum(["created", "already_exists", "needs_initial_group", "completed"]),
   group_id: z.string().uuid().optional(),
@@ -178,6 +183,41 @@ export async function archiveCohortStateAction(
     return actionSuccess("Cohorte archivada correctamente.");
   } catch (error) {
     return actionFailure(error, "No se pudo archivar la cohorte.");
+  }
+}
+
+export async function updateCohortManualHistoryStateAction(
+  _previousState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    const parsed = manualHistorySchema.safeParse({
+      cohort_id: formData.get("cohort_id"),
+      subject_ids: formData.getAll("subject_ids")
+    });
+    if (!parsed.success) {
+      return actionFailure(new Error(parsed.error.issues.map((issue) => issue.message).join(" ")));
+    }
+
+    const { supabase } = await requireAuthenticatedProfile();
+    const { data, error } = await supabase.rpc("set_cohort_manual_completed_subjects", {
+      p_cohort_group_id: parsed.data.cohort_id,
+      p_subject_ids: parsed.data.subject_ids
+    });
+    if (error) return actionFailure(error);
+
+    revalidatePath("/cohortes");
+    revalidatePath(`/cohortes/${parsed.data.cohort_id}`);
+    revalidatePath("/grupos");
+
+    const subjectCount = Number(data ?? 0);
+    return actionSuccess(
+      subjectCount === 1
+        ? "Historial actualizado con 1 materia registrada manualmente."
+        : `Historial actualizado con ${subjectCount} materias registradas manualmente.`
+    );
+  } catch (error) {
+    return actionFailure(error, "No se pudo actualizar el historial de materias cursadas.");
   }
 }
 

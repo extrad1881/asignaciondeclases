@@ -59,7 +59,7 @@ supabase start
 npm run test:e2e
 ```
 
-La suite comprueba redirección de rutas protegidas, errores de acceso, permisos del coordinador, creación real de ciclos/cohortes y procesamiento de imágenes con Next.js. Los registros E2E llevan nombres únicos y se eliminan al terminar.
+La suite comprueba redirección de rutas protegidas, errores de acceso, permisos del coordinador, creación real de ciclos/cohortes, captura y corrección de materias cursadas y procesamiento de imágenes con Next.js. Los registros E2E llevan nombres únicos y se eliminan al terminar.
 
 La activación real de ciclos se omite por defecto para no avanzar cohortes existentes. Ejecútala solo después de `supabase db reset` o en una base desechable:
 

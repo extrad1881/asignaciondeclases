@@ -1024,6 +1024,10 @@ export type Database = {
         Args: { p_profile_codes: string[]; p_teacher_id: string }
         Returns: undefined
       }
+      set_cohort_manual_completed_subjects: {
+        Args: { p_cohort_group_id: string; p_subject_ids: Json }
+        Returns: number
+      }
       unaccent_fallback: { Args: { value: string }; Returns: string }
       upsert_subject_with_requirements: {
         Args: {

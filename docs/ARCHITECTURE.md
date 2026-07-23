@@ -72,7 +72,7 @@ El frontend filtra datos para una experiencia cómoda, pero las restricciones im
 
 Una cohorte representa al grupo padre que avanza por el plan de estudios. Su primer grupo se captura y vincula manualmente. Al activar cada ciclo posterior, `activate_academic_cycle_and_advance_cohorts` crea en una sola transacción el grupo del siguiente cuatrimestre y sus materias; los reintentos son idempotentes y no generan duplicados.
 
-Al vincular el primer grupo se pueden marcar materias cursadas de cuatrimestres anteriores. Se registran en `cohort_subject_history`, se excluyen de las opciones del grupo y PostgreSQL impide que una materia llegue simultáneamente como cursada y como materia activa.
+Al vincular el primer grupo se puede indicar el cuatrimestre de ingreso y marcar manualmente materias cursadas de cuatrimestres anteriores. Se registran en `cohort_subject_history`, se excluyen de las opciones del grupo y PostgreSQL impide que una materia llegue simultáneamente como cursada y como materia activa. El detalle de la cohorte permite reemplazar posteriormente los registros manuales mediante `set_cohort_manual_completed_subjects`; la RPC conserva los registros ligados a grupos reales, valida carrera y cuatrimestre, aplica el alcance del usuario y audita altas y eliminaciones.
 
 Los coordinadores pueden crear y recuperar cohortes únicamente en carreras asignadas. Completar y archivar cohortes sigue siendo una operación exclusiva de administrador.
 

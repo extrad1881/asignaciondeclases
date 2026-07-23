@@ -150,6 +150,29 @@ test("el administrador crea una cohorte inicial sin duplicar trabajo por ciclo",
 });
 
 test("el grupo inicial permite seleccionar las materias ya cursadas de la cohorte", async ({ page }) => {
+  await login(page);
+  await page.goto("/grupos/nuevo");
+  const completedSection = page
+    .getByRole("heading", { name: "Materias ya cursadas" })
+    .locator("xpath=ancestor::section");
+  await expect(completedSection).toBeVisible();
+  await expect(completedSection).toContainText("Selecciona una cohorte");
+
+  await page.locator('select[name="career_id"]').selectOption(careerId);
+  await page.locator('select[name="cohort_group_id"]').selectOption(cohortId);
+
+  await expect(completedSection.getByRole("button", { name: /Agregar manualmente/ })).toBeVisible();
+  await completedSection.getByLabel("Cuatrimestre de ingreso de la cohorte").selectOption("2");
+  await expect(page.locator('select[name="quarter"]')).toHaveValue("2");
+  await expect(completedSection).toContainText(`${careerName} Materia Q1`);
+  await completedSection.getByLabel(`${careerName} Materia Q1`).check();
+
+  await expect(page.locator(`input[name="completed_subject_ids"][value="${firstQuarterSubjectId}"]`)).toHaveCount(1);
+  await page.getByLabel("Ver todos los cuatrimestres").check();
+  await expect(page.locator(`input[name="subject_ids"][value="${firstQuarterSubjectId}"]`)).toHaveCount(0);
+});
+
+test("el administrador modifica las materias cursadas desde el detalle de la cohorte", async ({ page }) => {
   const { error: advanceError } = await service
     .from("cohort_groups")
     .update({ current_quarter: 2 })
@@ -158,23 +181,43 @@ test("el grupo inicial permite seleccionar las materias ya cursadas de la cohort
 
   try {
     await login(page);
-    await page.goto("/grupos/nuevo");
-    const completedSection = page
-      .getByRole("heading", { name: "Materias ya cursadas" })
+    await page.goto(`/cohortes/${cohortId}`);
+
+    const editSection = page
+      .getByRole("heading", { name: "Modificar materias ya cursadas" })
       .locator("xpath=ancestor::section");
-    await expect(completedSection).toBeVisible();
-    await expect(completedSection).toContainText("Selecciona una cohorte");
+    const subjectCheckbox = editSection.getByLabel(`${careerName} Materia Q1`);
+    await subjectCheckbox.check();
+    await editSection.getByRole("button", { name: "Guardar materias cursadas" }).click();
+    await expect(
+      page.getByRole("status").filter({ hasText: "Historial actualizado con 1 materia" }).first()
+    ).toBeVisible();
 
-    await page.locator('select[name="career_id"]').selectOption(careerId);
-    await page.locator('select[name="cohort_group_id"]').selectOption(cohortId);
+    await expect.poll(async () => {
+      const { count } = await service
+        .from("cohort_subject_history")
+        .select("id", { count: "exact", head: true })
+        .eq("cohort_group_id", cohortId)
+        .eq("subject_id", firstQuarterSubjectId);
+      return count;
+    }).toBe(1);
 
-    await expect(completedSection).toContainText(`${careerName} Materia Q1`);
-    await completedSection.getByLabel(`${careerName} Materia Q1`).check();
+    await subjectCheckbox.uncheck();
+    await editSection.getByRole("button", { name: "Guardar materias cursadas" }).click();
+    await expect(
+      page.getByRole("status").filter({ hasText: "Historial actualizado con 0 materias" }).first()
+    ).toBeVisible();
 
-    await expect(page.locator(`input[name="completed_subject_ids"][value="${firstQuarterSubjectId}"]`)).toHaveCount(1);
-    await page.getByLabel("Ver todos los cuatrimestres").check();
-    await expect(page.locator(`input[name="subject_ids"][value="${firstQuarterSubjectId}"]`)).toHaveCount(0);
+    await expect.poll(async () => {
+      const { count } = await service
+        .from("cohort_subject_history")
+        .select("id", { count: "exact", head: true })
+        .eq("cohort_group_id", cohortId)
+        .eq("subject_id", firstQuarterSubjectId);
+      return count;
+    }).toBe(0);
   } finally {
+    await service.from("cohort_subject_history").delete().eq("cohort_group_id", cohortId);
     await service.from("cohort_groups").update({ current_quarter: 1 }).eq("id", cohortId);
   }
 });
