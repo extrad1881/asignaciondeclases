@@ -180,3 +180,65 @@ export async function archiveCohortStateAction(
     return actionFailure(error, "No se pudo archivar la cohorte.");
   }
 }
+
+export async function permanentDeleteCohortStateAction(
+  _previousState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  try {
+    const { supabase, profile } = await requireAuthenticatedProfile();
+    if (profile.role_code !== "admin") {
+      return actionFailure(new Error("Solo el administrador puede eliminar cohortes permanentemente."));
+    }
+
+    const parsed = cohortIdSchema.safeParse({ cohort_id: formData.get("cohort_id") });
+    if (!parsed.success) {
+      return actionFailure(new Error("Selecciona una cohorte válida."));
+    }
+
+    const { data: cohort, error: cohortError } = await supabase
+      .from("cohort_groups")
+      .select("id, name")
+      .eq("id", parsed.data.cohort_id)
+      .maybeSingle();
+    if (cohortError) throw new Error(getSafeErrorMessage(cohortError));
+    if (!cohort) return actionFailure(new Error("La cohorte ya no existe o no está disponible."));
+
+    const { count: linkedGroupCount, error: countError } = await supabase
+      .from("groups")
+      .select("id", { count: "exact", head: true })
+      .eq("cohort_group_id", cohort.id);
+    if (countError) throw new Error(getSafeErrorMessage(countError));
+
+    const { data: deletedCohort, error: deleteError } = await supabase
+      .from("cohort_groups")
+      .delete()
+      .eq("id", cohort.id)
+      .select("id")
+      .maybeSingle();
+    if (deleteError) throw new Error(getSafeErrorMessage(deleteError));
+    if (!deletedCohort) {
+      return actionFailure(new Error("No se pudo confirmar la eliminación de la cohorte."));
+    }
+
+    revalidatePath("/cohortes");
+    revalidatePath(`/cohortes/${cohort.id}`);
+    revalidatePath("/grupos");
+    revalidatePath("/coordinador");
+
+    const groupCount = linkedGroupCount ?? 0;
+    const preservedGroupsMessage = groupCount === 0
+      ? "No tenía grupos vinculados."
+      : groupCount === 1
+        ? "Su grupo vinculado se conservó y quedó desvinculado."
+        : `Sus ${groupCount} grupos vinculados se conservaron y quedaron desvinculados.`;
+    const redirectTo = formData.get("redirect_to") === "/cohortes" ? "/cohortes" : undefined;
+
+    return actionSuccess(
+      `Cohorte "${cohort.name}" eliminada permanentemente. ${preservedGroupsMessage}`,
+      redirectTo
+    );
+  } catch (error) {
+    return actionFailure(error, "No se pudo eliminar la cohorte permanentemente.");
+  }
+}

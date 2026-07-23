@@ -1,11 +1,12 @@
 export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { GitBranch, CheckCircle2 } from "lucide-react";
+import { GitBranch, CheckCircle2, Trash2 } from "lucide-react";
 import {
   advanceCohortAction,
   archiveCohortStateAction,
-  completeCohortStateAction
+  completeCohortStateAction,
+  permanentDeleteCohortStateAction
 } from "@/app/(dashboard)/actions/cohortes";
 import { SectionHeader } from "@/components/section-header";
 import { Badge } from "@/components/ui/badge";
@@ -121,6 +122,30 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ i
               variant="secondary"
             >
               Archivar
+            </ConfirmActionButton>
+          </ActionStateForm>
+        </section>
+      ) : null}
+
+      {isAdmin(profile.role_code) ? (
+        <section className="mb-5 rounded-md border border-red-200 bg-red-50 p-3">
+          <h2 className="text-sm font-semibold text-red-900">Zona de peligro</h2>
+          <p className="mt-1 text-xs text-red-800">
+            Elimina la cohorte y su historial de forma irreversible. Los grupos académicos se conservarán desvinculados.
+          </p>
+          <ActionStateForm action={permanentDeleteCohortStateAction} className="mt-3">
+            <input name="cohort_id" type="hidden" value={cohort.id} />
+            <input name="redirect_to" type="hidden" value="/cohortes" />
+            <ConfirmActionButton
+              affectedName={cohort.name}
+              className="h-9 px-3 text-xs"
+              confirmLabel="Eliminar permanentemente"
+              danger
+              description="Se eliminarán la cohorte y su historial. Los grupos vinculados se conservarán, pero dejarán de pertenecer a esta cohorte. Esta acción no se puede deshacer."
+              title="Eliminar cohorte permanentemente"
+            >
+              <Trash2 className="h-3 w-3" />
+              Eliminar permanentemente
             </ConfirmActionButton>
           </ActionStateForm>
         </section>

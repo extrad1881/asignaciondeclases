@@ -244,7 +244,7 @@ export function GroupForm({
                   setQuarter(cohort.current_quarter);
                   setModality(cohort.modality);
                   setShift(cohort.shift);
-                  setShowCompletedSubjects(cohort.current_quarter > 1);
+                  setShowCompletedSubjects(true);
                 } else {
                   setShowCompletedSubjects(false);
                 }
@@ -263,6 +263,86 @@ export function GroupForm({
             </span>
           </label>
         ) : null}
+      </section>
+
+      <section className="rounded-md border border-line bg-card p-4 shadow-subtle">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-ink">Materias ya cursadas</h2>
+            <p className="text-sm text-muted">
+              Marca las materias que esta cohorte ya tomó en cuatrimestres anteriores. No podrán agregarse nuevamente al grupo.
+            </p>
+          </div>
+          {selectedCohort && subjectsBeforeCurrentQuarter.length > 0 ? (
+            <button
+              aria-controls="completed-cohort-subjects"
+              aria-expanded={showCompletedSubjects}
+              className="focus-ring inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-md border border-line bg-background px-3 py-2 text-sm font-medium text-ink transition hover:bg-accent"
+              onClick={() => setShowCompletedSubjects(!showCompletedSubjects)}
+              type="button"
+            >
+              {completedSubjectIds.size > 0 ? `${completedSubjectIds.size} seleccionadas` : "Sin selección"}
+              <span aria-hidden>{showCompletedSubjects ? "▲" : "▼"}</span>
+            </button>
+          ) : null}
+        </div>
+
+        {!selectedCohort ? (
+          <div className="mt-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+            Selecciona una cohorte para indicar las materias que ya cursó antes de crear su primer grupo.
+          </div>
+        ) : subjectsBeforeCurrentQuarter.length === 0 ? (
+          <div className="mt-3 rounded-md border border-line bg-panel px-3 py-2 text-sm text-muted">
+            Esta cohorte no tiene materias de cuatrimestres anteriores para seleccionar.
+          </div>
+        ) : showCompletedSubjects ? (
+          <div className="mt-3 space-y-3" id="completed-cohort-subjects">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={() => setCompletedSubjectIds(new Set(subjectsBeforeCurrentQuarter.map((subject) => subject.id)))}
+                type="button"
+                variant="secondary"
+              >
+                Marcar todas las anteriores
+              </Button>
+              <Button
+                disabled={completedSubjectIds.size === 0}
+                onClick={() => setCompletedSubjectIds(new Set())}
+                type="button"
+                variant="ghost"
+              >
+                Limpiar selección
+              </Button>
+            </div>
+            {Array.from(subjectsByQuarter.entries())
+              .sort(([a], [b]) => a - b)
+              .map(([q, qSubjects]) => (
+                <div key={q}>
+                  <h3 className="mb-2 text-xs font-semibold uppercase text-muted">Cuatrimestre {q}</h3>
+                  <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                    {qSubjects.map((subject) => (
+                      <label
+                        className="flex items-center gap-2 rounded-md border border-line bg-panel p-2 text-sm"
+                        key={subject.id}
+                      >
+                        <input
+                          checked={completedSubjectIds.has(subject.id)}
+                          className="h-4 w-4 accent-brand"
+                          onChange={() => toggleCompletedSubject(subject.id)}
+                          type="checkbox"
+                        />
+                        {subject.name}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+          </div>
+        ) : null}
+
+        {Array.from(completedSubjectIds).map((subjectId) => (
+          <input key={`completed-${subjectId}`} name="completed_subject_ids" type="hidden" value={subjectId} />
+        ))}
       </section>
 
       <section className="rounded-md border border-line bg-card p-4 shadow-subtle">
@@ -381,74 +461,6 @@ export function GroupForm({
               </div>
             ))}
           </div>
-        </section>
-      ) : null}
-
-      {selectedCohort && subjectsBeforeCurrentQuarter.length > 0 ? (
-        <section className="rounded-md border border-line bg-card p-4 shadow-subtle">
-          <button
-            className="flex w-full items-center justify-between text-left"
-            onClick={() => setShowCompletedSubjects(!showCompletedSubjects)}
-            type="button"
-          >
-            <div>
-              <h2 className="text-lg font-semibold text-ink">Materias ya cursadas</h2>
-              <p className="text-sm text-muted">
-                Marca las materias que esta cohorte ya tomó en cuatrimestres anteriores. No podrán agregarse nuevamente al grupo.
-              </p>
-            </div>
-            <span className="flex items-center gap-2 text-sm text-muted">
-              {completedSubjectIds.size > 0 ? `${completedSubjectIds.size} seleccionadas` : "Sin selección"}
-              {showCompletedSubjects ? "▲" : "▼"}
-            </span>
-          </button>
-          {showCompletedSubjects ? (
-            <div className="mt-3 space-y-3">
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  onClick={() => setCompletedSubjectIds(new Set(subjectsBeforeCurrentQuarter.map((subject) => subject.id)))}
-                  type="button"
-                  variant="secondary"
-                >
-                  Marcar todas las anteriores
-                </Button>
-                <Button
-                  disabled={completedSubjectIds.size === 0}
-                  onClick={() => setCompletedSubjectIds(new Set())}
-                  type="button"
-                  variant="ghost"
-                >
-                  Limpiar selección
-                </Button>
-              </div>
-              {Array.from(subjectsByQuarter.entries())
-                .sort(([a], [b]) => a - b)
-                .map(([q, qSubjects]) => (
-                  <div key={q}>
-                    <h3 className="mb-2 text-xs font-semibold uppercase text-muted">Cuatrimestre {q}</h3>
-                    <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
-                      {qSubjects.map((subject) => (
-                        <label
-                          className="flex items-center gap-2 rounded-md border border-line bg-panel p-2 text-sm"
-                          key={subject.id}
-                        >
-                          <input
-                            checked={completedSubjectIds.has(subject.id)}
-                            className="h-4 w-4 accent-brand"
-                            onChange={() => toggleCompletedSubject(subject.id)}
-                            type="checkbox"
-                          />
-                          {subject.name}
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-            </div>
-          ) : null}
-          {Array.from(completedSubjectIds).map((subjectId) => (
-            <input key={`completed-${subjectId}`} name="completed_subject_ids" type="hidden" value={subjectId} />
-          ))}
         </section>
       ) : null}
 

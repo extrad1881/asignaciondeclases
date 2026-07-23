@@ -1,4 +1,4 @@
-import { GitBranch, Plus } from "lucide-react";
+import { GitBranch, Plus, Trash2 } from "lucide-react";
 import { ActionStateForm } from "@/components/ui/action-state-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,8 @@ import { Select } from "@/components/ui/select";
 import {
   advanceCohortAction,
   completeCohortStateAction,
-  createCohortAction
+  createCohortAction,
+  permanentDeleteCohortStateAction
 } from "@/app/(dashboard)/actions/cohortes";
 
 export type Cohort = {
@@ -37,33 +38,53 @@ export function CohortCard({ cohort, canAdminister }: { cohort: Cohort; canAdmin
   return (
     <DataCard
       actions={
-        cohort.status === "active" ? (
+        cohort.status === "active" || canAdminister ? (
           <div className="flex w-full flex-col gap-2">
-            <ActionStateForm action={advanceCohortAction}>
-              <input name="cohort_id" type="hidden" value={cohort.id} />
-              <ConfirmActionButton
-                affectedName={cohort.name}
-                className="h-10 w-full"
-                confirmLabel="Generar grupo pendiente"
-                description="Acción de recuperación: solo se creará un grupo si esta cohorte todavía no tiene uno en el ciclo activo. Nunca crea duplicados."
-                title="Recuperar automatización de cohorte"
-              >
-                <GitBranch className="h-4 w-4" aria-hidden />
-                Generar grupo pendiente
-              </ConfirmActionButton>
-            </ActionStateForm>
+            {cohort.status === "active" ? (
+              <>
+                <ActionStateForm action={advanceCohortAction}>
+                  <input name="cohort_id" type="hidden" value={cohort.id} />
+                  <ConfirmActionButton
+                    affectedName={cohort.name}
+                    className="h-10 w-full"
+                    confirmLabel="Generar grupo pendiente"
+                    description="Acción de recuperación: solo se creará un grupo si esta cohorte todavía no tiene uno en el ciclo activo. Nunca crea duplicados."
+                    title="Recuperar automatización de cohorte"
+                  >
+                    <GitBranch className="h-4 w-4" aria-hidden />
+                    Generar grupo pendiente
+                  </ConfirmActionButton>
+                </ActionStateForm>
+                {canAdminister ? (
+                  <ActionStateForm action={completeCohortStateAction}>
+                    <input name="cohort_id" type="hidden" value={cohort.id} />
+                    <ConfirmActionButton
+                      affectedName={cohort.name}
+                      className="h-10 w-full"
+                      confirmLabel="Completar cohorte"
+                      description={`Se marcará la cohorte ${cohort.name} como completada.`}
+                      title="Completar cohorte"
+                      variant="secondary"
+                    >
+                      Completar
+                    </ConfirmActionButton>
+                  </ActionStateForm>
+                ) : null}
+              </>
+            ) : null}
             {canAdminister ? (
-              <ActionStateForm action={completeCohortStateAction}>
+              <ActionStateForm action={permanentDeleteCohortStateAction}>
                 <input name="cohort_id" type="hidden" value={cohort.id} />
                 <ConfirmActionButton
                   affectedName={cohort.name}
                   className="h-10 w-full"
-                  confirmLabel="Completar cohorte"
-                  description={`Se marcará la cohorte ${cohort.name} como completada.`}
-                  title="Completar cohorte"
-                  variant="secondary"
+                  confirmLabel="Eliminar permanentemente"
+                  danger
+                  description="Se eliminarán la cohorte y su historial. Los grupos vinculados se conservarán, pero dejarán de pertenecer a esta cohorte. Esta acción no se puede deshacer."
+                  title="Eliminar cohorte permanentemente"
                 >
-                  Completar
+                  <Trash2 className="h-4 w-4" aria-hidden />
+                  Eliminar permanentemente
                 </ConfirmActionButton>
               </ActionStateForm>
             ) : null}

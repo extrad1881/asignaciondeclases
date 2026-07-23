@@ -10,6 +10,7 @@ const cycleName = `Ciclo E2E ${runId}`;
 const careerCode = `E2E${runId}`;
 const careerName = `Carrera E2E ${runId}`;
 const cohortName = `Cohorte E2E ${runId}`;
+const deletedCohortName = `Cohorte eliminable E2E ${runId}`;
 const service = createServiceTestClient();
 const runCycleAutomation = process.env.PLAYWRIGHT_CYCLE_AUTOMATION === "true";
 let careerId = "";
@@ -92,6 +93,7 @@ test.afterAll(async () => {
 
   const { error: cohortError } = await service.from("cohort_groups").delete().eq("name", cohortName);
   if (cohortError) throw new Error(`No se pudo limpiar la cohorte E2E: ${cohortError.message}`);
+  await service.from("cohort_groups").delete().eq("name", deletedCohortName);
 
   const { error: cycleError } = await service.from("academic_cycles").delete().eq("code", cycleCode);
   if (cycleError) throw new Error(`No se pudo limpiar el ciclo E2E: ${cycleError.message}`);
@@ -157,12 +159,15 @@ test("el grupo inicial permite seleccionar las materias ya cursadas de la cohort
   try {
     await login(page);
     await page.goto("/grupos/nuevo");
-    await page.locator('select[name="career_id"]').selectOption(careerId);
-    await page.locator('select[name="cohort_group_id"]').selectOption(cohortId);
-
     const completedSection = page
       .getByRole("heading", { name: "Materias ya cursadas" })
       .locator("xpath=ancestor::section");
+    await expect(completedSection).toBeVisible();
+    await expect(completedSection).toContainText("Selecciona una cohorte");
+
+    await page.locator('select[name="career_id"]').selectOption(careerId);
+    await page.locator('select[name="cohort_group_id"]').selectOption(cohortId);
+
     await expect(completedSection).toContainText(`${careerName} Materia Q1`);
     await completedSection.getByLabel(`${careerName} Materia Q1`).check();
 
@@ -172,6 +177,43 @@ test("el grupo inicial permite seleccionar las materias ya cursadas de la cohort
   } finally {
     await service.from("cohort_groups").update({ current_quarter: 1 }).eq("id", cohortId);
   }
+});
+
+test("el administrador elimina permanentemente una cohorte desde el catálogo", async ({ page }) => {
+  const { data: disposableCohort, error: createError } = await service
+    .from("cohort_groups")
+    .insert({
+      name: deletedCohortName,
+      career_id: careerId,
+      modality: "escolarizado",
+      shift: "vespertino",
+      current_quarter: 1,
+      status: "active"
+    })
+    .select("id")
+    .single();
+  expect(createError).toBeNull();
+  expect(disposableCohort?.id).toBeTruthy();
+
+  await login(page);
+  await page.goto("/cohortes");
+
+  const cohortRow = page.getByRole("row").filter({ hasText: deletedCohortName });
+  await expect(cohortRow).toBeVisible();
+  await cohortRow.getByRole("button", { name: "Eliminar permanentemente" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Eliminar cohorte permanentemente" });
+  await expect(dialog).toContainText("Los grupos vinculados se conservarán");
+  await dialog.getByRole("button", { name: "Eliminar permanentemente" }).click();
+
+  await expect(cohortRow).toHaveCount(0);
+  await expect.poll(async () => {
+    const { count } = await service
+      .from("cohort_groups")
+      .select("id", { count: "exact", head: true })
+      .eq("id", disposableCohort?.id ?? "");
+    return count;
+  }).toBe(0);
 });
 
 test("el formulario de grupos muestra todas las materias activas de cada carrera", async ({ page }) => {

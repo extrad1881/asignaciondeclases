@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { GitBranch } from "lucide-react";
+import { GitBranch, Trash2 } from "lucide-react";
 import {
   advanceCohortAction,
   archiveCohortStateAction,
-  completeCohortStateAction
+  completeCohortStateAction,
+  permanentDeleteCohortStateAction
 } from "@/app/(dashboard)/actions/cohortes";
 import { SectionHeader } from "@/components/section-header";
 import { CohortCard, CohortFormFields } from "@/components/cohortes/cohort-card";
@@ -134,6 +135,22 @@ export default async function CohortesPage() {
                         variant="secondary"
                       >
                         Archivar
+                      </ConfirmActionButton>
+                    </ActionStateForm>
+                  ) : null}
+                  {canAdministerCohorts ? (
+                    <ActionStateForm action={permanentDeleteCohortStateAction}>
+                      <input name="cohort_id" type="hidden" value={cohort.id} />
+                      <ConfirmActionButton
+                        affectedName={cohort.name}
+                        className="h-8 px-3 text-xs"
+                        confirmLabel="Eliminar permanentemente"
+                        danger
+                        description="Se eliminarán la cohorte y su historial. Los grupos vinculados se conservarán, pero dejarán de pertenecer a esta cohorte. Esta acción no se puede deshacer."
+                        title="Eliminar cohorte permanentemente"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Eliminar permanentemente
                       </ConfirmActionButton>
                     </ActionStateForm>
                   ) : null}
